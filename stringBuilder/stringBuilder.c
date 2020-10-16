@@ -1,24 +1,13 @@
 #include "stringBuilder.h"
 
-int initStringBuilder(tStringBuilder* builder) {
-    tStringBuilder* _builder = (tStringBuilder*)malloc(sizeof(tStringBuilder));
-    if (_builder == NULL)
-        return 1;
-    _builder->value = (char*)malloc(sizeof(char) * 10);
-    if (_builder->value == NULL) {
-        free(_builder);
-        return 1;
-    }
-    _builder->value[0] = '\0';
-    _builder->allocated = 10;
-    _builder->len = 0;
-    builder = _builder;
-    return 0;
+void initStringBuilder(tStringBuilder* builder) {
+    builder->value = "";
+    builder->allocated = 0;
+    builder->len = 0;
 }
 
 void destructBuilder(tStringBuilder* builder){
     free(builder->value);
-    free(builder);
 }
 
 int appendChar(tStringBuilder* builder, char c) {
