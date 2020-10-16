@@ -26,7 +26,7 @@ void getNextChar() {
  * @return true is a letter
  * @return false is not a letter
  */
-bool isActLetter(){
+bool isActLetter() {
     return ((actualChar > 'a' && actualChar < 'z') || (actualChar > 'A' && actualChar < 'Z') || actualChar == '_') ? true : false;
 }
 
@@ -36,8 +36,23 @@ bool isActLetter(){
  * @return true is number
  * @return false in not number
  */
-bool isActNumber(){
+bool isActNumber() {
     return (actualChar > '0' && actualChar < '9') ? true : false;
+}
+
+/**
+ * @brief Check if char array contains actualChar.
+ * 
+ * @param arr Char array
+ * @return true if is in array
+ * @return false if is not in array 
+ */
+bool is(char arr[]){
+    for (int i = 0; i < sizeof(arr) / sizeof(arr[0]); i++) {
+        if (actualChar == arr[i]) 
+            return true;
+    }
+    return false;
 }
 
 /**
@@ -49,4 +64,5 @@ bool isActNumber(){
  */
 tToken getToken(EOLflag eolFlag, int* errCode) {
     getNextChar();
+
 }
