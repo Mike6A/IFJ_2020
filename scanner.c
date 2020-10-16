@@ -12,7 +12,7 @@
 
 char actualChar;
 bool processed = true;
-char *actualString;
+char *actualString = "";
 
 /**
  * @brief Get the next char from stdin and put into actualChar variable.
@@ -56,6 +56,10 @@ bool is(char arr[]){
     return false;
 }
 
+void stringBuilder(char c){
+    strcat(actualString, c);
+}
+
 /**
  * @brief Get next token from input.
  * 
@@ -72,6 +76,9 @@ tToken getToken(EOLflag eolFlag, int* errCode) {
         return state_EOLRequired(eolFlag, errCode);
     }
 
+    if (isActLetter()){
+        return state_ID(eolFlag, errCode);
+    }
 }
 
 tToken state_EOLRequired(EOLflag eolFlag, int* errCode) {
@@ -88,4 +95,13 @@ tToken state_EOLRequired(EOLflag eolFlag, int* errCode) {
         }
         return token;
     }
+}
+
+tToken state_ID(EOLflag eolFlag, int* errCode) {
+        do {
+            getNextChar();
+        } while (isActLetter());
+        processed = false;
+
+        
 }

@@ -1,6 +1,7 @@
 #include "stdio.h"
 #include "stdlib.h"
 #include "stdbool.h"
+#include "string.h"
 
 typedef enum { KW, INT, DOUBLE, STRING, NONE } TokenType;
 typedef enum { EOL_REQUIRED, EOL_OPTIONAL, EOL_FORBIDEN } EOLflag;
