@@ -8,7 +8,7 @@
  * @copyright Copyright (c) 2020
  * 
  */
-#include "scenner.h"
+#include "scanner.h"
 
 char actualChar;
 bool processed = true;
