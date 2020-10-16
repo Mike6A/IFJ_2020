@@ -45,18 +45,22 @@ void cleanBuilder(tStringBuilder* builder){
     }
 }
 
-char* getStringFromBuilder(tStringBuilder* builder) {
+int getStringFromBuilder(tStringBuilder* builder, char** dest) {
     if (builder->len == 0 ) 
-        return "";
+        *dest = "";
     char* _new;
     _new = (char*)malloc(builder->len + 1);
+    if (_new == NULL)
+        return 1;
     for (int i = 0; i < builder->len + 1; i++)
         _new[i] = builder->value[i];
-    return _new;
+    *dest = _new;
+    return 0;
 }
 
-char* getStringAndCleanBuilder(tStringBuilder* builder){
-    char* value = getStringFromBuilder(builder);
+int getStringAndCleanBuilder(tStringBuilder* builder, char** dest){
+    if(getStringFromBuilder(builder, dest) == 1)
+        return 1;
     cleanBuilder(builder);
-    return value;
+    return 0;
 }

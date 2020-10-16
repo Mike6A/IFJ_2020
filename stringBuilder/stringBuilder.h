@@ -13,5 +13,5 @@ void initStringBuilder(tStringBuilder* builder);
 void destructBuilder(tStringBuilder* builder);
 int appendChar(tStringBuilder* builder, char c);
 void cleanBuilder(tStringBuilder* builder);
-char* getStringFromBuilder(tStringBuilder* builder);
-char* getStringAndCleanBuilder(tStringBuilder* builder);
+int getStringFromBuilder(tStringBuilder* builder, char** dest);
+int getStringAndCleanBuilder(tStringBuilder* builder, char** dest);
