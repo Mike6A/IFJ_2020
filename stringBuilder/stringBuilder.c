@@ -11,7 +11,7 @@ void destructBuilder(tStringBuilder* builder){
 }
 
 int appendChar(tStringBuilder* builder, char c) {
-    if (builder->allocated - 1 <= builder->len) {
+    if ((int)builder->allocated - 1 <= (int)builder->len) {
         char* new_string;
         new_string = (char*)malloc(builder->allocated + 10*sizeof(char));
         if (new_string != NULL) {
@@ -41,6 +41,7 @@ int appendChar(tStringBuilder* builder, char c) {
 void cleanBuilder(tStringBuilder* builder){
     if (builder->len > 0 ) {
         builder->value[0] = '\0'; 
+        builder-> len = 0;
     }
 }
 
