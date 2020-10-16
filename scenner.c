@@ -11,6 +11,7 @@
 #include "scenner.h"
 
 char actualChar;
+bool processed = true;
 char *actualString;
 
 /**
@@ -63,6 +64,28 @@ bool is(char arr[]){
  * @return tToken Return new token
  */
 tToken getToken(EOLflag eolFlag, int* errCode) {
-    getNextChar();
+    if (processed) {
+        getNextChar();
+    }
 
+    if (eolFlag == EOL_REQUIRED){
+        return state_EOLRequired(eolFlag, errCode);
+    }
+
+}
+
+tToken state_EOLRequired(EOLflag eolFlag, int* errCode) {
+    tToken token = {.value = "", .type = NONE};
+    //check if is eol required
+    if (eolFlag == EOL_REQUIRED){
+        while (is(SEPARATORS)){
+            getNextChar();
+        }
+        if (actualChar == '\n') {
+            token.value = "\n";
+        } else {
+            *errCode = 1;
+        }
+        return token;
+    }
 }
