@@ -94,16 +94,24 @@ tToken state_EOLRequired(EOLflag eolFlag, int* errCode) {
 }
 
 tToken state_ID(EOLflag eolFlag, int* errCode) {
+    tToken token = {.value = "", .type = NONE};
 	tStringBuilder sb = {.value = "", .len = 0, .allocated = 0 };
     do {
-		appendChar(&sb, actualChar);
+		if (appendChar(&sb, actualChar) == 1){
+			*errCode = 99;
+			return token;
+		}
   		getNextChar();
     } while (isActLetter());
     processed = false;
 
-	char* word = getStringFromBuilder(&sb);
+	char* word;
+	if (getStringFromBuilder(&sb, &word) == 1){
+		*errCode = 99;
+		return token;
+	}
+	token.value = word;
 	destructBuilder(&sb);
-    tToken token = {.value = word, .type = NONE};
     //check if is KEYWORD 
     for (int i = 0; i < sizeof(KEYWORDS) / sizeof(KEYWORDS[0]); i++) {
         if (strcmp(word, KEYWORDS[i])){
