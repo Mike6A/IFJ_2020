@@ -2,8 +2,9 @@
 #include "stdlib.h"
 #include "stdbool.h"
 #include "string.h"
+#include "stringBuilder/stringBuilder.h"
 
-typedef enum { KW, INT, DOUBLE, STRING, NONE } TokenType;
+typedef enum { ID, KW, INT, DOUBLE, STRING, NONE } TokenType;
 typedef enum { EOL_REQUIRED, EOL_OPTIONAL, EOL_FORBIDEN } EOLflag;
 
 char RUNE_LITERALS[] = {'a', 'b', 'f', 'n', 'r', 't', 'v', '\\', '"', '\''};
@@ -20,7 +21,6 @@ bool isActLetter();
 bool isActNumber();
 bool is(char arr[]);
 
-bool appendChar();
 void clearString();
 char* copyString();
 
