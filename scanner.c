@@ -56,10 +56,6 @@ bool is(char arr[]){
     return false;
 }
 
-void stringBuilder(char c){
-    strcat(actualString, c);
-}
-
 /**
  * @brief Get next token from input.
  * 
@@ -98,10 +94,24 @@ tToken state_EOLRequired(EOLflag eolFlag, int* errCode) {
 }
 
 tToken state_ID(EOLflag eolFlag, int* errCode) {
-        do {
-            getNextChar();
-        } while (isActLetter());
-        processed = false;
+	tStringBuilder sb = {.value = "", .len = 0, .allocated = 0 };
+    do {
+		appendChar(&sb, actualChar);
+  		getNextChar();
+    } while (isActLetter());
+    processed = false;
 
-        
+	char* word = getStringFromBuilder(&sb);
+	destructBuilder(&sb);
+    tToken token = {.value = word, .type = NONE};
+    //check if is KEYWORD 
+    for (int i = 0; i < sizeof(KEYWORDS) / sizeof(KEYWORDS[0]); i++) {
+        if (strcmp(word, KEYWORDS[i])){
+			token.type = KW;
+			return token;
+		}
+    }
+
+	token.type = ID;
+    return token;
 }
