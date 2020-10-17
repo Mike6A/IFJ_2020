@@ -43,7 +43,7 @@ int appendChar(tStringBuilder* builder, char c) {
 }
 
 void cleanBuilder(tStringBuilder* builder){
-    if (builder->len > 0 ) {
+    if (builder->value != NULL && builder->len > 0 ) {
         builder->value[0] = '\0'; 
         builder-> len = 0;
     }
