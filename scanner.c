@@ -15,7 +15,7 @@ int initTokenizer(tTokenizer* tokenizer) {
     tokenizer->errorCode = 0;
     tokenizer->isEOF = false;
     
-    tToken token = {.value = "", .type = NONE};
+    tToken token = {.value = "", .type = t_NONE};
     tokenizer->outputToken = token;
 
     tStringBuilder sb;
@@ -70,7 +70,7 @@ bool isSeparator(tTokenizer* tokenizer){
 }
 
 void state_EOF(tTokenizer* tokenizer){
-    tokenizer->outputToken.type = token_EOF;
+    tokenizer->outputToken.type = t_EOF;
 }
 
 /**
@@ -122,7 +122,7 @@ void state_EOLRequired(tTokenizer* tokenizer) {
         }
         if (tokenizer->actualChar == '\n') {
             tokenizer->outputToken.value = "\n";
-            tokenizer->outputToken.type = NONE;
+            tokenizer->outputToken.type = t_NONE;
         } else {
             tokenizer->errorCode = 1;
         }
@@ -148,12 +148,12 @@ void state_ID(tTokenizer* tokenizer) {
     //check if is KEYWORD 
     for (int i = 0; i < sizeof(KEYWORDS) / sizeof(KEYWORDS[0]); i++) {
         if (strcmp(tokenizer->outputToken.value, KEYWORDS[i]) == 0){
-			tokenizer->outputToken.type = KW;
+			tokenizer->outputToken.type = t_KW;
             return;
 		}
     }
 
-	tokenizer->outputToken.type = ID;
+	tokenizer->outputToken.type = t_ID;
 }
 
 void state_Num(tTokenizer* tokenizer){
@@ -187,7 +187,7 @@ void state_Num(tTokenizer* tokenizer){
 		tokenizer->errorCode = 99;
         return;
 	}
-    tokenizer->outputToken.type = INT;
+    tokenizer->outputToken.type = t_INT;
     tokenizer->processed = false;
 }
 
@@ -216,7 +216,7 @@ void state_BasicDouble(tTokenizer* tokenizer){
 		tokenizer->errorCode = 99;
         return;
 	}
-    tokenizer->outputToken.type = DOUBLE;
+    tokenizer->outputToken.type = t_DOUBLE;
     tokenizer->processed = false;
 }
 
@@ -237,7 +237,7 @@ void state_ExpNum(tTokenizer* tokenizer){
 		    tokenizer->errorCode = 99;
             return;
 	    }
-        tokenizer->outputToken.type = DOUBLE;
+        tokenizer->outputToken.type = t_DOUBLE;
     } else {
         tokenizer->errorCode = 1;
     }
@@ -249,8 +249,22 @@ void state_EOL(tTokenizer* tokenizer){
         tokenizer->errorCode = 1;
     } else {
         tokenizer->outputToken.value = "";
-        tokenizer->outputToken.type = token_EOL;
+        tokenizer->outputToken.type = t_EOL;
     }
     getNextChar(tokenizer);
     tokenizer->processed = false;
+}
+
+int main() {
+    tTokenizer tokenizer;
+    initTokenizer(&tokenizer);
+    do {
+        getToken(&tokenizer); 
+        printf("%s\t\t| %d\n", tokenizer.outputToken.value, tokenizer.outputToken.type);
+        if (tokenizer.outputToken.type != t_EOL && tokenizer.outputToken.type != t_EOF)
+            free(tokenizer.outputToken.value);
+    } while (tokenizer.outputToken.type != t_EOF);
+    
+    destructBuilder(&tokenizer.sb);
+	return 0;
 }
