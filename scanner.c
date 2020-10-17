@@ -10,15 +10,34 @@
  */
 #include "scanner.h"
 
-char actualChar;
-bool processed = true;
-char *actualString = "";
+int initTokenizer(tTokenizer* tokenizer) {
+    tokenizer->eolFlag = EOL_OPTIONAL;
+    tokenizer->errorCode = 0;
+    tokenizer->isEOF = false;
+    
+    tToken token = {.value = "", .type = NONE};
+    tokenizer->outputToken = token;
 
-/**
- * @brief Get the next char from stdin and put into actualChar variable.
- */
-void getNextChar() {
-    actualChar = getc(stdin);
+    tStringBuilder sb;
+    if (initStringBuilder(&sb) == 1)
+        return 1;
+    tokenizer->sb = sb; 
+    return 0;
+}
+
+void getNextChar(tTokenizer* tokenizer) {
+    int _char = fgetc(stdin);
+    if (_char == EOF){
+        if (feof(stdin)){
+            tokenizer->actualChar = 1;
+            tokenizer->isEOF = true;
+            return;
+        } else {
+            tokenizer->errorCode = 99;
+            return;
+        }
+    } 
+    tokenizer->actualChar = _char;
 }
 
 /**
@@ -27,8 +46,9 @@ void getNextChar() {
  * @return true is a letter
  * @return false is not a letter
  */
-bool isActLetter() {
-    return ((actualChar > 'a' && actualChar < 'z') || (actualChar > 'A' && actualChar < 'Z') || actualChar == '_') ? true : false;
+bool isActLetter(tTokenizer* tokenizer) {
+    char actualChar = tokenizer->actualChar;
+    return ((actualChar >= 'a' && actualChar <= 'z') || (actualChar >= 'A' && actualChar <= 'Z') || actualChar == '_') ? true : false;
 }
 
 /**
@@ -37,23 +57,20 @@ bool isActLetter() {
  * @return true is number
  * @return false in not number
  */
-bool isActNumber() {
-    return (actualChar > '0' && actualChar < '9') ? true : false;
+bool isActNumber(tTokenizer* tokenizer) {
+    char actualChar = tokenizer->actualChar;
+    return (actualChar >= '0' && actualChar <= '9') ? true : false;
 }
 
-/**
- * @brief Check if char array contains actualChar.
- * 
- * @param arr Char array
- * @return true if is in array
- * @return false if is not in array 
- */
-bool is(char arr[]){
-    for (int i = 0; i < sizeof(arr) / sizeof(arr[0]); i++) {
-        if (actualChar == arr[i]) 
+bool isSeparator(tTokenizer* tokenizer){
+    for (int i = 0; i < sizeof(SEPARATORS) / sizeof(SEPARATORS[0]); i++)
+        if (tokenizer->actualChar == SEPARATORS[i]) 
             return true;
-    }
     return false;
+}
+
+void state_EOF(tTokenizer* tokenizer){
+    tokenizer->outputToken.type = token_EOF;
 }
 
 /**
@@ -63,63 +80,177 @@ bool is(char arr[]){
  * @param errCode Pointer to error code. Sets when an error occurs
  * @return tToken Return new token
  */
-tToken getToken(EOLflag eolFlag, int* errCode) {
-    if (processed) {
-        getNextChar();
+void getToken(tTokenizer* tokenizer) {
+    if (tokenizer->processed) 
+        getNextChar(tokenizer);
+
+    if (tokenizer->isEOF){
+        state_EOF(tokenizer);
+        return;
     }
 
-    if (eolFlag == EOL_REQUIRED){
-        return state_EOLRequired(eolFlag, errCode);
+    if (tokenizer->eolFlag == EOL_REQUIRED){
+        state_EOLRequired(tokenizer);
+        return;
     }
 
-    if (isActLetter()){
-        return state_ID(eolFlag, errCode);
+    while (isSeparator(tokenizer)){
+        getNextChar(tokenizer);
+    }
+
+    if (isActLetter(tokenizer)){
+        state_ID(tokenizer);
+        return;
+    }
+
+    if (isActNumber(tokenizer)){
+        state_Num(tokenizer);
+        return;
+    }
+
+    if (tokenizer->actualChar == '\n'){
+        state_EOL(tokenizer);
+        return;
     }
 }
 
-tToken state_EOLRequired(EOLflag eolFlag, int* errCode) {
-    tToken token = {.value = "", .type = NONE};
+void state_EOLRequired(tTokenizer* tokenizer) {
     //check if is eol required
-    if (eolFlag == EOL_REQUIRED){
-        while (is(SEPARATORS)){
-            getNextChar();
+    if (tokenizer->eolFlag == EOL_REQUIRED){
+        while (isSeparator(tokenizer)){
+            getNextChar(tokenizer);
         }
-        if (actualChar == '\n') {
-            token.value = "\n";
+        if (tokenizer->actualChar == '\n') {
+            tokenizer->outputToken.value = "\n";
+            tokenizer->outputToken.type = NONE;
         } else {
-            *errCode = 1;
+            tokenizer->errorCode = 1;
         }
-        return token;
     }
 }
 
-tToken state_ID(EOLflag eolFlag, int* errCode) {
-    tToken token = {.value = "", .type = NONE};
-	tStringBuilder sb = {.value = "", .len = 0, .allocated = 0 };
+void state_ID(tTokenizer* tokenizer) {
+    cleanBuilder(&tokenizer->sb);
     do {
-		if (appendChar(&sb, actualChar) == 1){
-			*errCode = 99;
-			return token;
+		if (appendChar(&tokenizer->sb, tokenizer->actualChar) == 1){
+			tokenizer->errorCode = 99;
+            return;
 		}
-  		getNextChar();
-    } while (isActLetter());
-    processed = false;
+  		getNextChar(tokenizer);
+    } while (isActLetter(tokenizer) || isActNumber(tokenizer));
+    tokenizer->processed = false;
 
-	char* word;
-	if (getStringFromBuilder(&sb, &word) == 1){
-		*errCode = 99;
-		return token;
+	if (getStringFromBuilder(&tokenizer->sb, &tokenizer->outputToken.value) == 1){
+		tokenizer->errorCode = 99;
+        return;
 	}
-	token.value = word;
-	destructBuilder(&sb);
+
     //check if is KEYWORD 
     for (int i = 0; i < sizeof(KEYWORDS) / sizeof(KEYWORDS[0]); i++) {
-        if (strcmp(word, KEYWORDS[i])){
-			token.type = KW;
-			return token;
+        if (strcmp(tokenizer->outputToken.value, KEYWORDS[i]) == 0){
+			tokenizer->outputToken.type = KW;
+            return;
 		}
     }
 
-	token.type = ID;
-    return token;
+	tokenizer->outputToken.type = ID;
+}
+
+void state_Num(tTokenizer* tokenizer){
+    cleanBuilder(&tokenizer->sb);
+    do {
+		if (appendChar(&tokenizer->sb, tokenizer->actualChar) == 1){
+			tokenizer->errorCode = 99;
+            return;
+		}
+  		getNextChar(tokenizer);
+    } while (isActNumber(tokenizer));
+
+    //num with decimal part
+    if (tokenizer->actualChar == '.'){
+        state_BasicDouble(tokenizer);
+        return;
+    }
+
+    //exp num without decimal part
+    if (tokenizer->actualChar == 'e' || tokenizer->actualChar == 'E'){
+		if (appendChar(&tokenizer->sb, tokenizer->actualChar) == 1){
+			tokenizer->errorCode = 99;
+            return;
+		}
+        state_ExpNum(tokenizer);
+        return;
+    }
+
+    //return token with INT
+	if (getStringFromBuilder(&tokenizer->sb, &tokenizer->outputToken.value) == 1){
+		tokenizer->errorCode = 99;
+        return;
+	}
+    tokenizer->outputToken.type = INT;
+    tokenizer->processed = false;
+}
+
+void state_BasicDouble(tTokenizer* tokenizer){
+    //loop until stdin is a digit
+    do {
+		if (appendChar(&tokenizer->sb, tokenizer->actualChar) == 1){
+			tokenizer->errorCode = 99;
+            return;
+		}
+  		getNextChar(tokenizer);
+    } while (isActNumber(tokenizer));
+
+    //exp num with decimal part
+    if (tokenizer->actualChar == 'e' || tokenizer->actualChar == 'E'){
+		if (appendChar(&tokenizer->sb, tokenizer->actualChar) == 1){
+			tokenizer->errorCode = 99;
+            return;
+		}
+        state_ExpNum(tokenizer);
+        return;
+    }
+
+    //return token with double
+	if (getStringFromBuilder(&tokenizer->sb, &tokenizer->outputToken.value) == 1){
+		tokenizer->errorCode = 99;
+        return;
+	}
+    tokenizer->outputToken.type = DOUBLE;
+    tokenizer->processed = false;
+}
+
+void state_ExpNum(tTokenizer* tokenizer){
+  	getNextChar(tokenizer);
+    if (isActNumber(tokenizer) || tokenizer->actualChar == '+' || tokenizer->actualChar == '-'){
+        //loop until stdin is a digit
+        do {
+		    if (appendChar(&tokenizer->sb, tokenizer->actualChar) == 1){
+			    tokenizer->errorCode = 99;
+                return;
+		    }
+  		    getNextChar(tokenizer);
+        } while (isActNumber(tokenizer));
+
+        //return token with double 
+	    if (getStringFromBuilder(&tokenizer->sb, &tokenizer->outputToken.value) == 1){
+		    tokenizer->errorCode = 99;
+            return;
+	    }
+        tokenizer->outputToken.type = DOUBLE;
+    } else {
+        tokenizer->errorCode = 1;
+    }
+    tokenizer->processed = false;
+}
+
+void state_EOL(tTokenizer* tokenizer){
+    if (tokenizer->eolFlag == EOL_FORBIDEN){
+        tokenizer->errorCode = 1;
+    } else {
+        tokenizer->outputToken.value = "";
+        tokenizer->outputToken.type = token_EOL;
+    }
+    getNextChar(tokenizer);
+    tokenizer->processed = false;
 }

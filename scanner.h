@@ -4,7 +4,7 @@
 #include "string.h"
 #include "stringBuilder/stringBuilder.h"
 
-typedef enum { ID, KW, INT, DOUBLE, STRING, NONE } TokenType;
+typedef enum { ID, KW, INT, DOUBLE, STRING, NONE, token_EOF, token_EOL } TokenType;
 typedef enum { EOL_REQUIRED, EOL_OPTIONAL, EOL_FORBIDEN } EOLflag;
 
 char RUNE_LITERALS[] = {'a', 'b', 'f', 'n', 'r', 't', 'v', '\\', '"', '\''};
@@ -16,14 +16,30 @@ typedef struct {
     char* value;
 } tToken;
 
-void getNextChar();
-bool isActLetter();
-bool isActNumber();
-bool is(char arr[]);
+typedef struct {
+    tStringBuilder sb;
+    tToken outputToken;
+    int errorCode;
+    EOLflag eolFlag;
+    char actualChar;
+    bool processed;
+    bool isEOF;
+} tTokenizer;
 
-void clearString();
-char* copyString();
+int initTokenizer(tTokenizer* tokenizer);
 
-tToken getToken(EOLflag eolFlag, int* errCode);
-tToken state_EOLRequired(EOLflag eolFlag, int* errCode);
-tToken state_ID(EOLflag eolFlag, int* errCode);
+void getNextChar(tTokenizer* tokenizer);
+bool isActLetter(tTokenizer* tokenizer);
+bool isActNumber(tTokenizer* tokenizer);
+bool isSeparator(tTokenizer* tokenizer);
+
+void getToken(tTokenizer* tokenizer);
+void state_EOF(tTokenizer* tokenizer);
+void state_EOLRequired(tTokenizer* tokenizer);
+void state_EOL(tTokenizer* tokenizer);
+
+void state_ID(tTokenizer* tokenizer);
+
+void state_Num(tTokenizer* tokenizer);
+void state_BasicDouble(tTokenizer* tokenizer);
+void state_ExpNum(tTokenizer* tokenizer);
