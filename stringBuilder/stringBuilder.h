@@ -9,7 +9,7 @@ typedef struct {
     unsigned allocated;
 } tStringBuilder;
 
-void initStringBuilder(tStringBuilder* builder);
+int initStringBuilder(tStringBuilder* builder);
 void destructBuilder(tStringBuilder* builder);
 int appendChar(tStringBuilder* builder, char c);
 void cleanBuilder(tStringBuilder* builder);
