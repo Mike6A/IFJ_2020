@@ -39,6 +39,7 @@ void state_EOLRequired(tTokenizer* tokenizer);
 void state_EOL(tTokenizer* tokenizer);
 
 void state_ID(tTokenizer* tokenizer);
+void state_String(tTokenizer* tokenizer);
 
 void state_Num(tTokenizer* tokenizer);
 void state_BasicDouble(tTokenizer* tokenizer);

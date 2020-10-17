@@ -61,10 +61,23 @@ bool isActNumber(tTokenizer* tokenizer) {
     char actualChar = tokenizer->actualChar;
     return (actualChar >= '0' && actualChar <= '9') ? true : false;
 }
+bool isActHexNum(tTokenizer* tokenizer) {
+    char actualChar = tokenizer->actualChar;
+    return ((actualChar >= '0' && actualChar <= '9') ||
+     (actualChar >= 'a' && actualChar <= 'f') ||
+     (actualChar >= 'A' && actualChar <= 'F'));
+}
 
 bool isSeparator(tTokenizer* tokenizer){
     for (int i = 0; i < sizeof(SEPARATORS) / sizeof(SEPARATORS[0]); i++)
         if (tokenizer->actualChar == SEPARATORS[i]) 
+            return true;
+    return false;
+}
+
+bool isRuneLitaral(tTokenizer* tokenizer){
+    for (int i = 0; i < sizeof(RUNE_LITERALS) / sizeof(RUNE_LITERALS[0]); i++)
+        if (tokenizer->actualChar == RUNE_LITERALS[i]) 
             return true;
     return false;
 }
@@ -105,6 +118,11 @@ void getToken(tTokenizer* tokenizer) {
 
     if (isActNumber(tokenizer)){
         state_Num(tokenizer);
+        return;
+    }
+
+    if(tokenizer->actualChar == '"'){
+        state_String(tokenizer);
         return;
     }
 
@@ -244,6 +262,69 @@ void state_ExpNum(tTokenizer* tokenizer){
     tokenizer->processed = false;
 }
 
+//TODE decode escape sequences
+//this is not final
+void state_String(tTokenizer* tokenizer){
+    cleanBuilder(&tokenizer->sb);
+    do {
+	    if (appendChar(&tokenizer->sb, tokenizer->actualChar) == 1){
+	        tokenizer->errorCode = 99;
+            return;
+		}
+        getNextChar(tokenizer);
+
+        //rune_literals with start backslash 
+        if((int)tokenizer->actualChar == 92){
+	        if (appendChar(&tokenizer->sb, '\\') == 1){ // add backslash
+	            tokenizer->errorCode = 99;
+                return;
+		    }
+            getNextChar(tokenizer);
+
+            if (!isRuneLitaral(tokenizer)){
+                tokenizer->errorCode = 1;
+                return;
+            } else if (tokenizer->errorCode == 'x'){
+	            if (appendChar(&tokenizer->sb, tokenizer->actualChar) == 1){ //add x
+	                tokenizer->errorCode = 99;
+                    return;
+		        }
+                getNextChar(tokenizer);
+
+                for(int i = 0; i < 2; i++){
+                    if(!isActHexNum(tokenizer)){
+                        tokenizer->errorCode = 1;
+                        return;
+                    }
+	                if (appendChar(&tokenizer->sb, tokenizer->actualChar) == 1){ //add first and second hex
+	                    tokenizer->errorCode = 99;
+                        return;
+		            }
+                    getNextChar(tokenizer);
+                }
+            }
+        }
+
+
+        //return valid string token
+        if((int)tokenizer->actualChar == 34){
+	        if (appendChar(&tokenizer->sb, tokenizer->actualChar) == 1){ //add "
+	            tokenizer->errorCode = 99;
+                return;
+		    }
+	        if (getStringFromBuilder(&tokenizer->sb, &tokenizer->outputToken.value) == 1){
+		        tokenizer->errorCode = 99;
+                return;
+	        }
+            tokenizer->outputToken.type = t_STRING;
+            tokenizer->processed = true;
+            return;
+        }
+    } while ((int)tokenizer->actualChar > 31 && (int)tokenizer->actualChar != 34);
+    tokenizer->errorCode = 1;
+    return;
+}
+
 void state_EOL(tTokenizer* tokenizer){
     if (tokenizer->eolFlag == EOL_FORBIDEN){
         tokenizer->errorCode = 1;
@@ -260,7 +341,11 @@ int main() {
     initTokenizer(&tokenizer);
     do {
         getToken(&tokenizer); 
-        printf("%s\t\t| %d\n", tokenizer.outputToken.value, tokenizer.outputToken.type);
+        if (tokenizer.errorCode > 0) {
+            tokenizer.errorCode = 0;
+            continue;
+        }
+        printf("%20s | %d\n", tokenizer.outputToken.value, tokenizer.outputToken.type);
         if (tokenizer.outputToken.type != t_EOL && tokenizer.outputToken.type != t_EOF)
             free(tokenizer.outputToken.value);
     } while (tokenizer.outputToken.type != t_EOF);
