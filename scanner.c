@@ -97,11 +97,6 @@ void getToken(tTokenizer* tokenizer) {
     if (tokenizer->processed) 
         getNextChar(tokenizer);
 
-    if (tokenizer->isEOF){
-        state_EOF(tokenizer);
-        return;
-    }
-
     if (tokenizer->eolFlag == EOL_REQUIRED){
         state_EOLRequired(tokenizer);
         return;
@@ -111,6 +106,17 @@ void getToken(tTokenizer* tokenizer) {
         getNextChar(tokenizer);
     }
 
+    if(tokenizer->actualChar == '/'){
+        if (state_OneLineComment(tokenizer) != 0){
+            return;
+        }
+    }
+
+    if (tokenizer->isEOF){
+        state_EOF(tokenizer);
+        return;
+    }
+    
     if (isActLetter(tokenizer)){
         state_ID(tokenizer);
         return;
@@ -334,4 +340,39 @@ void state_EOL(tTokenizer* tokenizer){
     }
     getNextChar(tokenizer);
     tokenizer->processed = false;
+}
+
+int state_OneLineComment(tTokenizer* tokenizer){
+    getNextChar(tokenizer);
+    if(tokenizer->actualChar == '/'){
+        do {
+            getNextChar(tokenizer);
+        } while(tokenizer->actualChar != '\n');
+        getNextChar(tokenizer);
+    } else if (tokenizer->actualChar == '*'){ 
+        if (state_BlockComment(tokenizer) != 0) {
+            return 1;
+        }
+    } else {
+        tokenizer->errorCode = 1;
+        return 1;
+    }
+    return 0;
+}
+
+int state_BlockComment(tTokenizer* tokenizer) {
+    do {
+        getNextChar(tokenizer);
+        if (tokenizer->actualChar == 1){
+            tokenizer->errorCode = 1;
+            return 1;
+        }
+    } while(tokenizer->actualChar != '*');
+    getNextChar(tokenizer);
+    if (tokenizer->actualChar != '/'){
+        tokenizer->errorCode = 1;
+        return 1;
+    }
+    getNextChar(tokenizer);
+    return 0;
 }

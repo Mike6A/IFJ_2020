@@ -44,3 +44,6 @@ void state_String(tTokenizer* tokenizer);
 void state_Num(tTokenizer* tokenizer);
 void state_BasicDouble(tTokenizer* tokenizer);
 void state_ExpNum(tTokenizer* tokenizer);
+
+int state_OneLineComment(tTokenizer* tokenizer);
+int state_BlockComment(tTokenizer* tokenizer);
