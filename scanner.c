@@ -281,10 +281,7 @@ void state_String(tTokenizer* tokenizer){
 		    }
             getNextChar(tokenizer);
 
-            if (!isRuneLitaral(tokenizer)){
-                tokenizer->errorCode = 1;
-                return;
-            } else if (tokenizer->errorCode == 'x'){
+            if (tokenizer->actualChar == 'x'){
 	            if (appendChar(&tokenizer->sb, tokenizer->actualChar) == 1){ //add x
 	                tokenizer->errorCode = 99;
                     return;
@@ -302,6 +299,9 @@ void state_String(tTokenizer* tokenizer){
 		            }
                     getNextChar(tokenizer);
                 }
+            } else if (!isRuneLitaral(tokenizer)){
+                tokenizer->errorCode = 1;
+                return;
             }
         }
 
@@ -334,22 +334,4 @@ void state_EOL(tTokenizer* tokenizer){
     }
     getNextChar(tokenizer);
     tokenizer->processed = false;
-}
-
-int main() {
-    tTokenizer tokenizer;
-    initTokenizer(&tokenizer);
-    do {
-        getToken(&tokenizer); 
-        if (tokenizer.errorCode > 0) {
-            tokenizer.errorCode = 0;
-            continue;
-        }
-        printf("%20s | %d\n", tokenizer.outputToken.value, tokenizer.outputToken.type);
-        if (tokenizer.outputToken.type != t_EOL && tokenizer.outputToken.type != t_EOF)
-            free(tokenizer.outputToken.value);
-    } while (tokenizer.outputToken.type != t_EOF);
-    
-    destructBuilder(&tokenizer.sb);
-	return 0;
 }
