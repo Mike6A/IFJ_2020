@@ -3,6 +3,9 @@
  * @author Michal Mlčoch (xmlcoc12@stud.fit.vutbr.cz)
  * @brief Header file for string builder.
  */
+#ifndef STRINGBUILDER_H
+#define STRINGBUILDER_H
+
 #include "stdio.h"
 #include "stdlib.h"
 #include "stdbool.h"
@@ -23,3 +26,4 @@ int appendChar(tStringBuilder* builder, char c);
 void cleanBuilder(tStringBuilder* builder);
 int getStringFromBuilder(tStringBuilder* builder, char** dest);
 int getStringAndCleanBuilder(tStringBuilder* builder, char** dest);
+#endif

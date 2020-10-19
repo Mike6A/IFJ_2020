@@ -3,6 +3,10 @@
  * @author Michal Mlčoch (xmlcoc12@stud.fit.vutbr.cz)
  * @brief Header file for lexical analysis.
  */
+
+#ifndef SCANNER_H
+#define SCANNER_H
+
 #include "stdio.h"
 #include "stdlib.h"
 #include "stdbool.h"
@@ -12,9 +16,6 @@
 typedef enum { t_ID, t_KW, t_INT, t_DOUBLE, t_STRING, t_NONE, t_EOF } TokenType;
 typedef enum { EOL_REQUIRED, EOL_OPTIONAL, EOL_FORBIDEN } EOLflag;
 
-char RUNE_LITERALS[] = {'a', 'b', 'f', 'n', 'r', 't', 'v', '\\', '"', '\''};
-char SEPARATORS[] = {' ', '\t'};
-char* KEYWORDS[] = {"if", "else", "float64", "for", "func", "int", "package", "return", "string"};
 
 /**
  * @brief Token structure
@@ -38,6 +39,7 @@ typedef struct {
 } tTokenizer;
 
 int initTokenizer(tTokenizer* tokenizer);
+void destructTokenzier(tTokenizer* tokenizer);
 
 void getNextChar(tTokenizer* tokenizer);
 bool isActLetter(tTokenizer* tokenizer);
@@ -60,3 +62,4 @@ int state_OneLineComment(tTokenizer* tokenizer);
 int state_BlockComment(tTokenizer* tokenizer);
 
 int state_SecondEq(tTokenizer* tokenizer);
+#endif
