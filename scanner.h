@@ -47,3 +47,5 @@ void state_ExpNum(tTokenizer* tokenizer);
 
 int state_OneLineComment(tTokenizer* tokenizer);
 int state_BlockComment(tTokenizer* tokenizer);
+
+int state_SecondEq(tTokenizer* tokenizer);

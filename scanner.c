@@ -112,6 +112,10 @@ void getToken(tTokenizer* tokenizer) {
         }
     }
 
+    while (isSeparator(tokenizer)){
+        getNextChar(tokenizer);
+    }
+
     if (tokenizer->isEOF){
         state_EOF(tokenizer);
         return;
@@ -130,6 +134,62 @@ void getToken(tTokenizer* tokenizer) {
     if(tokenizer->actualChar == '"'){
         state_String(tokenizer);
         return;
+    }
+
+    tokenizer->outputToken.type = t_NONE;
+    tokenizer->processed = true;
+    switch (tokenizer->actualChar) {
+        case '+':
+            tokenizer->outputToken.value = "+";
+            return;
+        case '-':
+            tokenizer->outputToken.value = "-";
+            return;
+        case '*':
+            tokenizer->outputToken.value = "*";
+            return;
+        case '<':
+            tokenizer->outputToken.value = "<";
+            state_SecondEq(tokenizer);
+            return;
+        case '>':
+            tokenizer->outputToken.value = ">";
+            state_SecondEq(tokenizer);
+            return;
+        case ')':
+            tokenizer->outputToken.value = ")";
+            return;
+        case '(':
+            tokenizer->outputToken.value = "(";
+            return;
+        case '{':
+            tokenizer->outputToken.value = "{";
+            return;
+        case '}':
+            tokenizer->outputToken.value = "}";
+            return;
+        case ',':
+            tokenizer->outputToken.value = ",";
+            return;
+        case ';':
+            tokenizer->outputToken.value = ";";
+            return;
+        case '=':
+            tokenizer->outputToken.value = "=";
+            state_SecondEq(tokenizer);
+            return;
+        case ':':
+            if (state_SecondEq(tokenizer) == 1) {
+                tokenizer->errorCode = 1;
+                return;
+            }
+            return;
+        case '!':
+            if (state_SecondEq(tokenizer) == 1) {
+                tokenizer->errorCode = 1;
+                return;
+            }
+            return;
     }
 
     if (tokenizer->actualChar == '\n'){
@@ -354,7 +414,9 @@ int state_OneLineComment(tTokenizer* tokenizer){
             return 1;
         }
     } else {
-        tokenizer->errorCode = 1;
+        tokenizer->outputToken.value = "/";
+        tokenizer->outputToken.type = t_NONE;
+        tokenizer->processed = false;
         return 1;
     }
     return 0;
@@ -375,4 +437,27 @@ int state_BlockComment(tTokenizer* tokenizer) {
     }
     getNextChar(tokenizer);
     return 0;
+}
+
+int state_SecondEq(tTokenizer* tokenizer){
+    cleanBuilder(&tokenizer->sb);
+    if (appendChar(&tokenizer->sb, tokenizer->actualChar) == 1){
+		tokenizer->errorCode = 99;
+        return 1;
+	}
+    getNextChar(tokenizer);
+    tokenizer->processed = false;
+    if (tokenizer->actualChar == '=') {
+		if (appendChar(&tokenizer->sb, tokenizer->actualChar) == 1){
+			tokenizer->errorCode = 99;
+            return 1;
+		}
+	    if (getStringFromBuilder(&tokenizer->sb, &tokenizer->outputToken.value) == 1){
+		    tokenizer->errorCode = 99;
+            return 1;
+	    }
+        tokenizer->processed = true;
+        return 0;
+    }
+    return 1;
 }
