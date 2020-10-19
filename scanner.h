@@ -33,9 +33,9 @@ typedef struct {
     tToken outputToken; /**< output token */
     int errorCode; /**< error code */
     EOLflag eolFlag; /** EOL flag */
-    char actualChar; /** actual loaded char from stdin */
-    bool processed; /** if is actualChar is recognized */
-    bool isEOF; /** if is EOF */
+    char actualChar; /**< actual loaded char from stdin */
+    bool processed; /**< if is actualChar is recognized */
+    bool isEOF; /**< if is EOF */
 } tTokenizer;
 
 int initTokenizer(tTokenizer* tokenizer);
