@@ -2,14 +2,15 @@
  * @file scenner.c
  * @author Michal Mlčoch (xmlcoc12@stud.fit.vutbr.cz)
  * @brief Implementaion of lexical analysis for IFJ20.
- * @version 0.1
- * @date 2020-10-16
- * 
- * @copyright Copyright (c) 2020
- * 
  */
 #include "scanner.h"
 
+/**
+ * @brief This function init Tokenizer.
+ * 
+ * @param tokenizer Valid pointer to Tokenizer struct.
+ * @return 0 if allocation was successful 
+ */
 int initTokenizer(tTokenizer* tokenizer) {
     tokenizer->eolFlag = EOL_OPTIONAL;
     tokenizer->errorCode = 0;
@@ -25,6 +26,12 @@ int initTokenizer(tTokenizer* tokenizer) {
     return 0;
 }
 
+/**
+ * @brief This function get the next char from stdin and put it into the variable actualChar in Tokenizer struct. \n
+ *        If feof function wasn't successful, sets tokenizer errorCode to 99. \n
+ *        If is EOF, sets actualChar to 1 and isEOF to true in Tokenizer struct. 
+ * @param tokenizer valid pointer to Tokenizer struct.
+ */
 void getNextChar(tTokenizer* tokenizer) {
     int _char = fgetc(stdin);
     if (_char == EOF){
@@ -41,10 +48,10 @@ void getNextChar(tTokenizer* tokenizer) {
 }
 
 /**
- * @brief Check if actualChar is letter or underscore.
+ * @brief This function test if actualChar is letter or underscore.
  * 
- * @return true is a letter
- * @return false is not a letter
+ * @param tokenizer valid pointer to Tokenizer struct.
+ * @return true is a letter or underscore
  */
 bool isActLetter(tTokenizer* tokenizer) {
     char actualChar = tokenizer->actualChar;
@@ -52,15 +59,22 @@ bool isActLetter(tTokenizer* tokenizer) {
 }
 
 /**
- * @brief  Check if actualChar is number;
+ * @brief This function test if actualChar is number.
  * 
- * @return true is number
- * @return false in not number
+ * @param tokenizer valid pointer to Tokenizer struct.
+ * @return true if is number
  */
 bool isActNumber(tTokenizer* tokenizer) {
     char actualChar = tokenizer->actualChar;
     return (actualChar >= '0' && actualChar <= '9') ? true : false;
 }
+
+/**
+ * @brief This function test if actualChar corresponds to hex number.
+ * 
+ * @param tokenizer valid pointer to Tokenizer struct.
+ * @return true if is hex number
+ */
 bool isActHexNum(tTokenizer* tokenizer) {
     char actualChar = tokenizer->actualChar;
     return ((actualChar >= '0' && actualChar <= '9') ||
@@ -68,6 +82,12 @@ bool isActHexNum(tTokenizer* tokenizer) {
      (actualChar >= 'A' && actualChar <= 'F'));
 }
 
+/**
+ * @brief  This function test if actualChar is separator (' ', '\t')
+ * 
+ * @param tokenizer valid pointer to Tokenizer struct.
+ * @return true if is separator
+ */
 bool isSeparator(tTokenizer* tokenizer){
     for (int i = 0; i < sizeof(SEPARATORS) / sizeof(SEPARATORS[0]); i++)
         if (tokenizer->actualChar == SEPARATORS[i]) 
@@ -75,6 +95,12 @@ bool isSeparator(tTokenizer* tokenizer){
     return false;
 }
 
+/**
+ * @brief This function test if actualChar is rune litteral.
+ * 
+ * @param tokenizer valid pointer to Tokenizer struct.
+ * @return true if is rune litteral
+ */
 bool isRuneLitaral(tTokenizer* tokenizer){
     for (int i = 0; i < sizeof(RUNE_LITERALS) / sizeof(RUNE_LITERALS[0]); i++)
         if (tokenizer->actualChar == RUNE_LITERALS[i]) 
@@ -82,60 +108,66 @@ bool isRuneLitaral(tTokenizer* tokenizer){
     return false;
 }
 
+/**
+ * @brief This function represents state EOF and sets output token type to t_EOF.
+ * 
+ * @param tokenizer valid pointer to Tokenizer struct.
+ */
 void state_EOF(tTokenizer* tokenizer){
     tokenizer->outputToken.type = t_EOF;
 }
 
 /**
  * @brief Get next token from input.
+ *        Sets outputToken, errorCode, isEof in Tokenizer struct.
+ * @pre eolFlag in struct must be set.
  * 
- * @param eolFlag Set how EOL should be handled
- * @param errCode Pointer to error code. Sets when an error occurs
- * @return tToken Return new token
+ * @param tokenizer valid pointer to Tokenizer struct.
  */
 void getToken(tTokenizer* tokenizer) {
-    if (tokenizer->processed) 
+    if (tokenizer->processed) //if actualChar was recognized
         getNextChar(tokenizer);
 
-    if (tokenizer->eolFlag == EOL_REQUIRED){
+    if (tokenizer->eolFlag == EOL_REQUIRED){ //if end of line is required
         state_EOLRequired(tokenizer);
         return;
     }
 
-    while (isSeparator(tokenizer)){
+    while (isSeparator(tokenizer)){ //skip all white spaces
         getNextChar(tokenizer);
     }
 
-    if(tokenizer->actualChar == '/'){
+    if(tokenizer->actualChar == '/'){ //recognize if is comment or divide operator
         if (state_OneLineComment(tokenizer) != 0){
             return;
         }
     }
 
-    while (isSeparator(tokenizer)){
+    while (isSeparator(tokenizer)){ //skip all white spaces
         getNextChar(tokenizer);
     }
 
-    if (tokenizer->isEOF){
+    if (tokenizer->isEOF){ //if is end of stdin
         state_EOF(tokenizer);
         return;
     }
     
-    if (isActLetter(tokenizer)){
+    if (isActLetter(tokenizer)){ //recognize id
         state_ID(tokenizer);
         return;
     }
 
-    if (isActNumber(tokenizer)){
+    if (isActNumber(tokenizer)){ //recognize number -> int and double
         state_Num(tokenizer);
         return;
     }
 
-    if(tokenizer->actualChar == '"'){
+    if(tokenizer->actualChar == '"'){ //recognize string
         state_String(tokenizer);
         return;
     }
 
+    //recognize operators
     tokenizer->outputToken.type = t_NONE;
     tokenizer->processed = true;
     switch (tokenizer->actualChar) {
@@ -192,12 +224,17 @@ void getToken(tTokenizer* tokenizer) {
             return;
     }
 
-    if (tokenizer->actualChar == '\n'){
+    if (tokenizer->actualChar == '\n'){ //recognize end of line
         state_EOL(tokenizer);
         return;
     }
 }
 
+/**
+ * @brief This function hanle EOL requiered state.
+ * 
+ * @param tokenizer valid pointer to Tokenizer struct.
+ */
 void state_EOLRequired(tTokenizer* tokenizer) {
     //check if is eol required
     if (tokenizer->eolFlag == EOL_REQUIRED){
@@ -213,6 +250,11 @@ void state_EOLRequired(tTokenizer* tokenizer) {
     }
 }
 
+/**
+ * @brief This function hanle ID state.
+ * 
+ * @param tokenizer valid pointer to Tokenizer struct.
+ */
 void state_ID(tTokenizer* tokenizer) {
     cleanBuilder(&tokenizer->sb);
     do {
@@ -240,6 +282,11 @@ void state_ID(tTokenizer* tokenizer) {
 	tokenizer->outputToken.type = t_ID;
 }
 
+/**
+ * @brief This function hanle Num state.
+ * 
+ * @param tokenizer valid pointer to Tokenizer struct.
+ */
 void state_Num(tTokenizer* tokenizer){
     cleanBuilder(&tokenizer->sb);
     do {
@@ -275,8 +322,12 @@ void state_Num(tTokenizer* tokenizer){
     tokenizer->processed = false;
 }
 
+/**
+ * @brief This function hanle basic double state.
+ * 
+ * @param tokenizer valid pointer to Tokenizer struct.
+ */
 void state_BasicDouble(tTokenizer* tokenizer){
-    //loop until stdin is a digit
     do {
 		if (appendChar(&tokenizer->sb, tokenizer->actualChar) == 1){
 			tokenizer->errorCode = 99;
@@ -304,6 +355,11 @@ void state_BasicDouble(tTokenizer* tokenizer){
     tokenizer->processed = false;
 }
 
+/**
+ * @brief This function hanle exp double state.
+ * 
+ * @param tokenizer valid pointer to Tokenizer struct.
+ */
 void state_ExpNum(tTokenizer* tokenizer){
   	getNextChar(tokenizer);
     if (isActNumber(tokenizer) || tokenizer->actualChar == '+' || tokenizer->actualChar == '-'){
@@ -328,8 +384,13 @@ void state_ExpNum(tTokenizer* tokenizer){
     tokenizer->processed = false;
 }
 
-//TODE decode escape sequences
-//this is not final
+/**
+ * @brief This function hanle string state.
+ * 
+ * @param tokenizer valid pointer to Tokenizer struct.
+ * 
+ * @todo maybe decode rune literals and hex chars => this is question
+ */
 void state_String(tTokenizer* tokenizer){
     cleanBuilder(&tokenizer->sb);
     do {
@@ -339,7 +400,6 @@ void state_String(tTokenizer* tokenizer){
 		}
         getNextChar(tokenizer);
 
-        //rune_literals with start backslash 
         if((int)tokenizer->actualChar == 92){
 	        if (appendChar(&tokenizer->sb, '\\') == 1){ // add backslash
 	            tokenizer->errorCode = 99;
@@ -354,7 +414,7 @@ void state_String(tTokenizer* tokenizer){
 		        }
                 getNextChar(tokenizer);
 
-                for(int i = 0; i < 2; i++){
+                for(int i = 0; i < 2; i++){ //get two hex nums
                     if(!isActHexNum(tokenizer)){
                         tokenizer->errorCode = 1;
                         return;
@@ -365,7 +425,7 @@ void state_String(tTokenizer* tokenizer){
 		            }
                     getNextChar(tokenizer);
                 }
-            } else if (!isRuneLitaral(tokenizer)){
+            } else if (!isRuneLitaral(tokenizer)){ //rune literals with start backslash 
                 tokenizer->errorCode = 1;
                 return;
             }
@@ -387,10 +447,15 @@ void state_String(tTokenizer* tokenizer){
             return;
         }
     } while ((int)tokenizer->actualChar > 31 && (int)tokenizer->actualChar != 34);
-    tokenizer->errorCode = 1;
+    tokenizer->errorCode = 1; //if is EOF set error 
     return;
 }
 
+/**
+ * @brief This function hanle EOL state.
+ * 
+ * @param tokenizer valid pointer to Tokenizer struct.
+ */
 void state_EOL(tTokenizer* tokenizer){
     if (tokenizer->eolFlag == EOL_FORBIDEN){
         tokenizer->errorCode = 1;
@@ -402,18 +467,23 @@ void state_EOL(tTokenizer* tokenizer){
     tokenizer->processed = false;
 }
 
+/**
+ * @brief This function hanle one line comment state and divide operator
+ * 
+ * @param tokenizer valid pointer to Tokenizer struct.
+ */
 int state_OneLineComment(tTokenizer* tokenizer){
     getNextChar(tokenizer);
-    if(tokenizer->actualChar == '/'){
+    if(tokenizer->actualChar == '/'){ //is one line comment
         do {
             getNextChar(tokenizer);
         } while(tokenizer->actualChar != '\n');
         getNextChar(tokenizer);
-    } else if (tokenizer->actualChar == '*'){ 
+    } else if (tokenizer->actualChar == '*'){  //is block comment
         if (state_BlockComment(tokenizer) != 0) {
             return 1;
         }
-    } else {
+    } else { //is divede operator
         tokenizer->outputToken.value = "/";
         tokenizer->outputToken.type = t_NONE;
         tokenizer->processed = false;
@@ -422,16 +492,21 @@ int state_OneLineComment(tTokenizer* tokenizer){
     return 0;
 }
 
+/**
+ * @brief This function hanle block comment state.
+ * 
+ * @param tokenizer valid pointer to Tokenizer struct.
+ */
 int state_BlockComment(tTokenizer* tokenizer) {
     do {
         getNextChar(tokenizer);
-        if (tokenizer->actualChar == 1){
+        if (tokenizer->actualChar == 1){ //if is EOF sets error
             tokenizer->errorCode = 1;
             return 1;
         }
     } while(tokenizer->actualChar != '*');
     getNextChar(tokenizer);
-    if (tokenizer->actualChar != '/'){
+    if (tokenizer->actualChar != '/'){ //check if correctly ended block comment
         tokenizer->errorCode = 1;
         return 1;
     }
@@ -439,6 +514,11 @@ int state_BlockComment(tTokenizer* tokenizer) {
     return 0;
 }
 
+/**
+ * @brief This function hanle second char is equal state.
+ * 
+ * @param tokenizer valid pointer to Tokenizer struct.
+ */
 int state_SecondEq(tTokenizer* tokenizer){
     cleanBuilder(&tokenizer->sb);
     if (appendChar(&tokenizer->sb, tokenizer->actualChar) == 1){

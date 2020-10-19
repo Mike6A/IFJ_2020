@@ -1,3 +1,8 @@
+/**
+ * @file scanner.h
+ * @author Michal Mlčoch (xmlcoc12@stud.fit.vutbr.cz)
+ * @brief Header file for lexical analysis.
+ */
 #include "stdio.h"
 #include "stdlib.h"
 #include "stdbool.h"
@@ -11,19 +16,25 @@ char RUNE_LITERALS[] = {'a', 'b', 'f', 'n', 'r', 't', 'v', '\\', '"', '\''};
 char SEPARATORS[] = {' ', '\t'};
 char* KEYWORDS[] = {"if", "else", "float64", "for", "func", "int", "package", "return", "string"};
 
+/**
+ * @brief Token structure
+ */
 typedef struct {
-    TokenType type;
-    char* value;
+    TokenType type; /**< type of token */
+    char* value; /**< content of token (string). if len < 2 is not allocated */
 } tToken;
 
+/**
+ * @brief Tokenizer structure
+ */
 typedef struct {
-    tStringBuilder sb;
-    tToken outputToken;
-    int errorCode;
-    EOLflag eolFlag;
-    char actualChar;
-    bool processed;
-    bool isEOF;
+    tStringBuilder sb; /**< string builder */
+    tToken outputToken; /**< output token */
+    int errorCode; /**< error code */
+    EOLflag eolFlag; /** EOL flag */
+    char actualChar; /** actual loaded char from stdin */
+    bool processed; /** if is actualChar is recognized */
+    bool isEOF; /** if is EOF */
 } tTokenizer;
 
 int initTokenizer(tTokenizer* tokenizer);
