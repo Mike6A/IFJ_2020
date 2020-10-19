@@ -8,7 +8,7 @@
 /**
  * @brief This function init Tokenizer.
  * 
- * @param tokenizer Valid pointer to Tokenizer struct.
+ * @param tokenizer valid pointer to Tokenizer struct.
  * @return 0 if allocation was successful 
  */
 int initTokenizer(tTokenizer* tokenizer) {
@@ -24,6 +24,15 @@ int initTokenizer(tTokenizer* tokenizer) {
         return 1;
     tokenizer->sb = sb; 
     return 0;
+}
+
+/**
+ * @brief This function destruct Tokenizer.
+ * 
+ * @param tokenizer valid pointer to Tokenizer struct.
+ */
+void destructTokenizer(tTokenizer* tokenizer) {
+    destructBuilder(&tokenizer->sb);
 }
 
 /**
@@ -119,8 +128,9 @@ void state_EOF(tTokenizer* tokenizer){
 }
 
 /**
- * @brief Get next token from input.
- *        Sets outputToken, errorCode, isEof in Tokenizer struct.
+ * @brief Get next token from input. \n
+ *        Sets outputToken, errorCode, isEof in Tokenizer struct. \n
+ *        If error occurs then errorCode is setted and scanner go to the end of stdin.
  * @pre eolFlag in struct must be set.
  * 
  * @param tokenizer valid pointer to Tokenizer struct.
