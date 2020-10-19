@@ -5,6 +5,10 @@
  */
 #include "scanner.h"
 
+const char RUNE_LITERALS[] = {'a', 'b', 'f', 'n', 'r', 't', 'v', '\\', '"', '\''};
+const char SEPARATORS[] = {' ', '\t'};
+const char* KEYWORDS[] = {"if", "else", "float64", "for", "func", "int", "package", "return", "string"};
+
 /**
  * @brief This function init Tokenizer.
  * 
