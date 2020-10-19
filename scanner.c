@@ -126,6 +126,14 @@ void state_EOF(tTokenizer* tokenizer){
  * @param tokenizer valid pointer to Tokenizer struct.
  */
 void getToken(tTokenizer* tokenizer) {
+    if (tokenizer->errorCode > 0) {
+        while (!tokenizer->isEOF){ //skip all 
+            getNextChar(tokenizer);
+        }
+        state_EOF(tokenizer);
+        return;
+    }
+
     if (tokenizer->processed) //if actualChar was recognized
         getNextChar(tokenizer);
 
@@ -228,12 +236,14 @@ void getToken(tTokenizer* tokenizer) {
             return;
         case ':':
             if (state_SecondEq(tokenizer) == 1) {
+                tokenizer->outputToken.value = "";
                 tokenizer->errorCode = 1;
                 return;
             }
             return;
         case '!':
             if (state_SecondEq(tokenizer) == 1) {
+                tokenizer->outputToken.value = "";
                 tokenizer->errorCode = 1;
                 return;
             }
@@ -253,6 +263,7 @@ void state_EOLRequired(tTokenizer* tokenizer) {
             getNextChar(tokenizer);
         }
         if (tokenizer->actualChar != '\n') {
+            tokenizer->outputToken.value = "";
             tokenizer->errorCode = 1;
         }
         tokenizer->eolFlag = EOL_OPTIONAL;
@@ -388,6 +399,7 @@ void state_ExpNum(tTokenizer* tokenizer){
 	    }
         tokenizer->outputToken.type = t_DOUBLE;
     } else {
+        tokenizer->outputToken.value = "";
         tokenizer->errorCode = 1;
     }
     tokenizer->processed = false;
@@ -425,6 +437,7 @@ void state_String(tTokenizer* tokenizer){
 
                 for(int i = 0; i < 2; i++){ //get two hex nums
                     if(!isActHexNum(tokenizer)){
+                        tokenizer->outputToken.value = "";
                         tokenizer->errorCode = 1;
                         return;
                     }
@@ -435,6 +448,7 @@ void state_String(tTokenizer* tokenizer){
                     getNextChar(tokenizer);
                 }
             } else if (!isRuneLitaral(tokenizer)){ //rune literals with start backslash 
+                tokenizer->outputToken.value = "";
                 tokenizer->errorCode = 1;
                 return;
             }
@@ -457,6 +471,7 @@ void state_String(tTokenizer* tokenizer){
         }
     } while ((int)tokenizer->actualChar > 31 && (int)tokenizer->actualChar != 34);
     tokenizer->errorCode = 1; //if is EOF set error 
+    tokenizer->outputToken.value = "";
     return;
 }
 
@@ -469,6 +484,7 @@ void state_String(tTokenizer* tokenizer){
 int state_EOL(tTokenizer* tokenizer){
     if (tokenizer->eolFlag == EOL_FORBIDEN){
         tokenizer->errorCode = 1;
+        tokenizer->outputToken.value = "";
         return 1;
     }
     return 0;
@@ -508,6 +524,7 @@ int state_BlockComment(tTokenizer* tokenizer) {
     do {
         getNextChar(tokenizer);
         if (tokenizer->actualChar == 1){ //if is EOF sets error
+            tokenizer->outputToken.value = "";
             tokenizer->errorCode = 1;
             return 1;
         }
@@ -515,6 +532,7 @@ int state_BlockComment(tTokenizer* tokenizer) {
     getNextChar(tokenizer);
     if (tokenizer->actualChar != '/'){ //check if correctly ended block comment
         tokenizer->errorCode = 1;
+        tokenizer->outputToken.value = "";
         return 1;
     }
     getNextChar(tokenizer);
