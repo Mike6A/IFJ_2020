@@ -9,7 +9,7 @@
 #include "string.h"
 #include "stringBuilder/stringBuilder.h"
 
-typedef enum { t_ID, t_KW, t_INT, t_DOUBLE, t_STRING, t_NONE, t_EOF, t_EOL } TokenType;
+typedef enum { t_ID, t_KW, t_INT, t_DOUBLE, t_STRING, t_NONE, t_EOF } TokenType;
 typedef enum { EOL_REQUIRED, EOL_OPTIONAL, EOL_FORBIDEN } EOLflag;
 
 char RUNE_LITERALS[] = {'a', 'b', 'f', 'n', 'r', 't', 'v', '\\', '"', '\''};
@@ -47,7 +47,7 @@ bool isSeparator(tTokenizer* tokenizer);
 void getToken(tTokenizer* tokenizer);
 void state_EOF(tTokenizer* tokenizer);
 void state_EOLRequired(tTokenizer* tokenizer);
-void state_EOL(tTokenizer* tokenizer);
+int state_EOL(tTokenizer* tokenizer);
 
 void state_ID(tTokenizer* tokenizer);
 void state_String(tTokenizer* tokenizer);
