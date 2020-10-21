@@ -19,6 +19,8 @@ int initTokenizer(tTokenizer* tokenizer) {
     tokenizer->eolFlag = EOL_OPTIONAL;
     tokenizer->errorCode = 0;
     tokenizer->isEOF = false;
+    tokenizer->processed = true;
+    tokenizer->actualChar = ' ';
     
     tToken token = {.value = "", .type = t_NONE};
     tokenizer->outputToken = token;
