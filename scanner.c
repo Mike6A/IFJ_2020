@@ -278,7 +278,7 @@ void state_EOLRequired(tTokenizer* tokenizer) {
         while (isSeparator(tokenizer)){
             getNextChar(tokenizer);
         }
-        if (tokenizer->actualChar != '\n') {
+        if (tokenizer->actualChar != '\n' && tokenizer->actualChar != '\r') {
             tokenizer->outputToken.value = "";
             tokenizer->errorCode = 1;
         }
@@ -516,7 +516,7 @@ int state_OneLineComment(tTokenizer* tokenizer){
     if(tokenizer->actualChar == '/'){ //is one line comment
         do {
             getNextChar(tokenizer);
-        } while(tokenizer->actualChar != '\n');
+        } while(tokenizer->actualChar != '\n' && tokenizer->actualChar != '\r');
         getNextChar(tokenizer);
     } else if (tokenizer->actualChar == '*'){  //is block comment
         if (state_BlockComment(tokenizer) != 0) {
