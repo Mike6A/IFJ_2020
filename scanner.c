@@ -162,7 +162,7 @@ void getToken(tTokenizer* tokenizer) {
         return;
     }
 
-    while (isSeparator(tokenizer) || tokenizer->actualChar == '\n'){ //skip all white spaces
+    while (isSeparator(tokenizer) || tokenizer->actualChar == '\n' || tokenizer->actualChar == '\r'){ //skip all white spaces
         if (tokenizer->actualChar == '\n') {
             if (state_EOL(tokenizer) == 1){
                 return;
@@ -178,7 +178,7 @@ void getToken(tTokenizer* tokenizer) {
     }
 
 
-    while (isSeparator(tokenizer) || tokenizer->actualChar == '\n'){ //skip all white spaces
+    while (isSeparator(tokenizer) || tokenizer->actualChar == '\n' || tokenizer->actualChar == '\r'){ //skip all white spaces
         if (tokenizer->actualChar == '\n') {
             if (state_EOL(tokenizer) == 1){
                 return;
