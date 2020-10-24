@@ -159,3 +159,34 @@ int addFuncToHT(tHashTable* ht, char* id, char** params, unsigned params_count, 
     addItemToHT(ht, item, key);
     return 0;
 }
+
+/**
+ * @brief 
+ * 
+ * @param ht Valid pointer to hash table.
+ * @param id String ID.
+ * @return 1 if item wasn't found 
+ */
+int removeHashItem(tHashTable* ht, char* id) {
+    int key = getHash(ht, id);
+    tHashItem* tmp = ht->table[key];
+    if (tmp != NULL) {
+        if (tmp->next == NULL || strcmp(tmp->id, id) == 0) { //first
+            //delete + corr ptr
+            ht->table[key] = tmp->next;
+            deleteItem(tmp);
+            return 1;
+        }
+        while(tmp->next != NULL) {
+            if (strcmp(tmp->next->id, id) == 0) {
+                //delete + corr ptr
+                tHashItem* toDelete = tmp->next;
+                tmp->next = tmp->next->next;
+                deleteItem(toDelete);
+                return 1;
+            }
+            tmp = tmp->next;
+        }
+    }
+    return 1;
+}
