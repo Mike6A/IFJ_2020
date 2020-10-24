@@ -72,3 +72,22 @@ void destructHashTable(tHashTable* ht) {
     free(ht->table);
     ht->size = 0;
 }
+
+/**
+ * @brief This function add item to Hash table.
+ * 
+ * @param ht Valid pointer to hash table.
+ * @param item Item which will be added to Hash table.
+ * @param key Hash key.
+ */
+void addItemToHT(tHashTable* ht, tHashItem* item, int key) {
+    tHashItem* tmp = ht->table[key];
+    if (tmp == NULL)
+        ht->table[key] = item;
+    else {
+        while(tmp->next != NULL)
+            tmp = tmp->next;
+        
+        tmp->next = item;
+    }
+}
