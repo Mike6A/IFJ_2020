@@ -39,3 +39,18 @@ int initHashTable(tHashTable* ht, int size){
         ht->table[i] = NULL;
     return 0; 
 }
+
+/**
+ * @brief This function delete item.
+ * 
+ * @param item Valid pointer to Hash table item.
+ */
+void deleteItem(tHashItem* item){
+    free(item->id);
+    if (strlen(item->value) > 0)
+        free(item->value);
+    if (item->params_count > 0)
+        for (int j = 0; j < item->params_count; j++)
+            free(item->params[j]);
+    free(item);
+}
