@@ -123,3 +123,39 @@ int addDataToHT(tHashTable* ht, char* id, char* value, bool declared) {
     addItemToHT(ht, item, key);
     return 0;
 }
+
+/**
+ * @brief This funtion add function to Hash table.
+ * 
+ * @param ht Valid pointer to hash table.
+ * @param id Function ID.
+ * @param params Function parameters.
+ * @param params_count Count of function parameters.
+ * @param declared if is function declared.
+ * @return 0 if alloc was successful
+ */
+int addFuncToHT(tHashTable* ht, char* id, char** params, unsigned params_count, bool declared) {
+    tHashItem* item = (tHashItem*)malloc(sizeof(tHashItem));
+
+    item->id = malloc(sizeof(char) * (strlen(id) + 1));
+    if (item->id == NULL)
+        return 1;
+    strcpy(item->id, id);
+
+    if (params_count > 0) {
+        item->params = malloc(sizeof(char*) * params_count);
+        for(int i = 0; i < params_count; i++) {
+            item->params[i] = malloc(sizeof(char) * (strlen(params[i]) + 1));
+            if (item->params[i] == NULL)
+                return 1;
+        }
+    }
+    item->params_count = 0;
+    item->declared = declared;
+    item->type = TFunc;
+    item->next = NULL;
+
+    int key = getHash(ht, id);
+    addItemToHT(ht, item, key);
+    return 0;
+}
