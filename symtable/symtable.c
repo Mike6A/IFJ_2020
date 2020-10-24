@@ -91,3 +91,35 @@ void addItemToHT(tHashTable* ht, tHashItem* item, int key) {
         tmp->next = item;
     }
 }
+
+/**
+ * @brief This function add variable to Hash table.
+ * 
+ * @param ht Valid pointer to hash table.
+ * @param id Variable ID.
+ * @param value Value of variable.
+ * @param declared if is variable declared.
+ * @return 0 if alloc was successful 
+ */
+int addDataToHT(tHashTable* ht, char* id, char* value, bool declared) {
+    tHashItem* item = (tHashItem*)malloc(sizeof(tHashItem));
+
+    item->id = malloc(sizeof(char) * (strlen(id) + 1));
+    if (item->id == NULL)
+        return 1;
+    strcpy(item->id, id);
+
+    item->value = malloc(sizeof(char) * (strlen(value) + 1));
+    if (item->value == NULL)
+        return 1;
+    strcpy(item->value, value);
+
+    item->params_count = 0;
+    item->declared = declared;
+    item->type = TData;
+    item->next = NULL;
+
+    int key = getHash(ht, id);
+    addItemToHT(ht, item, key);
+    return 0;
+}
