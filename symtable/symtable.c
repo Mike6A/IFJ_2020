@@ -54,3 +54,21 @@ void deleteItem(tHashItem* item){
             free(item->params[j]);
     free(item);
 }
+
+/**
+ * @brief This function destruct Hash table.
+ * 
+ * @param ht Valid pointer to hash table.
+ */
+void destructHashTable(tHashTable* ht) {
+    for (int i = 0; i < ht->size; i++) {
+        tHashItem* tmp = ht->table[i];
+        while (tmp != NULL) {
+            tHashItem* toDelete = tmp;
+            tmp = tmp->next;
+            deleteItem(toDelete);
+        }
+    }
+    free(ht->table);
+    ht->size = 0;
+}
