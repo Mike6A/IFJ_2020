@@ -190,3 +190,25 @@ int removeHashItem(tHashTable* ht, char* id) {
     }
     return 1;
 }
+
+/**
+ * @brief This functio get Hash item.
+ * 
+ * @param ht Valid pointer to hash table.
+ * @param id String ID.
+ * @return tHashItem* return valid pointer to item if exists
+ */
+tHashItem* getHashItem(tHashTable* ht, char *id) {
+    int key = getHash(ht, id);
+    tHashItem* tmp = ht->table[key];
+    if (tmp == NULL)
+        return NULL;
+    else {
+        while(tmp->next != NULL) {
+            if (strcmp(tmp->id, id) == 0)
+                return tmp;
+            tmp = tmp->next;
+        }
+        return tmp; 
+    }
+}
