@@ -1,4 +1,5 @@
 #include "scanner.h"
+#include "symtable/symtable.h"
 
 //eg.
 extern char* KEYWORDS[];
@@ -17,7 +18,7 @@ char* getEnumString(TokenType type){
     }
 }
 
-int main() {
+void test_tokenizer(){
     tTokenizer tokenizer;
     initTokenizer(&tokenizer);
     do {
@@ -32,5 +33,25 @@ int main() {
         }
     } while (tokenizer.outputToken.type != t_EOF);
     destructBuilder(&tokenizer.sb);
-	return 0;
+}
+
+void test_hashtable(){
+    tHashTable table;
+    initHashTable(&table, 10);
+    addDataToHT(&table, "myVar", "25", true);
+    addDataToHT(&table, "mysecondVar", "10", true);
+    addDataToHT(&table, "myVar1", "25", true);
+
+    tHashItem* item = getHashItem(&table, "mysecondVar");
+    printf("%s, %s\n", item->id, item->value);
+
+    removeHashItem(&table, "mysecondVar");
+    removeHashItem(&table, "myVar");
+    removeHashItem(&table, "myVar1");
+    destructHashTable(&table);
+}
+
+int main() {
+    test_hashtable();
+	return 1;
 }
