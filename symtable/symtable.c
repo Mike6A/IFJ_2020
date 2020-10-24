@@ -18,3 +18,24 @@ int getHash(tHashTable* ht, char* value){
         i += value[i];
     return i % ht->size;
 }
+
+/**
+ * @brief This function initialize hash table.
+ * 
+ * @param ht Valid pointer to hash table.
+ * @param size size of Hash table.
+ * @return 0 if alloc was successful
+ * @return 2 if size is bigger than max size of hash table 
+ */
+int initHashTable(tHashTable* ht, int size){
+    if (size > MAX_HASHTABLE_SIZE)
+        return 2;
+    ht->size = size;
+
+    ht->table = (tHashItem**)malloc(sizeof(tHashItem*) * size);
+    if (ht->table == NULL)
+        return 1;
+    for (int i = 0; i < size; i++)
+        ht->table[i] = NULL;
+    return 0; 
+}
