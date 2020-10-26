@@ -430,12 +430,16 @@ void state_ExpNum(tTokenizer* tokenizer){
  */
 void state_String(tTokenizer* tokenizer){
     cleanBuilder(&tokenizer->sb);
+    bool bckslhQMARK = false;
     do {
-	    if (appendChar(&tokenizer->sb, tokenizer->actualChar) == 1){
-	        tokenizer->errorCode = 99;
-            return;
-		}
-        getNextChar(tokenizer);
+          if (!bckslhQMARK){
+                if (appendChar(&tokenizer->sb, tokenizer->actualChar) == 1){
+                    tokenizer->errorCode = 99;
+                return;
+                    }
+           getNextChar(tokenizer);
+        }
+        bckslhQMARK = false;
 
         if((int)tokenizer->actualChar == 92){
 	        if (appendChar(&tokenizer->sb, '\\') == 1){ // add backslash
@@ -467,13 +471,13 @@ void state_String(tTokenizer* tokenizer){
                 tokenizer->outputToken.value = "";
                 tokenizer->errorCode = 1;
                 return;
-            } 
-            else if (tokenizer->actualChar == '\"'){
+            } else if (tokenizer->actualChar == '\"'){
 	            if (appendChar(&tokenizer->sb, '\"') == 1){ //add first and second hex
 	                tokenizer->errorCode = 99;
                     return;
 		        }
                 getNextChar(tokenizer);
+                bckslhQMARK = true;
                 continue;
             }
         }
