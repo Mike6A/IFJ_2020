@@ -264,6 +264,9 @@ void getToken(tTokenizer* tokenizer) {
                 return;
             }
             return;
+        default:
+            tokenizer->errorCode = 1;
+            return;
     }
 }
 
