@@ -467,6 +467,14 @@ void state_String(tTokenizer* tokenizer){
                 tokenizer->outputToken.value = "";
                 tokenizer->errorCode = 1;
                 return;
+            } 
+            else if (tokenizer->actualChar == '\"'){
+	            if (appendChar(&tokenizer->sb, '\"') == 1){ //add first and second hex
+	                tokenizer->errorCode = 99;
+                    return;
+		        }
+                getNextChar(tokenizer);
+                continue;
             }
         }
 
