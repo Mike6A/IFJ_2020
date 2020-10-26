@@ -432,12 +432,12 @@ void state_String(tTokenizer* tokenizer){
     cleanBuilder(&tokenizer->sb);
     bool bckslhQMARK = false;
     do {
-          if (!bckslhQMARK){
-                if (appendChar(&tokenizer->sb, tokenizer->actualChar) == 1){
-                    tokenizer->errorCode = 99;
+        if (!bckslhQMARK){
+            if (appendChar(&tokenizer->sb, tokenizer->actualChar) == 1){
+                tokenizer->errorCode = 99;
                 return;
-                    }
-           getNextChar(tokenizer);
+            }
+            getNextChar(tokenizer);
         }
         bckslhQMARK = false;
 
@@ -482,7 +482,6 @@ void state_String(tTokenizer* tokenizer){
             }
         }
 
-
         //return valid string token
         if((int)tokenizer->actualChar == 34){
 	        if (appendChar(&tokenizer->sb, tokenizer->actualChar) == 1){ //add "
@@ -497,7 +496,7 @@ void state_String(tTokenizer* tokenizer){
             tokenizer->processed = true;
             return;
         }
-    } while ((int)tokenizer->actualChar > 31 && (int)tokenizer->actualChar != 34);
+    } while ((int)tokenizer->actualChar > 31);
     tokenizer->errorCode = 1; //if is EOF set error 
     tokenizer->outputToken.value = "";
     return;
