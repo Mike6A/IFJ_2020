@@ -142,6 +142,7 @@ void state_EOF(tTokenizer* tokenizer){
  * @param tokenizer valid pointer to Tokenizer struct.
  */
 void getToken(tTokenizer* tokenizer) {
+    freeToken(tokenizer);
     if (tokenizer->errorCode > 0) {
         while (!tokenizer->isEOF){ //skip all 
             getNextChar(tokenizer);
@@ -616,4 +617,13 @@ int state_SecondEq(tTokenizer* tokenizer){
         return 0;
     }
     return 1;
+}
+
+
+void freeToken(tTokenizer* tokenizer) {
+    if (tokenizer->errorCode > 0) 
+        return;
+    if (tokenizer->outputToken.type <= 9) {
+        free(tokenizer->outputToken.value);
+    }
 }
