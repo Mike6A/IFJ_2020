@@ -148,6 +148,7 @@ int addFuncToHT(tHashTable* ht, char* id, char** params, unsigned params_count, 
             item->params[i] = malloc(sizeof(char) * (strlen(params[i]) + 1));
             if (item->params[i] == NULL)
                 return 1;
+            strcpy(params[i], item->params[i]);
         }
     }
     item->params_count = 0;
