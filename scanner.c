@@ -22,7 +22,7 @@ int initTokenizer(tTokenizer* tokenizer) {
     tokenizer->processed = true;
     tokenizer->actualChar = ' ';
     
-    tToken token = {.value = "", .type = t_NONE};
+    tToken token = {.value = "", .type = tokenType_NONE};
     tokenizer->outputToken = token;
 
     tStringBuilder sb;
@@ -130,7 +130,7 @@ bool isRuneLitaral(tTokenizer* tokenizer){
  */
 void state_EOF(tTokenizer* tokenizer){
     tokenizer->outputToken.value = "";
-    tokenizer->outputToken.type = t_EOF;
+    tokenizer->outputToken.type = tokenType_EOF;
 }
 
 /**
@@ -208,47 +208,64 @@ void getToken(tTokenizer* tokenizer) {
     }
 
     //recognize operators
-    tokenizer->outputToken.type = t_NONE;
     tokenizer->processed = true;
     switch (tokenizer->actualChar) {
         case '+':
             tokenizer->outputToken.value = "+";
+            tokenizer->outputToken.type = tokenType_PLUS;
             return;
         case '-':
             tokenizer->outputToken.value = "-";
+            tokenizer->outputToken.type = tokenType_MINUS;
             return;
         case '*':
             tokenizer->outputToken.value = "*";
+            tokenizer->outputToken.type = tokenType_MUL;
             return;
         case '<':
             tokenizer->outputToken.value = "<";
-            state_SecondEq(tokenizer);
+            if (state_SecondEq(tokenizer) == 1)
+                tokenizer->outputToken.type = tokenType_LESS;
+            else 
+                tokenizer->outputToken.type = tokenType_LE;
             return;
         case '>':
             tokenizer->outputToken.value = ">";
-            state_SecondEq(tokenizer);
+            if (state_SecondEq(tokenizer) == 1)
+                tokenizer->outputToken.type = tokenType_GREATER;
+            else 
+                tokenizer->outputToken.type = tokenType_GE;
             return;
         case ')':
             tokenizer->outputToken.value = ")";
+            tokenizer->outputToken.type = tokenType_LBN;
             return;
         case '(':
             tokenizer->outputToken.value = "(";
+            tokenizer->outputToken.type = tokenType_RBN;
             return;
         case '{':
             tokenizer->outputToken.value = "{";
+            tokenizer->outputToken.type = tokenType_LBC;
             return;
         case '}':
             tokenizer->outputToken.value = "}";
+            tokenizer->outputToken.type = tokenType_RBC;
             return;
         case ',':
             tokenizer->outputToken.value = ",";
+            tokenizer->outputToken.type = tokenType_COMMA;
             return;
         case ';':
             tokenizer->outputToken.value = ";";
+            tokenizer->outputToken.type = tokenType_SCOMMA;
             return;
         case '=':
             tokenizer->outputToken.value = "=";
-            state_SecondEq(tokenizer);
+            if (state_SecondEq(tokenizer) == 1)
+                tokenizer->outputToken.type = tokenType_ASSIGN;
+            else  
+                tokenizer->outputToken.type = tokenType_EQ;
             return;
         case ':':
             if (state_SecondEq(tokenizer) == 1) {
@@ -256,6 +273,7 @@ void getToken(tTokenizer* tokenizer) {
                 tokenizer->errorCode = 1;
                 return;
             }
+            tokenizer->outputToken.type = tokenType_DECL;
             return;
         case '!':
             if (state_SecondEq(tokenizer) == 1) {
@@ -263,9 +281,11 @@ void getToken(tTokenizer* tokenizer) {
                 tokenizer->errorCode = 1;
                 return;
             }
+            tokenizer->outputToken.type = tokenType_NEQ;
             return;
         default:
             tokenizer->errorCode = 1;
+            tokenizer->outputToken.type = tokenType_NONE;
             return;
     }
 }
@@ -313,12 +333,12 @@ void state_ID(tTokenizer* tokenizer) {
     //check if is KEYWORD 
     for (int i = 0; i < sizeof(KEYWORDS) / sizeof(KEYWORDS[0]); i++) {
         if (strcmp(tokenizer->outputToken.value, KEYWORDS[i]) == 0){
-			tokenizer->outputToken.type = t_KW;
+			tokenizer->outputToken.type = tokenType_KW;
             return;
 		}
     }
 
-	tokenizer->outputToken.type = t_ID;
+	tokenizer->outputToken.type = tokenType_ID;
 }
 
 /**
@@ -357,7 +377,7 @@ void state_Num(tTokenizer* tokenizer){
 		tokenizer->errorCode = 99;
         return;
 	}
-    tokenizer->outputToken.type = t_INT;
+    tokenizer->outputToken.type = tokenType_INT;
     tokenizer->processed = false;
 }
 
@@ -390,7 +410,7 @@ void state_BasicDouble(tTokenizer* tokenizer){
 		tokenizer->errorCode = 99;
         return;
 	}
-    tokenizer->outputToken.type = t_DOUBLE;
+    tokenizer->outputToken.type = tokenType_DOUBLE;
     tokenizer->processed = false;
 }
 
@@ -416,7 +436,7 @@ void state_ExpNum(tTokenizer* tokenizer){
 		    tokenizer->errorCode = 99;
             return;
 	    }
-        tokenizer->outputToken.type = t_DOUBLE;
+        tokenizer->outputToken.type = tokenType_DOUBLE;
     } else {
         tokenizer->outputToken.value = "";
         tokenizer->errorCode = 1;
@@ -495,7 +515,7 @@ void state_String(tTokenizer* tokenizer){
 		        tokenizer->errorCode = 99;
                 return;
 	        }
-            tokenizer->outputToken.type = t_STRING;
+            tokenizer->outputToken.type = tokenType_STRING;
             tokenizer->processed = true;
             return;
         }
@@ -538,7 +558,7 @@ int state_OneLineComment(tTokenizer* tokenizer){
         }
     } else { //is divede operator
         tokenizer->outputToken.value = "/";
-        tokenizer->outputToken.type = t_NONE;
+        tokenizer->outputToken.type = tokenType_DIV;
         tokenizer->processed = false;
         return 1;
     }
@@ -570,9 +590,10 @@ int state_BlockComment(tTokenizer* tokenizer) {
 }
 
 /**
- * @brief This function hanle second char is equal state.
+ * @brief This function handle second char is equal state.
  * 
  * @param tokenizer valid pointer to Tokenizer struct.
+ * @return 0 if second char is =
  */
 int state_SecondEq(tTokenizer* tokenizer){
     cleanBuilder(&tokenizer->sb);

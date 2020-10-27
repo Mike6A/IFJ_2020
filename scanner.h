@@ -13,7 +13,10 @@
 #include "string.h"
 #include "stringBuilder/stringBuilder.h"
 
-typedef enum { t_ID, t_KW, t_INT, t_DOUBLE, t_STRING, t_NONE, t_EOF } TokenType;
+typedef enum { tokenType_ID, tokenType_KW, tokenType_INT, tokenType_DOUBLE, tokenType_STRING, tokenType_NONE, tokenType_EOF,
+               tokenType_PLUS, tokenType_MINUS, tokenType_MUL, tokenType_DIV, tokenType_LESS, tokenType_GREATER, 
+               tokenType_LE, tokenType_GE, tokenType_EQ, tokenType_NEQ, tokenType_LBN, tokenType_RBN, tokenType_LBC, tokenType_RBC,
+               tokenType_COMMA, tokenType_SCOMMA, tokenType_DECL, tokenType_ASSIGN} TokenType;
 typedef enum { EOL_REQUIRED, EOL_OPTIONAL, EOL_FORBIDEN } EOLflag;
 
 
