@@ -238,11 +238,11 @@ void getToken(tTokenizer* tokenizer) {
             return;
         case ')':
             tokenizer->outputToken.value = ")";
-            tokenizer->outputToken.type = tokenType_LBN;
+            tokenizer->outputToken.type = tokenType_RBN;
             return;
         case '(':
             tokenizer->outputToken.value = "(";
-            tokenizer->outputToken.type = tokenType_RBN;
+            tokenizer->outputToken.type = tokenType_LBN;
             return;
         case '{':
             tokenizer->outputToken.value = "{";
