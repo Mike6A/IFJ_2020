@@ -1,6 +1,5 @@
 #include "scanner.h"
 #include "symtable/symtable.h"
-#include "syntaxTree.h"
 
 //eg.
 extern char* KEYWORDS[];
@@ -72,6 +71,6 @@ void test_GetTOKEN() {
 }
 
 int main() {
-    test_GetTOKEN();
+    test_tree();
 	return 1;
 }
