@@ -10,6 +10,7 @@ enum typeOfNode{
     Node_ParenthezedExpression,
     Node_BinaryExpression,
     Node_UnaryExpression,
+    Node_BooleanExpression,
 
     //Tokens
     Node_NumberIntToken,

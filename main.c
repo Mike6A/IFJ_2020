@@ -1,6 +1,6 @@
 #include "scanner.h"
 #include "symtable/symtable.h"
-#include "syntaxTree.h"
+#include "analyse.h"
 
 //eg.
 extern char* KEYWORDS[];
@@ -15,6 +15,24 @@ char* getEnumString(TokenType type){
         case tokenType_STRING: return "STRING";
         case tokenType_NONE: return "NONE";
         case tokenType_EOF: return "EOF";
+        case tokenType_PLUS: return "PLUS";
+        case tokenType_MINUS: return "MINUS";
+        case tokenType_MUL: return "MUL";
+        case tokenType_DIV: return "DIV";
+        case tokenType_LESS: return "LESS";
+        case tokenType_GREATER: return "GREATER";
+        case tokenType_LE: return "LE";
+        case tokenType_GE: return "GE";
+        case tokenType_EQ: return "EQ";
+        case tokenType_NEQ: return "NEQ";
+        case tokenType_LBN: return "LBN";
+        case tokenType_RBN: return "RBN";
+        case tokenType_LBC: return "LBC";
+        case tokenType_RBC: return "RBC";
+        case tokenType_COMMA: return "COMMA";
+        case tokenType_SCOMMA: return "SCAMMA";
+        case tokenType_DECL: return "DECL";
+        case tokenType_ASSIGN: return "ASSIGN";
         default: return "";
     }
 }
@@ -52,6 +70,8 @@ void test_tree(){
 
     getToken(&tokenizer);
     SyntaxNode* exp = ParseExpression(&tokenizer, 0);
+    if(exp == NULL)
+        printf("EXPRESSION NULL");
     printSyntaxTree(exp, "", true);
     long res = eval(&tokenizer, exp);
     printf("RES>>> %ld", res);
@@ -65,7 +85,7 @@ void test_GetTOKEN() {
     initTokenizer(&tokenizer);
     do {
         getToken(&tokenizer);
-        printf("%s\n", tokenizer.outputToken.value);
+        printf("%s\t%s\n", tokenizer.outputToken.value, getEnumString(tokenizer.outputToken.type));
     } while (tokenizer.outputToken.type != tokenType_EOF);
 
     destructBuilder(&tokenizer.sb);
