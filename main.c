@@ -1,5 +1,6 @@
 #include "scanner.h"
 #include "symtable/symtable.h"
+#include "syntaxTree.h"
 
 //eg.
 extern char* KEYWORDS[];
