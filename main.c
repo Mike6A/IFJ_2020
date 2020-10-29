@@ -24,14 +24,8 @@ void test_tokenizer(){
     initTokenizer(&tokenizer);
     do {
         getToken(&tokenizer); 
-        //printf("%20s | %6s | err: %d\n", tokenizer.outputToken.value, getEnumString(tokenizer.outputToken.type), tokenizer.errorCode);
-        /*if (tokenizer.outputToken.type != tokenType_EOF && tokenizer.errorCode == 0) {
-            if (tokenizer.outputToken.type != tokenType_NONE){
-                free(tokenizer.outputToken.value);
-            } else if (strlen(tokenizer.outputToken.value) > 1) {
-                free(tokenizer.outputToken.value);
-            }
-        }*/
+        printf("%20s | %6s | err: %d\n", tokenizer.outputToken.value, getEnumString(tokenizer.outputToken.type), tokenizer.errorCode);
+
     } while (tokenizer.outputToken.type != tokenType_EOF);
     destructBuilder(&tokenizer.sb);
 }
@@ -57,10 +51,11 @@ void test_tree(){
     initTokenizer(&tokenizer);
 
     getToken(&tokenizer);
-    SyntaxNode* exp = ParseExpression(&tokenizer);
+    SyntaxNode* exp = ParseExpression(&tokenizer, 0);
     printSyntaxTree(exp, "", true);
+    long res = eval(&tokenizer, exp);
+    printf("RES>>> %ld", res);
     deleteSyntaxTree(exp);
-//    printSyntaxTree(exp, "", true);
     destructBuilder(&tokenizer.sb);
 
 }
@@ -70,13 +65,13 @@ void test_GetTOKEN() {
     initTokenizer(&tokenizer);
     do {
         getToken(&tokenizer);
-        //printf("%s\n", tokenizer.outputToken.value);
+        printf("%s\n", tokenizer.outputToken.value);
     } while (tokenizer.outputToken.type != tokenType_EOF);
 
     destructBuilder(&tokenizer.sb);
 }
 
 int main() {
-    test_tree();
+    test_GetTOKEN();
 	return 1;
 }

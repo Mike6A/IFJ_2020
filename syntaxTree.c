@@ -13,11 +13,12 @@ void initSyntaxNode(SyntaxNode* root){
     root->token = NULL;
     root->name = "";
 }
-SyntaxNode* createNodeFromToken(tToken* token, char* name){
+SyntaxNode* createNodeFromToken(tToken* token, char* name, int type){
     SyntaxNode* current = malloc(sizeof(SyntaxNode));
     initSyntaxNode(current);
     current->token = token;
     current->name = name;
+    current->type = type;
     return current;
 }
 tToken* CopyToken(tToken* token){
@@ -39,11 +40,25 @@ tToken* Match(tTokenizer* tokenizer, int type){
     return current;
 }
 
+int GetOperatorPriority(int tokenType){
+    switch (tokenType) {
+        case tokenType_MUL:
+        case tokenType_DIV:
+            return 2;
+        case tokenType_PLUS:
+        case tokenType_MINUS:
+            return 1;
+        default:
+            return 0;
+    }
+}
+
 SyntaxNode* numberExpressionSyntax(tToken* numberToken){
     SyntaxNode* current = malloc(sizeof(SyntaxNode));
     initSyntaxNode(current);
-    current->operator = createNodeFromToken(numberToken, "NumberToken");
+    current->operator = createNodeFromToken(numberToken, "NumberToken", Node_NumberIntToken);
     current->token = NULL;
+    current->type = Node_NumberExpression;
     current->name = "NumberExpression";
     return current;
 }
@@ -54,15 +69,17 @@ SyntaxNode* binaryExpressionSyntax(SyntaxNode* left, tToken* operator, SyntaxNod
     current->operator = NULL;
     current->left = left;
     current->token = operator;
+    current->type = Node_BinaryExpression;
     current->name = "BinaryExpression";
     return current;
 }
 SyntaxNode* parenthezedExpressionSyntax(tToken* left, SyntaxNode* expression, tToken* right){
     SyntaxNode* current = malloc(sizeof(SyntaxNode));
-    current->left = createNodeFromToken(left, "OpenParenthesisToken");
+    current->left = createNodeFromToken(left, "OpenParenthesisToken", Node_OpenParenthesisToken);
     current->operator = expression;
     current->token = NULL;
-    current->right = createNodeFromToken(right, "CloseParenthesisToken");
+    current->right = createNodeFromToken(right, "CloseParenthesisToken", Node_CloseParenthesisToken);
+    current->type = Node_ParenthezedExpression;
     current->name = "ParenthezedExpression";
     return current;
 }
@@ -70,7 +87,7 @@ SyntaxNode* parenthezedExpressionSyntax(tToken* left, SyntaxNode* expression, tT
 SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
     if(tokenizer->outputToken.type == tokenType_LBN){
         tToken *left = Match(tokenizer, tokenType_LBN);
-        SyntaxNode *expression = ParseExpression(tokenizer);
+        SyntaxNode *expression = ParseExpression(tokenizer, 0);
         tToken *right = Match(tokenizer, tokenType_RBN);
         return parenthezedExpressionSyntax(left, expression, right);
     }
@@ -79,16 +96,19 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
     return node;
 }
 
-SyntaxNode* ParseExpression(tTokenizer* tokenizer){
+SyntaxNode* ParseExpression(tTokenizer* tokenizer, int parentPriority){
     //@todo ADD *,/, true, false, unary operators, +,-,!.
     //@todo ADD Error report...
     SyntaxNode* left = PrimaryExpressionSyntax(tokenizer);
-    while (tokenizer->outputToken.type == tokenType_PLUS || tokenizer->outputToken.type == tokenType_MINUS){
-
+    while (true){
+        int priority = GetOperatorPriority(tokenizer->outputToken.type);
+        if(priority == 0 || priority <= parentPriority){
+            break;
+        }
         tToken* operator = CopyToken(&tokenizer->outputToken);
         getToken(tokenizer);
 
-        SyntaxNode* right = PrimaryExpressionSyntax(tokenizer);
+        SyntaxNode* right = ParseExpression(tokenizer, priority);
         left = binaryExpressionSyntax(left, operator, right);
     }
     return left;
@@ -110,6 +130,34 @@ void printSyntaxTree(SyntaxNode* node, char* indent, bool last){
     printSyntaxTree(node->left, newIndent, node->operator == NULL && node->right == NULL);
     printSyntaxTree(node->operator, newIndent, node->right == NULL);
     printSyntaxTree(node->right, newIndent, true);
+}
+
+long eval(tTokenizer* tokenizer, SyntaxNode * root){
+    if(root->type == Node_NumberExpression ){
+        char* end;
+        long result = strtol (root->operator->token->value,&end,10);
+        return result;
+    }
+    if(root->type == Node_BinaryExpression){
+        long left = eval(tokenizer, root->left);
+        long right = eval(tokenizer, root->right);
+        switch (root->token->type) {
+            case tokenType_PLUS:
+                return left + right;
+            case tokenType_MINUS:
+                return left - right;
+            case tokenType_MUL:
+                return left * right;
+            case tokenType_DIV:
+                return left / right;
+            default:
+                return -1;
+        }
+    }
+    if(root->type == Node_ParenthezedExpression){
+        return eval(tokenizer, root->operator);
+    }
+    return -1;
 }
 
 void deleteSyntaxTree(SyntaxNode* node){
