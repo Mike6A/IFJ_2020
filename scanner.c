@@ -551,7 +551,7 @@ int state_OneLineComment(tTokenizer* tokenizer){
     if(tokenizer->actualChar == '/'){ //is one line comment
         do {
             getNextChar(tokenizer);
-        } while(tokenizer->actualChar != '\n' && tokenizer->actualChar != '\r');
+        } while(tokenizer->actualChar != '\n' && tokenizer->actualChar != '\r' && !tokenizer->isEOF);
         getNextChar(tokenizer);
     } else if (tokenizer->actualChar == '*'){  //is block comment
         if (state_BlockComment(tokenizer) != 0) {
@@ -624,6 +624,7 @@ void freeToken(tTokenizer* tokenizer) {
     if (tokenizer->errorCode > 0) 
         return;
     if (tokenizer->outputToken.type <= 9) {
-        free(tokenizer->outputToken.value);
+        if (tokenizer->outputToken.value != NULL && strlen(tokenizer->outputToken.value) > 0)
+            free(tokenizer->outputToken.value);
     }
 }
