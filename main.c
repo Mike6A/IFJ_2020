@@ -67,15 +67,19 @@ void test_hashtable(){
 void test_tree(){
     tTokenizer tokenizer;
     initTokenizer(&tokenizer);
-
-    getToken(&tokenizer);
-    SyntaxNode* exp = ParseExpression(&tokenizer, 0);
-    if(exp == NULL)
-        printf("EXPRESSION NULL");
-    printSyntaxTree(exp, "", true);
-    long res = eval(&tokenizer, exp);
-    printf("RES>>> %ld", res);
-    deleteSyntaxTree(exp);
+    tHashTable variables;
+    initHashTable(&variables, 10);
+    while (!tokenizer.isEOF){
+        getToken(&tokenizer);
+        SyntaxNode* exp = ParseExpression(&tokenizer, 0);
+        tokenizer.eolFlag = EOL_OPTIONAL;
+        if(exp == NULL)
+            printf("EXPRESSION NULL");
+        printSyntaxTree(exp, "", true);
+        long res = eval(&tokenizer, exp, &variables);
+        printf("RES>>> %ld\n", res);
+        deleteSyntaxTree(exp);
+    }
     destructBuilder(&tokenizer.sb);
 
 }
@@ -83,9 +87,15 @@ void test_tree(){
 void test_GetTOKEN() {
     tTokenizer tokenizer;
     initTokenizer(&tokenizer);
+    tokenizer.eolFlag = EOL_FORBIDEN;
     do {
         getToken(&tokenizer);
         printf("%s\t%s\n", tokenizer.outputToken.value, getEnumString(tokenizer.outputToken.type));
+        if(tokenizer.actualChar == '\n' || tokenizer.actualChar == '\r'){
+            printf("------\tNEW LINE READING\t------\n");
+            tokenizer.eolFlag = EOL_OPTIONAL;
+        }
+
     } while (tokenizer.outputToken.type != tokenType_EOF);
 
     destructBuilder(&tokenizer.sb);

@@ -1,2 +1,5 @@
-// 15
-(1 + 2) * 3 + (45 - 33)/2 //ssada
+ahoj := 15 + 48
+ja := ahoj - 5
+neviem := 1+3*2
+result := ahoj - neviem *2 + ja
+result

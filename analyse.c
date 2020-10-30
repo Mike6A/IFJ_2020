@@ -65,7 +65,9 @@ tToken* Match(tTokenizer* tokenizer, int type){
     tToken* current = NULL;
     if(tokenizer->outputToken.type == type){
         current = CopyToken(&tokenizer->outputToken);
-        getToken(tokenizer);
+        if(tokenizer->actualChar != '\n' && tokenizer->actualChar != '\r'){
+            getToken(tokenizer);
+        }
 
     }else{
         fprintf(stderr,"Expected: %s \t--- Given: %s\n", getEnumString2(type), getEnumString2(tokenizer->outputToken.type));
@@ -114,6 +116,15 @@ SyntaxNode* numberExpressionSyntax(tToken* numberToken){
     return current;
 }
 
+SyntaxNode* identifierExpressionSyntax(tToken* identifier){
+    SyntaxNode* current = malloc(sizeof(SyntaxNode));
+    initSyntaxNode(current);
+    current->operator = createNodeFromToken(identifier, "identifier", Node_IdentifierToken);
+    current->type = Node_IdentifierExpression;
+    current->name = "IdentifierExpression";
+    return current;
+}
+
 SyntaxNode* binaryExpressionSyntax(SyntaxNode* left, tToken* operator, SyntaxNode* right){
     SyntaxNode* current = malloc(sizeof(SyntaxNode));
     current->right = right;
@@ -146,6 +157,18 @@ SyntaxNode* parenthezedExpressionSyntax(tToken* left, SyntaxNode* expression, tT
     return current;
 }
 
+
+SyntaxNode* assignExpressionSyntax(tToken* identifier, tToken* equalsToken, SyntaxNode* expression){
+    SyntaxNode* current = malloc(sizeof(SyntaxNode));
+    current->left = createNodeFromToken(identifier, "identifier", Node_IdentifierToken);
+    current->operator = NULL;
+    current->token = equalsToken;
+    current->right = expression;
+    current->type = Node_AssignmentExpression;
+    current->name = "AssignExpression";
+    return current;
+}
+
 SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
     // S => (exp)
     if(tokenizer->outputToken.type == tokenType_LBN){
@@ -153,6 +176,16 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
         SyntaxNode *expression = ParseExpression(tokenizer, 0);
         tToken *right = Match(tokenizer, tokenType_RBN);
         return parenthezedExpressionSyntax(left, expression, right);
+    }
+    if(tokenizer->outputToken.type == tokenType_ID){
+        tToken *identifier = Match(tokenizer, tokenType_ID);
+        if (tokenizer->outputToken.type == tokenType_DECL || tokenizer->outputToken.type == tokenType_ASSIGN){
+            tToken * assing = CopyToken(&tokenizer->outputToken);
+            getToken(tokenizer);
+            SyntaxNode *expr = ParseExpression(tokenizer, 0);
+            return assignExpressionSyntax(identifier, assing, expr);
+        }
+        return identifierExpressionSyntax(identifier);
     }
     //S => INT
     tToken* numberToken = Match(tokenizer, tokenType_INT);
@@ -170,13 +203,11 @@ SyntaxNode* ParseExpression(tTokenizer* tokenizer, int parentPriority){
         tToken* operator = Match(tokenizer, tokenizer->outputToken.type);
         SyntaxNode* operand = ParseExpression(tokenizer, unaryPriority);
         left = unaryExpressionSyntax(operator, operand);
-        printf("UNARY DONE!");
     }else{
         left = PrimaryExpressionSyntax(tokenizer);
     }
 
-    while (true){
-        printf("\t\t%s\n", getEnumString2(tokenizer->outputToken.type));
+    while (tokenizer->actualChar != '\n' && tokenizer->actualChar != '\r'){
         int priority = GetBinOperatorPriority(tokenizer->outputToken.type);
         if(priority == 0 || priority <= parentPriority)
             break;
@@ -209,7 +240,7 @@ void printSyntaxTree(SyntaxNode* node, char* indent, bool last){
     printSyntaxTree(node->right, newIndent, true);
 }
 
-long eval(tTokenizer* tokenizer, SyntaxNode * root){
+long eval(tTokenizer* tokenizer, SyntaxNode * root, tHashTable* variables){
     if(root == NULL){
         return 0;
     }
@@ -218,8 +249,41 @@ long eval(tTokenizer* tokenizer, SyntaxNode * root){
         long result = strtol (root->operator->token->value,&end,10);
         return result;
     }
+    if(root->type == Node_IdentifierExpression){
+        tHashItem *item = getHashItem(variables, root->operator->token->value);
+        if(item == NULL){
+            fprintf(stderr, "Identifier %s was not declared!", root->operator->token->value);
+            exit(3);
+        }
+        char* end;
+        long result = strtol (item->value,&end,10);
+        return result;
+    }
+    if(root->type == Node_AssignmentExpression){
+        tHashItem *item = getHashItem(variables, root->left->token->value);
+        if(item == NULL){
+            if(root->token->type == tokenType_DECL){
+                char value[1024];
+                long res = eval(tokenizer, root->right, variables);
+                sprintf(value, "%ld", res);
+                addDataToHT(variables, root->left->token->value, value, true);
+                return res;
+            }
+            fprintf(stderr, "Identifier %s was not declared! CannotAssign\n", root->left->token->value);
+            exit(3);
+        }
+        if(root->token->type == tokenType_ASSIGN){
+            char value[1024];
+            long res = eval(tokenizer, root->right, variables);
+            sprintf(value, "%ld", res);
+            strcpy(item->value, value);
+            return res;
+        }
+        fprintf(stderr, "Identifier %s was declared! CannotRedeclare\n", root->left->token->value);
+        exit(3);
+    }
     if(root->type == Node_UnaryExpression){
-        long operand = eval(tokenizer, root->right);
+        long operand = eval(tokenizer, root->right, variables);
         switch (root->token->type) {
             case tokenType_PLUS:
                 return operand;
@@ -230,8 +294,8 @@ long eval(tTokenizer* tokenizer, SyntaxNode * root){
         }
     }
     if(root->type == Node_BinaryExpression){
-        long left = eval(tokenizer, root->left);
-        long right = eval(tokenizer, root->right);
+        long left = eval(tokenizer, root->left, variables);
+        long right = eval(tokenizer, root->right, variables);
         switch (root->token->type) {
             case tokenType_PLUS:
                 return left + right;
@@ -258,7 +322,7 @@ long eval(tTokenizer* tokenizer, SyntaxNode * root){
         }
     }
     if(root->type == Node_ParenthezedExpression){
-        return eval(tokenizer, root->operator);
+        return eval(tokenizer, root->operator, variables);
     }
 
     return -1;
