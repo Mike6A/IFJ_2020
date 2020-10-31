@@ -6,6 +6,45 @@
 
 #include "analyse.h"
 
+//@TODO Proper NAMING AND SEPARATE FILES!!!
+void initScope(tScope* scope){
+    scope->table = NULL;
+    scope->next = NULL;
+    scope->top = NULL;
+}
+
+int createScope(tScope *scope){
+    tHashTable* table = (tHashTable*) malloc(sizeof(tHashTable));
+    initHashTable(table, MAX_HASHTABLE_SIZE);
+    if(table == NULL) {
+        free(table);
+        return 1;
+    }
+    if(scope->table == NULL){
+        scope->top = scope;
+        scope->table = table;
+    }else{
+        tScope* newScope = (tScope*)malloc(sizeof(tScope));
+        if(newScope == NULL) {
+            free(table);
+            return 1;
+        }
+        newScope->next = scope->top;
+        newScope->table = table;
+        scope->top = newScope;
+    }
+    return 0;
+}
+
+int removeScope(tScope* scope){
+    tScope *tmp = scope->top;
+    scope->top = tmp->next;
+    free(tmp->table);
+    free(tmp);
+    return 0;
+}
+
+
 char* getEnumString2(TokenType type){
     switch (type)
     {
@@ -169,23 +208,42 @@ SyntaxNode* assignExpressionSyntax(tToken* identifier, tToken* equalsToken, Synt
     return current;
 }
 
-SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
+SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer, tScope* scope){
     // S => (exp)
+    if(tokenizer->outputToken.type == tokenType_EOF){
+        return NULL;
+    }
+    if(tokenizer->outputToken.type == tokenType_LBC){
+        createScope(scope);
+        return NULL;
+    }
+    if(tokenizer->outputToken.type == tokenType_RBC){
+        removeScope(scope);
+        return NULL;
+    }
     if(tokenizer->outputToken.type == tokenType_LBN){
         tToken *left = Match(tokenizer, tokenType_LBN);
-        SyntaxNode *expression = ParseExpression(tokenizer, 0);
+        SyntaxNode *expression = ParseExpression(tokenizer, 0, scope);
         tToken *right = Match(tokenizer, tokenType_RBN);
         return parenthezedExpressionSyntax(left, expression, right);
     }
+
     if(tokenizer->outputToken.type == tokenType_ID){
         tToken *identifier = Match(tokenizer, tokenType_ID);
         if (tokenizer->outputToken.type == tokenType_DECL || tokenizer->outputToken.type == tokenType_ASSIGN){
             tToken * assing = CopyToken(&tokenizer->outputToken);
             getToken(tokenizer);
-            SyntaxNode *expr = ParseExpression(tokenizer, 0);
+            SyntaxNode *expr = ParseExpression(tokenizer, 0, scope);
             return assignExpressionSyntax(identifier, assing, expr);
         }
         return identifierExpressionSyntax(identifier);
+    }
+    if(tokenizer->outputToken.type == tokenType_KW){
+        tokenizer->eolFlag = EOL_FORBIDEN;
+        tToken *kw = Match(tokenizer, tokenType_KW);
+        if(strcmp(kw->value, "if") == 0){
+            return NULL;
+        }
     }
     //S => INT
     tToken* numberToken = Match(tokenizer, tokenType_INT);
@@ -193,7 +251,7 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
     return node;
 }
 
-SyntaxNode* ParseExpression(tTokenizer* tokenizer, int parentPriority){
+SyntaxNode* ParseExpression(tTokenizer* tokenizer, int parentPriority, tScope* scope){
     //@todo ADD *,/, true, false, unary operators, +,-,!.
     //@todo ADD Error report...
     SyntaxNode* left;
@@ -201,10 +259,10 @@ SyntaxNode* ParseExpression(tTokenizer* tokenizer, int parentPriority){
     //S => -exp | +exp
     if(unaryPriority != 0 && unaryPriority >= parentPriority){
         tToken* operator = Match(tokenizer, tokenizer->outputToken.type);
-        SyntaxNode* operand = ParseExpression(tokenizer, unaryPriority);
+        SyntaxNode* operand = ParseExpression(tokenizer, unaryPriority, scope);
         left = unaryExpressionSyntax(operator, operand);
     }else{
-        left = PrimaryExpressionSyntax(tokenizer);
+        left = PrimaryExpressionSyntax(tokenizer, scope);
     }
 
     while (tokenizer->actualChar != '\n' && tokenizer->actualChar != '\r'){
@@ -216,7 +274,7 @@ SyntaxNode* ParseExpression(tTokenizer* tokenizer, int parentPriority){
         getToken(tokenizer);
 
 
-        SyntaxNode* right = ParseExpression(tokenizer, priority);
+        SyntaxNode* right = ParseExpression(tokenizer, priority, scope);
         left = binaryExpressionSyntax(left, operator, right);
     }
     return left;
@@ -240,7 +298,7 @@ void printSyntaxTree(SyntaxNode* node, char* indent, bool last){
     printSyntaxTree(node->right, newIndent, true);
 }
 
-long eval(tTokenizer* tokenizer, SyntaxNode * root, tHashTable* variables){
+long eval(tTokenizer* tokenizer, SyntaxNode * root, tScope* scope){
     if(root == NULL){
         return 0;
     }
@@ -250,7 +308,15 @@ long eval(tTokenizer* tokenizer, SyntaxNode * root, tHashTable* variables){
         return result;
     }
     if(root->type == Node_IdentifierExpression){
-        tHashItem *item = getHashItem(variables, root->operator->token->value);
+        tScope *currentScope = scope->top;
+        tHashItem *item;
+        do {
+            item = getHashItem(currentScope->table, root->operator->token->value);
+            if(item == NULL){
+                currentScope = currentScope->next;
+            }
+        }while(item == NULL && currentScope != NULL);
+
         if(item == NULL){
             fprintf(stderr, "Identifier %s was not declared!", root->operator->token->value);
             exit(3);
@@ -260,13 +326,32 @@ long eval(tTokenizer* tokenizer, SyntaxNode * root, tHashTable* variables){
         return result;
     }
     if(root->type == Node_AssignmentExpression){
-        tHashItem *item = getHashItem(variables, root->left->token->value);
+        tHashItem *item = getHashItem(scope->top->table, root->left->token->value);
         if(item == NULL){
             if(root->token->type == tokenType_DECL){
                 char value[1024];
-                long res = eval(tokenizer, root->right, variables);
+                long res = eval(tokenizer, root->right, scope);
                 sprintf(value, "%ld", res);
-                addDataToHT(variables, root->left->token->value, value, true);
+                if(addDataToHT(scope->top->table, root->left->token->value, value, true) == 1){
+                    fprintf(stderr, "ERRTABLE\n");
+                }
+                return res;
+            }else if (root->token->type == tokenType_ASSIGN){
+                tScope *currentScope = scope->top->next;
+                while(item == NULL && currentScope != NULL){
+                    item = getHashItem(currentScope->table, root->operator->token->value);
+                    if(item == NULL){
+                        currentScope = currentScope->next;
+                    }
+                }
+                if(currentScope == NULL){
+                    fprintf(stderr, "Identifier %s was not declared! CannotAssign\n", root->left->token->value);
+                    exit(3);
+                }
+                char value[1024];
+                long res = eval(tokenizer, root->right, currentScope);
+                sprintf(value, "%ld", res);
+                strcpy(item->value, value);
                 return res;
             }
             fprintf(stderr, "Identifier %s was not declared! CannotAssign\n", root->left->token->value);
@@ -274,7 +359,7 @@ long eval(tTokenizer* tokenizer, SyntaxNode * root, tHashTable* variables){
         }
         if(root->token->type == tokenType_ASSIGN){
             char value[1024];
-            long res = eval(tokenizer, root->right, variables);
+            long res = eval(tokenizer, root->right, scope);
             sprintf(value, "%ld", res);
             strcpy(item->value, value);
             return res;
@@ -283,7 +368,7 @@ long eval(tTokenizer* tokenizer, SyntaxNode * root, tHashTable* variables){
         exit(3);
     }
     if(root->type == Node_UnaryExpression){
-        long operand = eval(tokenizer, root->right, variables);
+        long operand = eval(tokenizer, root->right, scope);
         switch (root->token->type) {
             case tokenType_PLUS:
                 return operand;
@@ -294,8 +379,8 @@ long eval(tTokenizer* tokenizer, SyntaxNode * root, tHashTable* variables){
         }
     }
     if(root->type == Node_BinaryExpression){
-        long left = eval(tokenizer, root->left, variables);
-        long right = eval(tokenizer, root->right, variables);
+        long left = eval(tokenizer, root->left, scope);
+        long right = eval(tokenizer, root->right, scope);
         switch (root->token->type) {
             case tokenType_PLUS:
                 return left + right;
@@ -322,7 +407,7 @@ long eval(tTokenizer* tokenizer, SyntaxNode * root, tHashTable* variables){
         }
     }
     if(root->type == Node_ParenthezedExpression){
-        return eval(tokenizer, root->operator, variables);
+        return eval(tokenizer, root->operator, scope);
     }
 
     return -1;

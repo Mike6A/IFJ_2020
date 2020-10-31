@@ -32,9 +32,18 @@ typedef struct t_syntaxTree {
     char* name;
 }SyntaxNode;
 
+typedef struct scope{
+    tHashTable* table;
+    struct scope* top;
+    struct scope* next;
+} tScope;
+
+void initScope(tScope* scope);
+int createScope(tScope *scope);
+
 void initSyntaxNode(SyntaxNode *root);
 void printSyntaxTree(SyntaxNode* node, char* indent, bool last);
-SyntaxNode* ParseExpression(tTokenizer* tokenizer, int priority);
-long eval(tTokenizer* tokenizer, SyntaxNode * root, tHashTable* variables);
+SyntaxNode* ParseExpression(tTokenizer* tokenizer, int priority, tScope* scope);
+long eval(tTokenizer* tokenizer, SyntaxNode * root, tScope* scope);
 void deleteSyntaxTree(SyntaxNode* node);
 #endif //IFJ_2020_SYNTAXTREE_H
