@@ -1,11 +1,10 @@
-ahoj := 5
-if ahoj <= 5 {
-    ty:=15
-}
-else{
-    ty:=5
-}
-
-if (ahoj > 0){
-    ok:=5
+a := 0
+if a < 0 {
+    a
+} else {
+    vysl := 1
+    for ; a > 0; a = a - 1 {
+        vysl = vysl * a
+    }
+    vysl
 }
