@@ -316,6 +316,24 @@ SyntaxNode* forStatementSyntax(tToken* kw, SyntaxNode* definition, SyntaxNode* c
     current->name = "ForStatement";
     return current;
 }
+
+SyntaxNode* functStatementSyntax(tToken* id, SyntaxNodes* params, SyntaxNodes* returnTypes, SyntaxNode* body){
+    SyntaxNode* current = malloc(sizeof(SyntaxNode));
+    SyntaxNode* requiredHeader = malloc(sizeof(SyntaxNode));
+    initSyntaxNode(requiredHeader);
+    initSyntaxNode(current);
+    requiredHeader->left = createNodeFromToken(id, "FunctionIdentifierToken", Node_IdentifierToken);
+    requiredHeader->statements = params;
+    requiredHeader->name = "FunctionRequiredInformation";
+    requiredHeader->type = Node_FunctionInitExpression;
+    current->left = requiredHeader;
+    current->statements = returnTypes;
+    current->right = body;
+    current->type = Node_FunctionExpression;
+    current->name = "FunctionStatement";
+    return current;
+}
+
 SyntaxNode* ParseConditionExpresionSyntax(tTokenizer* tokenizer, tScope* scope){
     SyntaxNode *expr = ParseExpression(tokenizer, 0, scope);
     if(expr!= NULL && (expr->type == Node_BooleanExpression || (expr->type == Node_ParenthezedExpression && expr->statements != NULL && expr->statements->node != NULL && expr->statements->node->type == Node_BooleanExpression)))
@@ -427,23 +445,82 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer, tScope* scope){
                 tToken *assign = CopyToken(&tokenizer->outputToken);
                 getToken(tokenizer);
                 SyntaxNode *expr = ParseExpression(tokenizer, 0, scope);
-                definition = declExpressionSyntax(id, assign, expr); // @TODO CHECK DEFINITION
+                definition = declExpressionSyntax(id, assign, expr);
             }
             tToken* separatorScoma = Match(tokenizer, tokenType_SCOMMA);
             if(tokenizer->outputToken.type != tokenType_SCOMMA) {
-                condition = ParseConditionExpresionSyntax(tokenizer, scope); // @TODO CHECK CONDITION
+                condition = ParseConditionExpresionSyntax(tokenizer, scope);
             }
             separatorScoma = Match(tokenizer, tokenType_SCOMMA);
             if(tokenizer->outputToken.type != tokenType_LBC){
                 tToken* id = Match(tokenizer, tokenType_ID);
-                assignExpr = ParseAssignSyntax(tokenizer, scope, id); // @TODO CHECK Assign
+                assignExpr = ParseAssignSyntax(tokenizer, scope, id);
             }
             tokenizer->eolFlag = EOL_OPTIONAL;
             tToken* openBlockToken = Match(tokenizer, tokenType_LBC);
-            SyntaxNodes *forStatements = ParseBlockExpressions(tokenizer, 0, scope); // @TODO CHECK BODY
+            SyntaxNodes *forStatements = ParseBlockExpressions(tokenizer, 0, scope);
             tToken *closeBlockToken = Match(tokenizer, tokenType_RBC);
             SyntaxNode *forBody = blockExpressionSyntax(openBlockToken, forStatements, closeBlockToken);
             return forStatementSyntax(kw, definition, condition, assignExpr, forBody);
+        }
+        if(strcmp(kw->value, "func") == 0){
+            tokenizer->eolFlag = EOL_FORBIDEN;
+            tToken* functionNameToken = Match(tokenizer, tokenType_ID);
+            tToken* OpenBracket = Match(tokenizer, tokenType_LBN);
+            SyntaxNodes* params = NULL;
+            tToken* comma = NULL;
+            while(tokenizer->outputToken.type != tokenType_RBN){
+                tToken* paramID = Match(tokenizer, tokenType_ID);
+                tToken* paramType = Match(tokenizer, tokenType_KW);
+                if(tokenizer->outputToken.type == tokenType_COMMA){
+                    comma = Match(tokenizer, tokenType_COMMA);
+                }
+                else if(tokenizer->outputToken.type != tokenType_COMMA && tokenizer->outputToken.type != tokenType_RBN){
+                    fprintf(stderr, "Expected: COMMA or CLOSING BRACKET!");
+                    exit(2);
+                }
+                SyntaxNode* oneParam = createNode(
+                        createNodeFromToken(paramID, "ParameterIDToken", Node_ParamIdentifierToken),
+                        NULL,
+                        createNodeFromToken(paramType, "ParameterTypeToken", Node_ParamTypeToken),
+                        NULL,
+                        "OneFunctionParameter",
+                        Node_FunctionParameter
+                        );
+                if(params == NULL){
+                    params = createNodeList(oneParam);
+                }else{
+                    addToNodeListEnd(params, oneParam);
+                }
+            }
+            tToken* CloseBracket = Match(tokenizer, tokenType_RBN);
+            SyntaxNodes* returnTypes = NULL;
+            if(tokenizer->outputToken.type == tokenType_LBN){
+                OpenBracket = Match(tokenizer, tokenType_LBN);
+                while (tokenizer->outputToken.type != tokenType_RBN){
+                    tToken* returnType = Match(tokenizer, tokenType_KW);
+                    if(tokenizer->outputToken.type == tokenType_COMMA){
+                        comma = Match(tokenizer, tokenType_COMMA);
+                    }
+                    else if(tokenizer->outputToken.type != tokenType_COMMA && tokenizer->outputToken.type != tokenType_RBN){
+                        fprintf(stderr, "Expected: COMMA or CLOSING BRACKET!");
+                        exit(2);
+                    }
+                    if(returnTypes == NULL){
+                        returnTypes = createNodeList(createNodeFromToken(returnType, "ReturnType", Node_KWTypeToken));
+                    }else{
+                        addToNodeListEnd(returnTypes, createNodeFromToken(returnType, "ReturnType", Node_KWTypeToken));
+                    }
+                }
+                CloseBracket = Match(tokenizer, tokenType_RBN);
+            }
+            tokenizer->eolFlag = EOL_OPTIONAL;
+            tToken* openBlockToken = Match(tokenizer, tokenType_LBC);
+            SyntaxNodes* funcStatements = ParseBlockExpressions(tokenizer, 0, scope);
+            tToken *closeBlockToken = Match(tokenizer, tokenType_RBC);
+            SyntaxNode* funcBody = blockExpressionSyntax(openBlockToken, funcStatements, closeBlockToken);
+
+            return functStatementSyntax(functionNameToken, params, returnTypes, funcBody);
         }
 
     }

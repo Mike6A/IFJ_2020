@@ -19,6 +19,8 @@ enum typeOfNode{
     Node_ElseExpression,
     Node_ForExpression,
     Node_ForInitExpressions,
+    Node_FunctionExpression,
+    Node_FunctionInitExpression,
     Node_BooleanExpression,
 
     //Tokens
@@ -29,7 +31,12 @@ enum typeOfNode{
     Node_IdentifierToken,
     Node_OpenBlockStatementToken,
     Node_CloseBlockStatementToken,
-    Node_OperatorToken
+    Node_KWTypeToken,
+    Node_ParamIdentifierToken,
+    Node_ParamTypeToken,
+    Node_OperatorToken,
+
+    Node_FunctionParameter,
 };
 static char *enumTypeOfNode[] = {
         "Node_NumberExpression",
@@ -44,6 +51,8 @@ static char *enumTypeOfNode[] = {
         "Node_ElseExpression",
         "Node_ForExpression",
         "Node_ForInitExpressions",
+        "Node_FunctionExpression",
+        "Node_FunctionInitExpression",
         "Node_BooleanExpression",
         //TOKENST
         "Node_NumberIntToken",
@@ -53,7 +62,12 @@ static char *enumTypeOfNode[] = {
         "Node_IdentifierToken",
         "Node_OpenBlockStatementToken",
         "Node_CloseBlockStatementToken",
-        "Node_OperatorToken"
+        "Node_KWTypeToken",
+        "Node_ParamIdentifierToken",
+        "Node_ParamTypeToken",
+        "Node_OperatorToken",
+
+        "Node_FunctionParameter",
 };
 //@TODO MAKE SEPARATE FILES FOR STRUCTURES !!!!
 //@TODO AND PROPER NAMING !!!!
