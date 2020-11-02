@@ -1,17 +1,11 @@
-{
-    ahoj := 15 + 4
-    {
-        ty:= ahoj +1
-        {
-            ty
-            ty:=0
-            ty
-            {
-                ahoj
-                ahoj:=1
-                ahoj
-            }
-        }
-    }
-    ahoj
+ahoj := 5
+if ahoj <= 5 {
+    ty:=15
+}
+else{
+    ty:=5
+}
+
+if (ahoj > 0){
+    ok:=5
 }

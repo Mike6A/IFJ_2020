@@ -13,6 +13,9 @@ enum typeOfNode{
     Node_BinaryExpression,
     Node_UnaryExpression,
     Node_AssignmentExpression,
+    Node_BlockExpression,
+    Node_IFExpression,
+    Node_ElseExpression,
     Node_BooleanExpression,
 
     //Tokens
@@ -21,29 +24,48 @@ enum typeOfNode{
     Node_OpenParenthesisToken,
     Node_CloseParenthesisToken,
     Node_IdentifierToken,
+    Node_OpenBlockStatementToken,
+    Node_CloseBlockStatementToken,
     Node_OperatorToken
 };
+//@TODO MAKE SEPARATE FILES FOR STRUCTURES !!!!
+//@TODO AND PROPER NAMING !!!!
+struct t_syntaxTree;
+
+typedef struct t_syntaxTrees{
+    struct t_syntaxTrees *first;
+    struct t_syntaxTree *node;
+    struct t_syntaxTrees *next;
+    struct t_syntaxTrees *last;
+}SyntaxNodes;
+
 typedef struct t_syntaxTree {
     struct t_syntaxTree* left;
-    struct t_syntaxTree* operator;
+    SyntaxNodes* statements;
     struct t_syntaxTree* right;
     tToken* token;
     enum typeOfNode type;
     char* name;
 }SyntaxNode;
 
-typedef struct scope{
+typedef struct scopeItem{
     tHashTable* table;
-    struct scope* top;
-    struct scope* next;
-} tScope;
-
+    struct scopeItem* next;
+} tScopeItem;
+typedef struct scope{
+    tScopeItem* topLocal;
+    tScopeItem* global;
+}tScope;
 void initScope(tScope* scope);
 int createScope(tScope *scope);
+int removeLastLocalScope(tScope *scope);
 
 void initSyntaxNode(SyntaxNode *root);
 void printSyntaxTree(SyntaxNode* node, char* indent, bool last);
+
 SyntaxNode* ParseExpression(tTokenizer* tokenizer, int priority, tScope* scope);
+SyntaxNodes* ParseGlobalBlockExpressions (tTokenizer* tokenizer, int parentPriority, tScope* scope);
+SyntaxNodes* ParseBlockExpressions(tTokenizer* tokenizer, int priority, tScope* scope);
 long eval(tTokenizer* tokenizer, SyntaxNode * root, tScope* scope);
 void deleteSyntaxTree(SyntaxNode* node);
 #endif //IFJ_2020_SYNTAXTREE_H

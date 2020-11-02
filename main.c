@@ -70,18 +70,27 @@ void test_tree(){
     tScope scope;
     initScope(&scope);
     createScope(&scope);
-    while (!tokenizer.isEOF){
-        getToken(&tokenizer);
-        SyntaxNode* exp = ParseExpression(&tokenizer, 0, &scope);
-        /*if(exp == NULL)
-            printf("EXPRESSION NULL");
-            */
-        printSyntaxTree(exp, "", true);
-        long res = eval(&tokenizer, exp, &scope);
-        if(res!=0)
-            printf("RES>>> %ld\n", res);
-        deleteSyntaxTree(exp);
-    }
+    getToken(&tokenizer);
+    SyntaxNode prog;
+    initSyntaxNode(&prog);
+    prog.name = "GlobalScope";
+    prog.statements = ParseGlobalBlockExpressions(&tokenizer, 0, &scope);
+    printSyntaxTree(&prog, "", true);
+    //long res = eval(&tokenizer, prog, &scope);
+    //deleteSyntaxTree(&prog);
+//    while (!tokenizer.isEOF){
+//        getToken(&tokenizer);
+//        SyntaxNode* exp = ParseExpression(&tokenizer, 0, &scope);
+//        /*if(exp == NULL)
+//            printf("EXPRESSION NULL");
+//            */
+//        printSyntaxTree(exp, "", true);
+//        long res = eval(&tokenizer, exp, &scope);
+//        if(res!=0)
+//            printf("RES>>> %ld\n", res);
+//        deleteSyntaxTree(exp);
+//    }
+    removeLastLocalScope(&scope);
     destructBuilder(&tokenizer.sb);
 
 }

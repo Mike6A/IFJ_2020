@@ -8,37 +8,39 @@
 
 //@TODO Proper NAMING AND SEPARATE FILES!!!
 void initScope(tScope* scope){
-    scope->table = NULL;
-    scope->next = NULL;
-    scope->top = NULL;
+    scope->topLocal = NULL;
+    scope->global = NULL;
 }
 
 int createScope(tScope *scope){
     tHashTable* table = (tHashTable*) malloc(sizeof(tHashTable));
     initHashTable(table, MAX_HASHTABLE_SIZE);
     if(table == NULL) {
-        free(table);
+        //free(table);
         return 1;
     }
-    if(scope->table == NULL){
-        scope->top = scope;
-        scope->table = table;
+    if(scope->topLocal == NULL){
+        tScopeItem* newScope = (tScopeItem *)malloc(sizeof(tScopeItem));
+        newScope->next = NULL;
+        scope->topLocal = newScope;
+        scope->topLocal->table = table;
+        scope->global = newScope;
     }else{
-        tScope* newScope = (tScope*)malloc(sizeof(tScope));
+        tScopeItem* newScope = (tScopeItem *)malloc(sizeof(tScopeItem));
         if(newScope == NULL) {
             free(table);
             return 1;
         }
-        newScope->next = scope->top;
+        newScope->next = scope->topLocal;
         newScope->table = table;
-        scope->top = newScope;
+        scope->topLocal = newScope;
     }
     return 0;
 }
 
-int removeScope(tScope* scope){
-    tScope *tmp = scope->top;
-    scope->top = tmp->next;
+int removeLastLocalScope(tScope* scope){
+    tScopeItem *tmp = scope->topLocal;
+    scope->topLocal = tmp->next;
     free(tmp->table);
     free(tmp);
     return 0;
@@ -79,16 +81,62 @@ char* getEnumString2(TokenType type){
 
 void initSyntaxNode(SyntaxNode* root){
     root->left = NULL;
-    root->operator = NULL;
+    root->statements = NULL;
     root->right = NULL;
     root->token = NULL;
     root->name = "";
+}
+SyntaxNodes* createNodeList(SyntaxNode* node){
+    SyntaxNodes * list = (SyntaxNodes*)malloc(sizeof(SyntaxNodes));
+    if(list != NULL) {
+        list->first = list;
+        list->node = node;
+        list->next = NULL;
+        list->last = list;
+    }
+    return list;
+}
+int addToNodeListEnd(SyntaxNodes* list, SyntaxNode* next){
+    SyntaxNodes * nextListItem = createNodeList(next);
+    if(nextListItem == NULL){
+        return 1;
+    }
+    list->first = list;
+    list->last->next = nextListItem;
+    list->last = nextListItem;
+    return 0;
+}
+int destroyNodeList(SyntaxNodes* list){
+    SyntaxNodes * current = list->first;
+    while(current != NULL){
+        SyntaxNodes * tmp = current;
+        free(current);
+        tmp->first = NULL;
+        tmp->last = NULL;
+        free(tmp->node);
+        tmp->node = NULL;
+        current = tmp->next;
+    }
+    return 0;
+}
+
+SyntaxNode* createNode(SyntaxNode* left, SyntaxNodes* statements, SyntaxNode* right, tToken* token, const char* name, int type){
+    SyntaxNode* current = malloc(sizeof(SyntaxNode));
+    current->left = left;
+    current->statements = statements;
+    current->right = right;
+    current->token = token;
+    current->name = (char*)malloc(sizeof(char) * strlen(name) + 1);
+    strcpy(current->name, name);
+    current->type = type;
+    return current;
 }
 SyntaxNode* createNodeFromToken(tToken* token, char* name, int type){
     SyntaxNode* current = malloc(sizeof(SyntaxNode));
     initSyntaxNode(current);
     current->token = token;
-    current->name = name;
+    current->name = (char*)malloc(sizeof(char) * strlen(name) + 1);
+    strcpy(current->name, name);
     current->type = type;
     return current;
 }
@@ -104,9 +152,7 @@ tToken* Match(tTokenizer* tokenizer, int type){
     tToken* current = NULL;
     if(tokenizer->outputToken.type == type){
         current = CopyToken(&tokenizer->outputToken);
-        if(tokenizer->actualChar != '\n' && tokenizer->actualChar != '\r'){
-            getToken(tokenizer);
-        }
+        getToken(tokenizer);
 
     }else{
         fprintf(stderr,"Expected: %s \t--- Given: %s\n", getEnumString2(type), getEnumString2(tokenizer->outputToken.type));
@@ -148,7 +194,7 @@ int GetBinOperatorPriority(int tokenType){
 SyntaxNode* numberExpressionSyntax(tToken* numberToken){
     SyntaxNode* current = malloc(sizeof(SyntaxNode));
     initSyntaxNode(current);
-    current->operator = createNodeFromToken(numberToken, "NumberToken", Node_NumberIntToken);
+    current->right = createNodeFromToken(numberToken, "NumberToken", Node_NumberIntToken);
     current->token = NULL;
     current->type = Node_NumberExpression;
     current->name = "NumberExpression";
@@ -158,7 +204,7 @@ SyntaxNode* numberExpressionSyntax(tToken* numberToken){
 SyntaxNode* identifierExpressionSyntax(tToken* identifier){
     SyntaxNode* current = malloc(sizeof(SyntaxNode));
     initSyntaxNode(current);
-    current->operator = createNodeFromToken(identifier, "identifier", Node_IdentifierToken);
+    current->right = createNodeFromToken(identifier, "identifier", Node_IdentifierToken);
     current->type = Node_IdentifierExpression;
     current->name = "IdentifierExpression";
     return current;
@@ -167,7 +213,7 @@ SyntaxNode* identifierExpressionSyntax(tToken* identifier){
 SyntaxNode* binaryExpressionSyntax(SyntaxNode* left, tToken* operator, SyntaxNode* right){
     SyntaxNode* current = malloc(sizeof(SyntaxNode));
     current->right = right;
-    current->operator = NULL;
+    current->statements = NULL;
     current->left = left;
     current->token = operator;
     current->type = Node_BinaryExpression;
@@ -177,7 +223,7 @@ SyntaxNode* binaryExpressionSyntax(SyntaxNode* left, tToken* operator, SyntaxNod
 SyntaxNode* unaryExpressionSyntax(tToken* operator, SyntaxNode* right){
     SyntaxNode* current = malloc(sizeof(SyntaxNode));
     current->right = right;
-    current->operator = NULL;
+    current->statements = NULL;
     current->left = NULL;
     current->token = operator;
     current->type = Node_UnaryExpression;
@@ -188,7 +234,7 @@ SyntaxNode* unaryExpressionSyntax(tToken* operator, SyntaxNode* right){
 SyntaxNode* parenthezedExpressionSyntax(tToken* left, SyntaxNode* expression, tToken* right){
     SyntaxNode* current = malloc(sizeof(SyntaxNode));
     current->left = createNodeFromToken(left, "OpenParenthesisToken", Node_OpenParenthesisToken);
-    current->operator = expression;
+    current->statements = createNodeList(expression);
     current->token = NULL;
     current->right = createNodeFromToken(right, "CloseParenthesisToken", Node_CloseParenthesisToken);
     current->type = Node_ParenthezedExpression;
@@ -200,11 +246,42 @@ SyntaxNode* parenthezedExpressionSyntax(tToken* left, SyntaxNode* expression, tT
 SyntaxNode* assignExpressionSyntax(tToken* identifier, tToken* equalsToken, SyntaxNode* expression){
     SyntaxNode* current = malloc(sizeof(SyntaxNode));
     current->left = createNodeFromToken(identifier, "identifier", Node_IdentifierToken);
-    current->operator = NULL;
+    current->statements = NULL;
     current->token = equalsToken;
     current->right = expression;
     current->type = Node_AssignmentExpression;
     current->name = "AssignExpression";
+    return current;
+}
+SyntaxNode* blockExpressionSyntax(tToken * left, SyntaxNodes* statements, tToken* right ){
+    SyntaxNode* current = malloc(sizeof(SyntaxNode));
+    current->left = createNodeFromToken(left, "OpenBlockStatement", Node_OpenBlockStatementToken);
+    current->statements = statements;
+    current->token = NULL;
+    current->right = createNodeFromToken(right, "CloseBlockStatement", Node_CloseBlockStatementToken);
+    current->type = Node_BlockExpression;
+    current->name = "BlockExpressions";
+    return current;
+}
+SyntaxNode* ifStatementSyntax(tToken * kw, SyntaxNode* condition, tToken* openBlockToken, SyntaxNode* thenStatements ){
+    SyntaxNode* current = malloc(sizeof(SyntaxNode));
+    current->left = condition;
+    current->statements = NULL;
+    current->token = openBlockToken;
+    current->right = thenStatements;
+    current->type = Node_IFExpression;
+    current->name = "IfStatement";
+    return current;
+}
+
+SyntaxNode* elseStatementSyntax(tToken * kw, tToken* openBlockToken, SyntaxNode* thenStatements ){
+    SyntaxNode* current = malloc(sizeof(SyntaxNode));
+    current->left = NULL;
+    current->statements = NULL;
+    current->token = openBlockToken;
+    current->right = thenStatements;
+    current->type = Node_ElseExpression;
+    current->name = "ElseStatement";
     return current;
 }
 
@@ -214,11 +291,15 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer, tScope* scope){
         return NULL;
     }
     if(tokenizer->outputToken.type == tokenType_LBC){
-        createScope(scope);
-        return NULL;
+        //createScope(scope);
+        tToken* left = Match(tokenizer, tokenType_LBC);
+        SyntaxNodes* statements = ParseBlockExpressions(tokenizer, 0, scope);
+        tToken* right = Match(tokenizer, tokenType_RBC);
+
+        return blockExpressionSyntax(left, statements, right);
     }
     if(tokenizer->outputToken.type == tokenType_RBC){
-        removeScope(scope);
+        //removeScope(scope);
         return NULL;
     }
     if(tokenizer->outputToken.type == tokenType_LBN){
@@ -242,13 +323,59 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer, tScope* scope){
         tokenizer->eolFlag = EOL_FORBIDEN;
         tToken *kw = Match(tokenizer, tokenType_KW);
         if(strcmp(kw->value, "if") == 0){
-            return NULL;
+            SyntaxNode *condition = ParseExpression(tokenizer,0, scope);
+            tokenizer->eolFlag = EOL_OPTIONAL;
+            tToken *openBlockToken = Match(tokenizer, tokenType_LBC);
+
+            SyntaxNodes *statements = ParseBlockExpressions(tokenizer, 0, scope);
+            tToken *closeBlockToken = Match(tokenizer, tokenType_RBC);
+            SyntaxNode *thenStatement = blockExpressionSyntax(openBlockToken, statements, closeBlockToken);
+            if(strcmp(tokenizer->outputToken.value, "else") == 0){
+                tToken *elsekw = Match(tokenizer, tokenType_KW);
+                tokenizer->eolFlag = EOL_OPTIONAL;
+                tToken *openBlockTokenElse = Match(tokenizer, tokenType_LBC);
+                SyntaxNodes *elseStatements = ParseBlockExpressions(tokenizer, 0, scope);
+                tToken *closeBlockTokenElse = Match(tokenizer, tokenType_RBC);
+                SyntaxNode *elseStatement = blockExpressionSyntax(openBlockTokenElse, elseStatements, closeBlockTokenElse);
+                SyntaxNode * elseSyntax = elseStatementSyntax(kw, openBlockToken, elseStatement);
+                addToNodeListEnd(statements, elseSyntax);
+            }
+            return ifStatementSyntax(kw, condition, openBlockToken, thenStatement);
+        }
+
+    }
+
+    //S => INT
+    if(tokenizer->outputToken.type == tokenType_INT){
+        tToken* numberToken = Match(tokenizer, tokenType_INT);
+        SyntaxNode *node = numberExpressionSyntax(numberToken);
+        return node;
+    }
+    return NULL;
+}
+SyntaxNodes* ParseGlobalBlockExpressions (tTokenizer* tokenizer, int parentPriority, tScope* scope){
+    SyntaxNodes * list = NULL;
+    while (!tokenizer->isEOF) {
+        SyntaxNode* expr = ParseExpression(tokenizer, parentPriority, scope);
+        if(list == NULL){
+            list = createNodeList(expr);
+        }else{
+            addToNodeListEnd(list, expr);
         }
     }
-    //S => INT
-    tToken* numberToken = Match(tokenizer, tokenType_INT);
-    SyntaxNode *node = numberExpressionSyntax(numberToken);
-    return node;
+    return list;
+}
+SyntaxNodes* ParseBlockExpressions (tTokenizer* tokenizer, int parentPriority, tScope* scope){
+    SyntaxNodes * list = NULL;
+    while (tokenizer->outputToken.type != tokenType_RBC) {
+        SyntaxNode* expr = ParseExpression(tokenizer, parentPriority, scope);
+        if(list == NULL){
+            list = createNodeList(expr);
+        }else{
+            addToNodeListEnd(list, expr);
+        }
+    }
+    return list;
 }
 
 SyntaxNode* ParseExpression(tTokenizer* tokenizer, int parentPriority, tScope* scope){
@@ -265,11 +392,11 @@ SyntaxNode* ParseExpression(tTokenizer* tokenizer, int parentPriority, tScope* s
         left = PrimaryExpressionSyntax(tokenizer, scope);
     }
 
-    while (tokenizer->actualChar != '\n' && tokenizer->actualChar != '\r'){
+    while (true){
         int priority = GetBinOperatorPriority(tokenizer->outputToken.type);
         if(priority == 0 || priority <= parentPriority)
             break;
-        //Try to Build Binary expression if exists binary operator
+        //Try to Build Binary expression if exists binary statements
         tToken* operator = CopyToken(&tokenizer->outputToken);
         getToken(tokenizer);
 
@@ -279,22 +406,26 @@ SyntaxNode* ParseExpression(tTokenizer* tokenizer, int parentPriority, tScope* s
     }
     return left;
 }
-void printSyntaxTree(SyntaxNode* node, char* indent, bool last){
-    if(node == NULL)
+void printSyntaxTree(SyntaxNode* node, char* indent, bool last) {
+    if (node == NULL)
         return;
 
-    char* marker = last ? "└──" : "├──";
-    printf("%s%s", indent,marker);
+    char *marker = last ? "└──" : "├──";
+    printf("%s%s", indent, marker);
     printf("%s", node->name);
-    if(node->token != NULL && node->token->value != NULL){
+    if (node->token != NULL && node->token->value != NULL) {
         printf(" %s", node->token->value);
     }
     printf("\n");
     char newIndent[1024];
     strcpy(newIndent, indent);
     strcat(newIndent, last ? "   " : "│  ");
-    printSyntaxTree(node->left, newIndent, node->operator == NULL && node->right == NULL);
-    printSyntaxTree(node->operator, newIndent, node->right == NULL);
+    printSyntaxTree(node->left, newIndent, node->statements == NULL && node->right == NULL);
+    SyntaxNodes *statement = node->statements != NULL ? node->statements->first : NULL;
+    while (statement != NULL){
+        printSyntaxTree(statement->node, newIndent, statement->next == NULL && node->right == NULL);
+        statement = statement->next;
+    }
     printSyntaxTree(node->right, newIndent, true);
 }
 
@@ -302,44 +433,59 @@ long eval(tTokenizer* tokenizer, SyntaxNode * root, tScope* scope){
     if(root == NULL){
         return 0;
     }
+    if(root->type == Node_BlockExpression) {
+        createScope(scope);
+        SyntaxNodes *statements = root->statements->first;
+        long res = 0;
+        while (statements != NULL) {
+            res = eval(tokenizer, statements->node, scope);
+            statements = statements->next;
+        }
+        removeLastLocalScope(scope);
+
+        return res;
+    }
     if(root->type == Node_NumberExpression){
         char* end;
-        long result = strtol (root->operator->token->value,&end,10);
+        long result = strtol (root->right->token->value, &end, 10);
+        printf("\t%s\tRES >>> \t%ld\n", root->name,result);
         return result;
     }
     if(root->type == Node_IdentifierExpression){
-        tScope *currentScope = scope->top;
+        tScopeItem *currentScope = scope->topLocal;
         tHashItem *item;
         do {
-            item = getHashItem(currentScope->table, root->operator->token->value);
+            item = getHashItem(currentScope->table, root->right->token->value);
             if(item == NULL){
                 currentScope = currentScope->next;
             }
         }while(item == NULL && currentScope != NULL);
 
         if(item == NULL){
-            fprintf(stderr, "Identifier %s was not declared!", root->operator->token->value);
+            fprintf(stderr, "Identifier %s was not declared!", root->right->token->value);
             exit(3);
         }
         char* end;
         long result = strtol (item->value,&end,10);
+        printf("\t%s\tRES >>> \t%ld\n", root->name,result);
         return result;
     }
     if(root->type == Node_AssignmentExpression){
-        tHashItem *item = getHashItem(scope->top->table, root->left->token->value);
+        tHashItem *item = getHashItem(scope->topLocal->table, root->left->token->value);
         if(item == NULL){
             if(root->token->type == tokenType_DECL){
                 char value[1024];
                 long res = eval(tokenizer, root->right, scope);
                 sprintf(value, "%ld", res);
-                if(addDataToHT(scope->top->table, root->left->token->value, value, true) == 1){
+                if(addDataToHT(scope->topLocal->table, root->left->token->value, value, true) == 1){
                     fprintf(stderr, "ERRTABLE\n");
                 }
+                printf("\t%s\tRES >>> \t%ld\n", root->name,res);
                 return res;
             }else if (root->token->type == tokenType_ASSIGN){
-                tScope *currentScope = scope->top->next;
+                tScopeItem *currentScope = scope->topLocal->next;
                 while(item == NULL && currentScope != NULL){
-                    item = getHashItem(currentScope->table, root->operator->token->value);
+                    item = getHashItem(currentScope->table, root->left->token->value);
                     if(item == NULL){
                         currentScope = currentScope->next;
                     }
@@ -349,9 +495,10 @@ long eval(tTokenizer* tokenizer, SyntaxNode * root, tScope* scope){
                     exit(3);
                 }
                 char value[1024];
-                long res = eval(tokenizer, root->right, currentScope);
+                long res = eval(tokenizer, root->right, scope);
                 sprintf(value, "%ld", res);
                 strcpy(item->value, value);
+                printf("\t%s\tRES >>> \t%ld\n", root->name,res);
                 return res;
             }
             fprintf(stderr, "Identifier %s was not declared! CannotAssign\n", root->left->token->value);
@@ -362,6 +509,7 @@ long eval(tTokenizer* tokenizer, SyntaxNode * root, tScope* scope){
             long res = eval(tokenizer, root->right, scope);
             sprintf(value, "%ld", res);
             strcpy(item->value, value);
+            printf("\t%s\tRES >>> \t%ld\n", root->name,res);
             return res;
         }
         fprintf(stderr, "Identifier %s was declared! CannotRedeclare\n", root->left->token->value);
@@ -407,7 +555,7 @@ long eval(tTokenizer* tokenizer, SyntaxNode * root, tScope* scope){
         }
     }
     if(root->type == Node_ParenthezedExpression){
-        return eval(tokenizer, root->operator, scope);
+        return eval(tokenizer, root->statements->node, scope);
     }
 
     return -1;
@@ -424,7 +572,7 @@ void deleteSyntaxTree(SyntaxNode* node){
         free(node->token);
     }
     deleteSyntaxTree(node->left);
-    deleteSyntaxTree(node->operator);
+    //deleteSyntaxTree(node->statements);
     deleteSyntaxTree(node->right);
     free(node);
 
