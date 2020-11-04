@@ -71,13 +71,12 @@ void test_tree(){
     initScope(&scope);
     createScope(&scope);
     getToken(&tokenizer);
-    SyntaxNode prog;
-    initSyntaxNode(&prog);
-    prog.name = "GlobalScope";
-    prog.statements = ParseGlobalBlockExpressions(&tokenizer, 0, &scope);
-    printSyntaxTree(&prog, "", true);
+    SyntaxNode* prog;
+    prog = createNode(NULL, NULL, NULL, NULL, "GlobalScope", Node_Global);
+    prog->statements = ParseGlobalBlockExpressions(&tokenizer, 0, &scope);
+    printSyntaxTree(prog, "", true);
     //long res = eval(&tokenizer, prog, &scope);
-    //deleteSyntaxTree(&prog);
+    deleteSyntaxTree(prog);
 //    while (!tokenizer.isEOF){
 //        getToken(&tokenizer);
 //        SyntaxNode* exp = ParseExpression(&tokenizer, 0, &scope);
