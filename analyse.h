@@ -6,14 +6,18 @@
 #ifndef IFJ_2020_SYNTAXTREE_H
 #define IFJ_2020_SYNTAXTREE_H
 enum typeOfNode{
+    Node_Global,
     //Expressions
     Node_NumberExpression,
+    Node_StringExpression,
     Node_IdentifierExpression,
     Node_ParenthezedExpression,
     Node_BinaryExpression,
     Node_UnaryExpression,
     Node_DeclareExpression,
     Node_AssignmentExpression,
+    Node_AssignmentToExpression,
+    Node_AssignmentValuesExpression,
     Node_BlockExpression,
     Node_IFExpression,
     Node_ElseExpression,
@@ -21,11 +25,14 @@ enum typeOfNode{
     Node_ForInitExpressions,
     Node_FunctionExpression,
     Node_FunctionInitExpression,
+    Node_FunctionCallExpression,
+    Node_ReturnExpression,
     Node_BooleanExpression,
 
     //Tokens
     Node_NumberIntToken,
     Node_NumberFloatToken,
+    Node_StringToken,
     Node_OpenParenthesisToken,
     Node_CloseParenthesisToken,
     Node_IdentifierToken,
@@ -34,18 +41,25 @@ enum typeOfNode{
     Node_KWTypeToken,
     Node_ParamIdentifierToken,
     Node_ParamTypeToken,
+    Node_AssignmentToken,
     Node_OperatorToken,
 
     Node_FunctionParameter,
+    Node_FunctionCallParameters,
 };
 static char *enumTypeOfNode[] = {
+        "Node_Global",
+
         "Node_NumberExpression",
+        "Node_StringExpression",
         "Node_IdentifierExpression",
         "Node_ParenthezedExpression",
         "Node_BinaryExpression",
         "Node_UnaryExpression",
         "Node_DeclareExpression",
         "Node_AssignmentExpression",
+        "Node_AssignmentToExpression",
+        "Node_AssignmentValuesExpression",
         "Node_BlockExpression",
         "Node_IFExpression",
         "Node_ElseExpression",
@@ -53,10 +67,13 @@ static char *enumTypeOfNode[] = {
         "Node_ForInitExpressions",
         "Node_FunctionExpression",
         "Node_FunctionInitExpression",
+        "Node_FunctionCallExpression",
+        "Node_ReturnExpression",
         "Node_BooleanExpression",
         //TOKENST
         "Node_NumberIntToken",
         "Node_NumberFloatToken",
+        "Node_StringToken",
         "Node_OpenParenthesisToken",
         "Node_CloseParenthesisToken",
         "Node_IdentifierToken",
@@ -65,9 +82,12 @@ static char *enumTypeOfNode[] = {
         "Node_KWTypeToken",
         "Node_ParamIdentifierToken",
         "Node_ParamTypeToken",
+        "Node_AssignmentToken",
         "Node_OperatorToken",
 
+
         "Node_FunctionParameter",
+        "Node_FunctionCallParameters",
 };
 //@TODO MAKE SEPARATE FILES FOR STRUCTURES !!!!
 //@TODO AND PROPER NAMING !!!!
@@ -101,6 +121,8 @@ void initScope(tScope* scope);
 int createScope(tScope *scope);
 int removeLastLocalScope(tScope *scope);
 
+SyntaxNode* createNode(SyntaxNode* left, SyntaxNodes* statements, SyntaxNode* right, tToken* token, const char* name, int type);
+SyntaxNode* CopyNode(SyntaxNode* node);
 void initSyntaxNode(SyntaxNode *root);
 void printSyntaxTree(SyntaxNode* node, char* indent, bool last);
 
