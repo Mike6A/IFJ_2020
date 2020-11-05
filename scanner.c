@@ -172,7 +172,8 @@ void getToken(tTokenizer* tokenizer) {
     }
 
     if(tokenizer->actualChar == '/'){ //recognize if is comment or divide operator
-        if (state_OneLineComment(tokenizer) != 0){
+        int res_OLC = state_OneLineComment(tokenizer);
+        if (res_OLC != 0 && res_OLC != 3){
             return;
         }
     }
@@ -300,6 +301,14 @@ void state_EOLRequired(tTokenizer* tokenizer) {
     if (tokenizer->eolFlag == EOL_REQUIRED){
         while (isSeparator(tokenizer)){
             getNextChar(tokenizer);
+        }
+        if(tokenizer->actualChar == '/'){ //recognize comment 
+            /** @todo  block comment ??? **/
+            if (state_OneLineComment(tokenizer) != 0){ //one line comment
+                tokenizer->outputToken.value = "";
+                tokenizer->errorCode = 1;
+            }
+            return;
         }
         if (tokenizer->actualChar != '\n' && tokenizer->actualChar != '\r') {
             tokenizer->outputToken.value = "";
@@ -544,6 +553,10 @@ int state_EOL(tTokenizer* tokenizer){
  * @brief This function hanle one line comment state and divide operator
  * 
  * @param tokenizer valid pointer to Tokenizer struct.
+ * @return 0 if is correct one line comment
+ * \n 1 if is it divide operator
+ * \n 2 if is block comment uncorrect 
+ * \n 3 if is block comment correct 
  */
 int state_OneLineComment(tTokenizer* tokenizer){
     getNextChar(tokenizer);
@@ -554,8 +567,9 @@ int state_OneLineComment(tTokenizer* tokenizer){
         getNextChar(tokenizer);
     } else if (tokenizer->actualChar == '*'){  //is block comment
         if (state_BlockComment(tokenizer) != 0) {
-            return 1;
+            return 2;
         }
+        return 3;
     } else { //is divede operator
         tokenizer->outputToken.value = "/";
         tokenizer->outputToken.type = tokenType_DIV;
@@ -569,22 +583,32 @@ int state_OneLineComment(tTokenizer* tokenizer){
  * @brief This function hanle block comment state.
  * 
  * @param tokenizer valid pointer to Tokenizer struct.
+ * @return 0 if is correct block comment
  */
 int state_BlockComment(tTokenizer* tokenizer) {
+    bool star = false;
     do {
-        getNextChar(tokenizer);
+        if (!star)
+            getNextChar(tokenizer);
+        star = false;
         if (tokenizer->actualChar == 1){ //if is EOF sets error
             tokenizer->outputToken.value = "";
             tokenizer->errorCode = 1;
             return 1;
         }
-    } while(tokenizer->actualChar != '*');
-    getNextChar(tokenizer);
-    if (tokenizer->actualChar != '/'){ //check if correctly ended block comment
-        tokenizer->errorCode = 1;
-        tokenizer->outputToken.value = "";
-        return 1;
-    }
+        if (tokenizer->actualChar == '*'){ //if is EOF sets error
+            getNextChar(tokenizer);
+            star = true;
+            if (tokenizer->actualChar == '/'){ //if is EOF sets error
+                break;
+            } else if (tokenizer->actualChar == 1){ //if is EOF sets error
+                tokenizer->outputToken.value = "";
+                tokenizer->errorCode = 1;
+                return 1;
+            }
+        }
+    //} while(tokenizer->actualChar > 31 || tokenizer->actualChar == '\n');
+    } while(tokenizer->actualChar > 1);
     getNextChar(tokenizer);
     return 0;
 }
