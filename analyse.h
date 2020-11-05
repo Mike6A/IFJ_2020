@@ -8,7 +8,8 @@
 enum typeOfNode{
     Node_Global,
     //Expressions
-    Node_NumberExpression,
+    Node_NumberIntExpression,
+    Node_NumberDoubleExpression,
     Node_StringExpression,
     Node_IdentifierExpression,
     Node_ParenthezedExpression,
@@ -28,10 +29,11 @@ enum typeOfNode{
     Node_FunctionCallExpression,
     Node_ReturnExpression,
     Node_BooleanExpression,
+    Node_PackageExpression,
 
     //Tokens
     Node_NumberIntToken,
-    Node_NumberFloatToken,
+    Node_NumberDoubleToken,
     Node_StringToken,
     Node_OpenParenthesisToken,
     Node_CloseParenthesisToken,
@@ -43,6 +45,7 @@ enum typeOfNode{
     Node_ParamTypeToken,
     Node_AssignmentToken,
     Node_OperatorToken,
+    Node_PackageNameToken,
 
     Node_FunctionParameter,
     Node_FunctionCallParameters,
@@ -50,7 +53,8 @@ enum typeOfNode{
 static char *enumTypeOfNode[] = {
         "Node_Global",
 
-        "Node_NumberExpression",
+        "Node_NumberIntExpression",
+        "Node_NumberDoubleExpression",
         "Node_StringExpression",
         "Node_IdentifierExpression",
         "Node_ParenthezedExpression",
@@ -70,9 +74,10 @@ static char *enumTypeOfNode[] = {
         "Node_FunctionCallExpression",
         "Node_ReturnExpression",
         "Node_BooleanExpression",
+        "Node_PackageExpression",
         //TOKENST
         "Node_NumberIntToken",
-        "Node_NumberFloatToken",
+        "Node_NumberDoubleToken",
         "Node_StringToken",
         "Node_OpenParenthesisToken",
         "Node_CloseParenthesisToken",
@@ -84,6 +89,7 @@ static char *enumTypeOfNode[] = {
         "Node_ParamTypeToken",
         "Node_AssignmentToken",
         "Node_OperatorToken",
+        "Node_PackageNameToken",
 
 
         "Node_FunctionParameter",
@@ -125,6 +131,8 @@ SyntaxNode* createNode(SyntaxNode* left, SyntaxNodes* statements, SyntaxNode* ri
 SyntaxNode* CopyNode(SyntaxNode* node);
 void initSyntaxNode(SyntaxNode *root);
 void printSyntaxTree(SyntaxNode* node, char* indent, bool last);
+
+SyntaxNode* getPackage(tTokenizer* tokenizer);
 
 SyntaxNode* ParseExpression(tTokenizer* tokenizer, int priority, tScope* scope);
 SyntaxNodes* ParseGlobalBlockExpressions (tTokenizer* tokenizer, int parentPriority, tScope* scope);

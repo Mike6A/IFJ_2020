@@ -73,6 +73,7 @@ void test_tree(){
     getToken(&tokenizer);
     SyntaxNode* prog;
     prog = createNode(NULL, NULL, NULL, NULL, "GlobalScope", Node_Global);
+    prog->left = getPackage(&tokenizer);
     prog->statements = ParseGlobalBlockExpressions(&tokenizer, 0, &scope);
     printSyntaxTree(prog, "", true);
     //long res = eval(&tokenizer, prog, &scope);

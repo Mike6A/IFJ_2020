@@ -118,11 +118,6 @@ int destroyNodeList(SyntaxNodes* list){
         SyntaxNodes*tmp = current;
         SyntaxNode *tmpNode = current->node;
         if(tmpNode != NULL){
-            //printf("Node: %s\n", tmpNode->name);
-            printf("----------------------------------\n");
-            printSyntaxTree(tmpNode, "", true);
-            printf("----------------------------------\n");
-
             deleteSyntaxTree(tmpNode);
             current->node = NULL;
             tmpNode = NULL;
@@ -242,11 +237,22 @@ SyntaxNode* numberExpressionSyntax(tToken* numberToken){
     SyntaxNode* current = createNode(
             NULL,
             NULL,
-            createNodeFromToken(numberToken, "NumberToken", Node_NumberIntToken),
+            createNodeFromToken(numberToken, "NumberIntToken", Node_NumberIntToken),
             NULL,
-            "NumberExpression",
-            Node_NumberExpression
+            "NumberIntExpression",
+            Node_NumberIntExpression
             );
+    return current;
+}
+SyntaxNode* doubleExpressionSyntax(tToken* doubleToken){
+    SyntaxNode* current = createNode(
+            NULL,
+            NULL,
+            createNodeFromToken(doubleToken, "NumberDoubleToken", Node_NumberDoubleToken),
+            NULL,
+            "NumberDoubleExpression",
+            Node_NumberDoubleExpression
+    );
     return current;
 }
 SyntaxNode* stringExpressionSyntax(tToken* stringToken){
@@ -823,6 +829,11 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer, tScope* scope){
         SyntaxNode *node = numberExpressionSyntax(numberToken);
         return node;
     }
+    if(tokenizer->outputToken.type == tokenType_DOUBLE){
+        tToken* doubleToken = Match(tokenizer, tokenType_DOUBLE, true);
+        SyntaxNode *node = doubleExpressionSyntax(doubleToken);
+        return node;
+    }
 
     if(tokenizer->outputToken.type == tokenType_STRING){
         tToken* stringToken = Match(tokenizer, tokenType_STRING, true);
@@ -902,6 +913,7 @@ SyntaxNode* ParseExpression(tTokenizer* tokenizer, int parentPriority, tScope* s
             operator->type == tokenType_GE ||
             operator->type == tokenType_LESS ||
             operator->type == tokenType_NEQ ||
+            operator->type == tokenType_EQ ||
             operator->type == tokenType_LE)
         {
             left = binaryConditionSyntax(left, operator, right);
@@ -910,6 +922,20 @@ SyntaxNode* ParseExpression(tTokenizer* tokenizer, int parentPriority, tScope* s
         }
     }
     return left;
+}
+
+SyntaxNode* getPackage(tTokenizer* tokenizer){
+   /* if(tokenizer->outputToken.type != tokenType_KW){
+        return NULL;
+    }
+    */
+    tToken* pkKW = Match(tokenizer, tokenType_KW, true);
+    if(strcmp(pkKW->value, "package") != 0){
+        fprintf(stderr, "Expected 'package'. Given: %s", pkKW->value);
+        exit(2);
+    }
+    tToken* idofPk = Match(tokenizer, tokenType_ID, true);
+    return createNode(createNodeFromToken(idofPk, "PackageID", Node_PackageNameToken), NULL, NULL, pkKW, "Package", Node_PackageExpression);
 }
 void printSyntaxTree(SyntaxNode* node, char* indent, bool last) {
     if (node == NULL)
@@ -951,7 +977,7 @@ long eval(tTokenizer* tokenizer, SyntaxNode * root, tScope* scope){
 
         return res;
     }
-    if(root->type == Node_NumberExpression){
+    if(root->type == Node_NumberIntExpression){
         char* end;
         long result = strtol (root->right->token->value, &end, 10);
         printf("\t%s\tRES >>> \t%ld\n", root->name,result);
