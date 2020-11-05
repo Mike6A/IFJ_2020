@@ -612,6 +612,7 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer, tScope* scope){
     }
 
     if(tokenizer->outputToken.type == tokenType_ID){
+        bool isSpace = tokenizer->actualChar == ' ';
         tToken *identifier = Match(tokenizer, tokenType_ID, true);
         if((tokenizer->outputToken.type == tokenType_ASSIGN || tokenizer->outputToken.type == tokenType_DECL) && parsingReturn){
             fprintf(stderr, "Expected comma or expression, not Assignment or Declaration!\n");
@@ -668,6 +669,10 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer, tScope* scope){
             return assignExpressionSyntax(list, assign,assignValues);
         }
         if(tokenizer->outputToken.type == tokenType_LBN){
+            if(isSpace){
+                fprintf(stderr, "Function call should not have ' ' after identifier!\n");
+                exit(2);
+            }
             return ParseFunctionCallingSyntax(tokenizer, scope, identifier);
         }
         return identifierExpressionSyntax(identifier);
@@ -678,23 +683,29 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer, tScope* scope){
         if(strcmp(kw->value, "if") == 0){
             tokenizer->eolFlag = EOL_FORBIDEN;
             SyntaxNode *condition = ParseConditionExpresionSyntax(tokenizer, scope);
-            tokenizer->eolFlag = EOL_OPTIONAL;
+            tokenizer->eolFlag = EOL_REQUIRED;
             tToken *openBlockToken = Match(tokenizer, tokenType_LBC, true);
 
             SyntaxNodes *statements = ParseBlockExpressions(tokenizer, 0, scope);
+            tokenizer->eolFlag = EOL_FORBIDEN;
             tToken *closeBlockToken = Match(tokenizer, tokenType_RBC, true);
             SyntaxNode *thenStatement = blockExpressionSyntax(openBlockToken, statements, closeBlockToken);
             SyntaxNode * elseSyntax = NULL;
-            if(strcmp(tokenizer->outputToken.value, "else") == 0){
+
+
                 tToken *elsekw = Match(tokenizer, tokenType_KW, true);
-                tokenizer->eolFlag = EOL_OPTIONAL;
-                tToken *openBlockTokenElse = Match(tokenizer, tokenType_LBC, true);
-                SyntaxNodes *elseStatements = ParseBlockExpressions(tokenizer, 0, scope);
-                tToken *closeBlockTokenElse = Match(tokenizer, tokenType_RBC, true);
-                SyntaxNode *elseStatement = blockExpressionSyntax(openBlockTokenElse, elseStatements, closeBlockTokenElse);
-                elseSyntax = elseStatementSyntax(elsekw, elseStatement);
-                //addToNodeListEnd(statements, elseSyntax);
+            if(strcmp(elsekw->value, "else") != 0){
+                fprintf(stderr, "ELSE required!\n");
+                exit(2);
             }
+            tokenizer->eolFlag = EOL_REQUIRED;
+            tToken *openBlockTokenElse = Match(tokenizer, tokenType_LBC, true);
+            SyntaxNodes *elseStatements = ParseBlockExpressions(tokenizer, 0, scope);
+            tToken *closeBlockTokenElse = Match(tokenizer, tokenType_RBC, true);
+            SyntaxNode *elseStatement = blockExpressionSyntax(openBlockTokenElse, elseStatements, closeBlockTokenElse);
+            elseSyntax = elseStatementSyntax(elsekw, elseStatement);
+            //addToNodeListEnd(statements, elseSyntax);
+
             return ifStatementSyntax(kw, condition, thenStatement, elseSyntax);
         }
         if(strcmp(kw->value, "for") == 0){
@@ -725,7 +736,7 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer, tScope* scope){
                 tToken* id = Match(tokenizer, tokenType_ID, true);
                 assignExpr = ParseAssignSyntax(tokenizer, scope, id);
             }
-            tokenizer->eolFlag = EOL_OPTIONAL;
+            tokenizer->eolFlag = EOL_REQUIRED;
             tToken* openBlockToken = Match(tokenizer, tokenType_LBC, true);
             SyntaxNodes *forStatements = ParseBlockExpressions(tokenizer, 0, scope);
             tToken *closeBlockToken = Match(tokenizer, tokenType_RBC, true);
@@ -820,6 +831,15 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer, tScope* scope){
             parsingReturn = false;
             return returnExpressionSyntax(kw, returnValues);
         }
+        if(strcmp(kw->value, "package") == 0){
+            fprintf(stderr, "Unexpected 'package'");
+            exit(2);
+        }
+        /*
+        if(strcmp(kw->value, "package") == 0){
+            fprintf(stderr, "Unexpected 'package'");
+            exit(2);
+        }*/
 
     }
 
