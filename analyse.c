@@ -935,6 +935,10 @@ SyntaxNode* getPackage(tTokenizer* tokenizer){
         exit(2);
     }
     tToken* idofPk = Match(tokenizer, tokenType_ID, true);
+    if(strcmp(idofPk->value, "main") != 0){
+        fprintf(stderr, "Expected 'main'. Given: %s", idofPk->value);
+        exit(2);
+    }
     return createNode(createNodeFromToken(idofPk, "PackageID", Node_PackageNameToken), NULL, NULL, pkKW, "Package", Node_PackageExpression);
 }
 void printSyntaxTree(SyntaxNode* node, char* indent, bool last) {
