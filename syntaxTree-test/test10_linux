@@ -1,0 +1,31 @@
+package main
+
+func factorial (n int) (int) {
+	dex_n := n - 1
+	if n < 2 {
+		return 1
+	} 
+	else {
+		tmp := 0
+		tmp = factorial(dec_n)
+		return n * tmp
+	}
+}
+
+func main() {
+	print("zadejte cislo pro vypocet faktorialu: ")
+	a := 0
+	err := 0
+	a, err = inputi()
+	if err == 0 {
+		if a < 0 {
+			print("fact nejde spocitat", "\n")
+		} else {
+			vysl := 0
+			vysl = factorial(a)
+			print("vysledek je ", vysl, "\n")
+		}
+	} else {
+		print("chyba pri nacitani celeho cisla!\n")
+	}
+}

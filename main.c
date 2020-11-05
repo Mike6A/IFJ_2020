@@ -109,5 +109,5 @@ void test_GetTOKEN() {
 
 int main() {
     test_tree();
-	return 1;
+	return 0;
 }

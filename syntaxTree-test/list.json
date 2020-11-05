@@ -1,0 +1,46 @@
+{
+  "test01_linux": {
+    "description": "OK",
+    "expected_output": 0
+  },
+  "test02_linux": {
+    "description": "chybi package main",
+    "expected_output": 2
+  },
+  "test03_linux": {
+    "description": "vice parametru na return vraci mene",
+    "expected_output": 2
+  },
+  "test04_linux": {
+    "description": "chybici EOL za {",
+    "expected_output": 2
+  },
+  "test05_linux": {
+    "description": "mezera mezi funkci a (params)",
+    "expected_output": 2
+  },
+  "test06_linux": {
+    "description": "dvakrat po sobe >",
+    "expected_output": 2
+  },
+  "test07_linux": {
+    "description": "} bez odradkovani",
+    "expected_output": 2
+  },
+  "test08_linux": {
+    "description": "if statement neni {",
+    "expected_output": 2
+  },
+  "test09_linux": {
+    "description": "pred else chybi }",
+    "expected_output": 2
+  },
+  "test10_linux": {
+    "description": "odradkovani mezi } a else",
+    "expected_output": 2
+  },
+  "test11_linux": {
+    "description": "za package nenasleduje main",
+    "expected_output": 2
+  }
+}
