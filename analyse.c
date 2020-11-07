@@ -531,7 +531,7 @@ SyntaxNode* ParseFunctionCallingSyntax(tTokenizer* tokenizer, tScope* scope, tTo
         }
 
     }
-    tokenizer->eolFlag = EOL_OPTIONAL;
+    tokenizer->eolFlag = EOL_REQUIRED;
     tToken* CloseBracket = Match(tokenizer, tokenType_RBN, false);
     return functionCallExpressionSyntax(id, params);
 }
@@ -567,7 +567,7 @@ SyntaxNode* ParseAssignSyntax(tTokenizer* tokenizer, tScope* scope, tToken* Firs
         }else if(prevNodeFuncType || node->next == NULL){
             break;
         }else{
-            fprintf(stderr, "Assignment went wrong!");
+            fprintf(stderr, "Assignment went wrong!\n");
             exit(2);
         }
         prevNode = assignValues->last->node;
@@ -659,7 +659,7 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer, tScope* scope){
                 }else if(prevNodeFuncType || node->next == NULL){
                     break;
                 }else{
-                    fprintf(stderr, "Assignment went wrong!");
+                    fprintf(stderr, "Assignment went wrong!\n");
                     exit(2);
                 }
                 prevNode = assignValues->last->node;
@@ -701,6 +701,7 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer, tScope* scope){
             tokenizer->eolFlag = EOL_REQUIRED;
             tToken *openBlockTokenElse = Match(tokenizer, tokenType_LBC, true);
             SyntaxNodes *elseStatements = ParseBlockExpressions(tokenizer, 0, scope);
+            tokenizer->eolFlag = EOL_REQUIRED;
             tToken *closeBlockTokenElse = Match(tokenizer, tokenType_RBC, true);
             SyntaxNode *elseStatement = blockExpressionSyntax(openBlockTokenElse, elseStatements, closeBlockTokenElse);
             elseSyntax = elseStatementSyntax(elsekw, elseStatement);
@@ -832,7 +833,7 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer, tScope* scope){
             return returnExpressionSyntax(kw, returnValues);
         }
         if(strcmp(kw->value, "package") == 0){
-            fprintf(stderr, "Unexpected 'package'");
+            fprintf(stderr, "Unexpected 'package'\n");
             exit(2);
         }
         /*
@@ -860,7 +861,16 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer, tScope* scope){
         SyntaxNode *node = stringExpressionSyntax(stringToken);
         return node;
     }
-
+    if( tokenizer->outputToken.type == tokenType_GREATER ||
+        tokenizer->outputToken.type == tokenType_GE ||
+        tokenizer->outputToken.type == tokenType_LESS ||
+        tokenizer->outputToken.type == tokenType_NEQ ||
+        tokenizer->outputToken.type == tokenType_EQ ||
+        tokenizer->outputToken.type == tokenType_LE)
+    {
+        fprintf(stderr,"Unexpected comparison token!\n");
+        exit(2);
+    }
     if( tokenizer->outputToken.type == tokenType_ASSIGN ||
         tokenizer->outputToken.type == tokenType_DECL
     ) {
@@ -951,12 +961,12 @@ SyntaxNode* getPackage(tTokenizer* tokenizer){
     */
     tToken* pkKW = Match(tokenizer, tokenType_KW, true);
     if(strcmp(pkKW->value, "package") != 0){
-        fprintf(stderr, "Expected 'package'. Given: %s", pkKW->value);
+        fprintf(stderr, "Expected 'package'. Given: %s\n", pkKW->value);
         exit(2);
     }
     tToken* idofPk = Match(tokenizer, tokenType_ID, true);
     if(strcmp(idofPk->value, "main") != 0){
-        fprintf(stderr, "Expected 'main'. Given: %s", idofPk->value);
+        fprintf(stderr, "Expected 'main'. Given: %s\n", idofPk->value);
         exit(2);
     }
     return createNode(createNodeFromToken(idofPk, "PackageID", Node_PackageNameToken), NULL, NULL, pkKW, "Package", Node_PackageExpression);

@@ -160,7 +160,6 @@ void getToken(tTokenizer* tokenizer) {
 
     if (tokenizer->eolFlag == EOL_REQUIRED){ //if end of line is required
         state_EOLRequired(tokenizer);
-        return;
     }
 
     while (isSeparator(tokenizer) || tokenizer->actualChar == '\n' || tokenizer->actualChar == '\r'){ //skip all white spaces
