@@ -2,7 +2,7 @@
 Základná dokumentácia k Syntaktickému stromu.
 
 ## Štruktúra SyntaxNode
-![SyntaxNode](/docs/images/SyntaxTree/Struct_SyntaxNode.png)
+![SyntaxNode](/docs/images/SyntaxTree/Struct_SyntaxNode.svg)
 
 ## Štruktúra SyntaxNodes
 ![SyntaxNodes](/docs/images/SyntaxTree/Struct_SyntaxNodes.png)
