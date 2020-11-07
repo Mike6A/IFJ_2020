@@ -1,0 +1,6 @@
+package main
+
+s1 = "asdf"
+for ;s1 != "asdf"; {
+
+}

@@ -42,5 +42,45 @@
   "test11_linux": {
     "description": "za package nenasleduje main",
     "expected_output": 2
+  },
+  "test12_linux": {
+    "description": "return by mel vracet jednu hodnotu",
+    "expected_output": 2
+  },
+  "test13_linux": {
+    "description": "prirazeni jedne hodnoty dvoum",
+    "expected_output": 2
+  },
+  "test14_linux": {
+    "description": "prirazeni dvou hodnot jedne",
+    "expected_output": 2
+  },
+  "test15_linux": {
+    "description": "definice promennet bez vyrazu",
+    "expected_output": 2
+  },
+  "test16_linux": {
+    "description": "definice vyrazu bez promenne",
+    "expected_output": 2
+  },
+  "test17_linux": {
+    "description": "if statement bez vyrazu",
+    "expected_output": 2
+  },
+  "test18_linux": {
+    "description": "korektne zadan for cyklus",
+    "expected_output": 0
+  },
+  "test19_linux": {
+    "description": "korektne zadan for cyklus",
+    "expected_output": 0
+  },
+  "test20_linux": {
+    "description": "korektne zadan for cyklus",
+    "expected_output": 0
+  },
+  "test21_linux": {
+    "description": "spatne zadany if",
+    "expected_output": 2
   }
 }

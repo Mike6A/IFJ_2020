@@ -1,0 +1,9 @@
+package main
+
+	if {
+		return 1
+	} else {
+		tmp := 0
+		tmp = factorial(dec_n)
+		return n * tmp
+	}
