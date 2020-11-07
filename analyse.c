@@ -581,7 +581,8 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer, tScope* scope){
     static int functionReturnParams = -1;
     static bool parsingReturn = false;
     if(tokenizer->outputToken.type == tokenType_EOF){
-        return NULL;
+        fprintf(stderr, "Unexpected EOF!\n");
+        exit(2);
     }
     if(tokenizer->outputToken.type == tokenType_LBC){
         //createScope(scope);
@@ -643,12 +644,31 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer, tScope* scope){
             SyntaxNode* prevNode = NULL;
             bool prevNodeFuncType = false;
             while(node != NULL){
-                if( (prevNode != NULL && !prevNodeFuncType) || tokenizer->outputToken.type == tokenType_COMMA){
+                if( (prevNode != NULL && !prevNodeFuncType) || (prevNode != NULL && tokenizer->outputToken.type == tokenType_COMMA)){
                     comma = Match(tokenizer, tokenType_COMMA, false);
-                    if(assignValues == NULL){
-                        assignValues = createNodeList(ParseExpression(tokenizer, 0, scope));
-                    }else{
-                        addToNodeListEnd(assignValues, ParseExpression(tokenizer, 0, scope));
+                    SyntaxNode* expr = ParseExpression(tokenizer, 0, scope);
+                    if( expr->type == Node_IdentifierToken ||
+                        expr->type == Node_ParenthezedExpression ||
+                        expr->type == Node_BinaryExpression ||
+                        expr->type == Node_IdentifierExpression ||
+                        expr->type == Node_UnaryExpression ||
+                        expr->type == Node_NumberIntToken ||
+                        expr->type == Node_NumberIntExpression ||
+                        expr->type == Node_NumberDoubleExpression ||
+                        expr->type == Node_NumberDoubleToken ||
+                        expr->type == Node_StringExpression ||
+                        expr->type == Node_StringToken
+                        )
+                    {
+                        if (assignValues == NULL) {
+                            assignValues = createNodeList(expr);
+                        } else {
+                            addToNodeListEnd(assignValues, expr);
+                        }
+                    }
+                    else{
+                        fprintf(stderr, "Assignment went wrong!\n");
+                        exit(2);
                     }
                 }else if (prevNode == NULL){
                     if(assignValues == NULL){
