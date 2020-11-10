@@ -984,6 +984,7 @@ SyntaxNode* getPackage(tTokenizer* tokenizer){
         fprintf(stderr, "Expected 'package'. Given: %s\n", pkKW->value);
         exit(2);
     }
+    tokenizer->eolFlag = EOL_REQUIRED;
     tToken* idofPk = Match(tokenizer, tokenType_ID, true);
     if(strcmp(idofPk->value, "main") != 0){
         fprintf(stderr, "Expected 'main'. Given: %s\n", idofPk->value);
