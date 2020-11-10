@@ -16,7 +16,6 @@ const char* KEYWORDS[] = {"if", "else", "float64", "for", "func", "int", "packag
  * @return 0 if allocation was successful 
  */
 int initTokenizer(tTokenizer* tokenizer) {
-    tokenizer->eolFlag = EOL_OPTIONAL;
     tokenizer->errorCode = 0;
     tokenizer->isEOF = false;
     tokenizer->processed = true;
@@ -155,16 +154,15 @@ void getToken(tTokenizer* tokenizer) {
         getNextChar(tokenizer);
 
     if (tokenizer->isEOF){
+        state_EOF(tokenizer);
         return;
-    }
-
-    if (tokenizer->eolFlag == EOL_REQUIRED){ //if end of line is required
-        state_EOLRequired(tokenizer);
     }
 
     while (isSeparator(tokenizer) || tokenizer->actualChar == '\n' || tokenizer->actualChar == '\r'){ //skip all white spaces
         if (tokenizer->actualChar == '\n') {
-            if (state_EOL(tokenizer) == 1){
+            if (state_EOL(tokenizer) == 0){
+                getNextChar(tokenizer);
+                tokenizer->processed = false;
                 return;
             }
         }
@@ -181,7 +179,9 @@ void getToken(tTokenizer* tokenizer) {
 
     while (isSeparator(tokenizer) || tokenizer->actualChar == '\n' || tokenizer->actualChar == '\r'){ //skip all white spaces
         if (tokenizer->actualChar == '\n') {
-            if (state_EOL(tokenizer) == 1){
+            if (state_EOL(tokenizer) == 0){
+                getNextChar(tokenizer);
+                tokenizer->processed = false;
                 return;
             }
         }
@@ -288,33 +288,6 @@ void getToken(tTokenizer* tokenizer) {
             tokenizer->errorCode = 1;
             tokenizer->outputToken.type = tokenType_NONE;
             return;
-    }
-}
-
-/**
- * @brief This function hanle EOL requiered state.
- * 
- * @param tokenizer valid pointer to Tokenizer struct.
- */
-void state_EOLRequired(tTokenizer* tokenizer) {
-    //check if is eol required
-    if (tokenizer->eolFlag == EOL_REQUIRED){
-        while (isSeparator(tokenizer)){
-            getNextChar(tokenizer);
-        }
-        if(tokenizer->actualChar == '/'){ //recognize comment 
-            /** @todo  block comment ??? **/
-            if (state_OneLineComment(tokenizer) != 0){ //one line comment
-                tokenizer->outputToken.value = "";
-                tokenizer->errorCode = 1;
-            }
-            return;
-        }
-        if (tokenizer->actualChar != '\n' && tokenizer->actualChar != '\r') {
-            tokenizer->outputToken.value = "";
-            tokenizer->errorCode = 1;
-        }
-        tokenizer->eolFlag = EOL_OPTIONAL;
     }
 }
 
@@ -535,17 +508,14 @@ void state_String(tTokenizer* tokenizer){
 }
 
 /**
- * @brief This function hanle EOL state.
+ * @brief This function make EOL token.
  * 
  * @param tokenizer valid pointer to Tokenizer struct.
- * @return 0 if EOL is allowed
+ * @return 0 
  */
 int state_EOL(tTokenizer* tokenizer){
-    if (tokenizer->eolFlag == EOL_FORBIDEN){
-        tokenizer->errorCode = 1;
-        tokenizer->outputToken.value = "";
-        return 1;
-    }
+    tokenizer->outputToken.type = tokenType_EOL;
+    tokenizer->outputToken.value = "";
     return 0;
 }
 
