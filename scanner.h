@@ -17,8 +17,7 @@ typedef enum { tokenType_ID, tokenType_KW, tokenType_INT, tokenType_DOUBLE, toke
                tokenType_GE, tokenType_EQ, tokenType_NEQ, tokenType_DECL, 
                tokenType_NONE, tokenType_EOF, tokenType_PLUS, tokenType_MINUS, tokenType_MUL, tokenType_DIV, tokenType_LESS, tokenType_GREATER, 
                tokenType_LBN, tokenType_RBN, tokenType_LBC, tokenType_RBC,
-               tokenType_COMMA, tokenType_SCOMMA, tokenType_ASSIGN} TokenType;
-typedef enum { EOL_REQUIRED, EOL_OPTIONAL, EOL_FORBIDEN } EOLflag;
+               tokenType_COMMA, tokenType_SCOMMA, tokenType_ASSIGN, tokenType_EOL} TokenType;
 
 
 /**
@@ -36,7 +35,6 @@ typedef struct {
     tStringBuilder sb; /**< string builder */
     tToken outputToken; /**< output token */
     int errorCode; /**< error code */
-    EOLflag eolFlag; /** EOL flag */
     char actualChar; /**< actual loaded char from stdin */
     bool processed; /**< if is actualChar is recognized */
     bool isEOF; /**< if is EOF */
@@ -52,7 +50,6 @@ bool isSeparator(tTokenizer* tokenizer);
 
 void getToken(tTokenizer* tokenizer);
 void state_EOF(tTokenizer* tokenizer);
-void state_EOLRequired(tTokenizer* tokenizer);
 int state_EOL(tTokenizer* tokenizer);
 
 void state_ID(tTokenizer* tokenizer);

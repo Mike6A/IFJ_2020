@@ -76,6 +76,7 @@ char* getEnumString2(TokenType type){
         case tokenType_SCOMMA: return "SCAMMA";
         case tokenType_DECL: return "DECL";
         case tokenType_ASSIGN: return "ASSIGN";
+        case tokenType_EOL: return "EOL";
         default: return "";
     }
 }
@@ -484,7 +485,6 @@ SyntaxNode* ParseFunctionCallingSyntax(tTokenizer* tokenizer, tScope* scope, tTo
     tToken* comma = NULL;
     SyntaxNode* expr = NULL;
     SyntaxNodes* params = NULL;
-    tokenizer->eolFlag = EOL_FORBIDEN;
     while (tokenizer->outputToken.type != tokenType_RBN){
         expr = NULL;
         if(tokenizer->outputToken.type == tokenType_COMMA)
@@ -531,8 +531,8 @@ SyntaxNode* ParseFunctionCallingSyntax(tTokenizer* tokenizer, tScope* scope, tTo
         }
 
     }
-    tokenizer->eolFlag = EOL_REQUIRED;
     tToken* CloseBracket = Match(tokenizer, tokenType_RBN, false);
+    //tToken* EOL = Match(tokenizer, tokenType_EOL, false);
     return functionCallExpressionSyntax(id, params);
 }
 SyntaxNode* ParseAssignSyntax(tTokenizer* tokenizer, tScope* scope, tToken* FirstID){
@@ -604,10 +604,8 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer, tScope* scope){
         exit(2);
     }
     if(tokenizer->outputToken.type == tokenType_LBN){
-        tokenizer->eolFlag = EOL_FORBIDEN;
         tToken *left = Match(tokenizer, tokenType_LBN, true);
         SyntaxNode *expression = ParseExpression(tokenizer, 0, scope);
-        tokenizer->eolFlag = EOL_OPTIONAL;
         tToken *right = Match(tokenizer, tokenType_RBN, true);
         return parenthezedExpressionSyntax(left, expression, right);
     }
@@ -701,13 +699,10 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer, tScope* scope){
 
         tToken *kw = Match(tokenizer, tokenType_KW, true);
         if(strcmp(kw->value, "if") == 0){
-            tokenizer->eolFlag = EOL_FORBIDEN;
             SyntaxNode *condition = ParseConditionExpresionSyntax(tokenizer, scope);
-            tokenizer->eolFlag = EOL_REQUIRED;
             tToken *openBlockToken = Match(tokenizer, tokenType_LBC, true);
-
+            tToken *EOL = Match(tokenizer, tokenType_EOL, false);
             SyntaxNodes *statements = ParseBlockExpressions(tokenizer, 0, scope);
-            tokenizer->eolFlag = EOL_FORBIDEN;
             tToken *closeBlockToken = Match(tokenizer, tokenType_RBC, true);
             SyntaxNode *thenStatement = blockExpressionSyntax(openBlockToken, statements, closeBlockToken);
             SyntaxNode * elseSyntax = NULL;
@@ -718,11 +713,11 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer, tScope* scope){
                 fprintf(stderr, "ELSE required!\n");
                 exit(2);
             }
-            tokenizer->eolFlag = EOL_REQUIRED;
             tToken *openBlockTokenElse = Match(tokenizer, tokenType_LBC, true);
+            EOL = Match(tokenizer, tokenType_EOL, false);
             SyntaxNodes *elseStatements = ParseBlockExpressions(tokenizer, 0, scope);
-            tokenizer->eolFlag = EOL_REQUIRED;
             tToken *closeBlockTokenElse = Match(tokenizer, tokenType_RBC, true);
+            EOL = Match(tokenizer, tokenType_EOL, false);
             SyntaxNode *elseStatement = blockExpressionSyntax(openBlockTokenElse, elseStatements, closeBlockTokenElse);
             elseSyntax = elseStatementSyntax(elsekw, elseStatement);
             //addToNodeListEnd(statements, elseSyntax);
@@ -730,7 +725,6 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer, tScope* scope){
             return ifStatementSyntax(kw, condition, thenStatement, elseSyntax);
         }
         if(strcmp(kw->value, "for") == 0){
-            tokenizer->eolFlag = EOL_FORBIDEN;
             //DECLARATION CHECK
             SyntaxNode *definition = NULL;
             SyntaxNode *condition = NULL;
@@ -757,15 +751,14 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer, tScope* scope){
                 tToken* id = Match(tokenizer, tokenType_ID, true);
                 assignExpr = ParseAssignSyntax(tokenizer, scope, id);
             }
-            tokenizer->eolFlag = EOL_REQUIRED;
             tToken* openBlockToken = Match(tokenizer, tokenType_LBC, true);
+            tToken *EOL = Match(tokenizer, tokenType_EOL, false);
             SyntaxNodes *forStatements = ParseBlockExpressions(tokenizer, 0, scope);
             tToken *closeBlockToken = Match(tokenizer, tokenType_RBC, true);
             SyntaxNode *forBody = blockExpressionSyntax(openBlockToken, forStatements, closeBlockToken);
             return forStatementSyntax(kw, definition, condition, assignExpr, forBody);
         }
         if(strcmp(kw->value, "func") == 0){
-            tokenizer->eolFlag = EOL_FORBIDEN;
             tToken* functionNameToken = Match(tokenizer, tokenType_ID, true);
             tToken* OpenBracket = Match(tokenizer, tokenType_LBN, false);
             SyntaxNodes* params = NULL;
@@ -817,7 +810,6 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer, tScope* scope){
                 }
                 CloseBracket = Match(tokenizer, tokenType_RBN, false);
             }
-            tokenizer->eolFlag = EOL_OPTIONAL;
             tToken* openBlockToken = Match(tokenizer, tokenType_LBC, true);
             functionReturnParams = returnParamsCount;
             SyntaxNodes* funcStatements = ParseBlockExpressions(tokenizer, 0, scope);
@@ -832,12 +824,9 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer, tScope* scope){
             SyntaxNode* expr = NULL;
             tToken* comma = NULL;
             int params = 0;
-            tokenizer->eolFlag = EOL_FORBIDEN;
             while(params++ < functionReturnParams){
-                tokenizer->eolFlag = EOL_FORBIDEN;
                 if(params != 1 && params <= functionReturnParams)
                     comma = Match(tokenizer, tokenType_COMMA, false);
-                tokenizer->eolFlag = EOL_OPTIONAL;
                 expr = ParseExpression(tokenizer, 0, scope);
                 if(returnValues == NULL){
                     returnValues = createNodeList(expr);
@@ -903,6 +892,9 @@ SyntaxNodes* ParseGlobalBlockExpressions (tTokenizer* tokenizer, int parentPrior
     SyntaxNodes * list = NULL;
     while (!tokenizer->isEOF) {
         SyntaxNode* expr = ParseExpression(tokenizer, parentPriority, scope);
+        if(tokenizer->outputToken.type == tokenType_EOL){
+            getToken(tokenizer);
+        }
         if(list == NULL){
             list = createNodeList(expr);
         }else{
@@ -915,6 +907,9 @@ SyntaxNodes* ParseBlockExpressions (tTokenizer* tokenizer, int parentPriority, t
     SyntaxNodes * list = NULL;
     while (tokenizer->outputToken.type != tokenType_RBC) {
         SyntaxNode* expr = ParseExpression(tokenizer, parentPriority, scope);
+        if(tokenizer->outputToken.type == tokenType_EOL){
+            getToken(tokenizer);
+        }
         if(list == NULL){
             list = createNodeList(expr);
         }else{
@@ -927,9 +922,14 @@ SyntaxNodes* ParseBlockExpressions (tTokenizer* tokenizer, int parentPriority, t
 SyntaxNode* ParseExpression(tTokenizer* tokenizer, int parentPriority, tScope* scope){
     //@todo ADD *,/, true, false, unary operators, +,-,!.
     //@todo ADD Error report...
+    if (tokenizer->outputToken.type == tokenType_EOL)
+        getToken(tokenizer);
     if(tokenizer->errorCode == 1){
         fprintf(stderr, "Unexpected EOL\n");
-        exit(2);
+        exit(1);
+    }if(tokenizer->errorCode == 99){
+        fprintf(stderr, "MALOC!!!\n");
+        exit(99);
     }
     if(tokenizer->outputToken.type == tokenType_SCOMMA){
         fprintf(stderr, "Unexpected ';'\n");
@@ -944,15 +944,29 @@ SyntaxNode* ParseExpression(tTokenizer* tokenizer, int parentPriority, tScope* s
         left = unaryExpressionSyntax(operator, operand);
     }else{
         left = PrimaryExpressionSyntax(tokenizer, scope);
+        if( left->type == Node_IFExpression ||
+            left->type == Node_ForExpression
+        )
+            return left;
     }
-    if(tokenizer->errorCode == 1){
-        fprintf(stderr, "Unexpected EOL\n");
-        exit(2);
-    }
-    while (true){
+    while ( tokenizer->outputToken.type != tokenType_EOF &&
+            tokenizer->outputToken.type != tokenType_EOL &&
+            tokenizer->outputToken.type != tokenType_SCOMMA &&
+            tokenizer->outputToken.type != tokenType_RBN &&
+            tokenizer->outputToken.type != tokenType_LBC
+            )
+    {
         int priority = GetBinOperatorPriority(tokenizer->outputToken.type);
-        if(priority == 0 || priority <= parentPriority)
+        if(priority == 0 && (left->type == Node_StringExpression || left->type == Node_FunctionCallParameters))  {
             break;
+        }
+        if(priority == 0 || priority <= parentPriority) {
+            if(priority == 0){
+                fprintf(stderr, "Unexpedted token!!! --- \t%s\n", getEnumString2(tokenizer->outputToken.type));
+                exit(2);
+            }
+            break;
+        }
         //Try to Build Binary expression if exists binary statements
         tToken* operator = CopyToken(&tokenizer->outputToken);
         getToken(tokenizer);
@@ -967,6 +981,7 @@ SyntaxNode* ParseExpression(tTokenizer* tokenizer, int parentPriority, tScope* s
             operator->type == tokenType_LE)
         {
             left = binaryConditionSyntax(left, operator, right);
+            break;
         }else{
             left = binaryExpressionSyntax(left, operator, right);
         }
@@ -985,6 +1000,7 @@ SyntaxNode* getPackage(tTokenizer* tokenizer){
         exit(2);
     }
     tToken* idofPk = Match(tokenizer, tokenType_ID, true);
+    tToken* EOL = Match(tokenizer, tokenType_EOL, false);
     if(strcmp(idofPk->value, "main") != 0){
         fprintf(stderr, "Expected 'main'. Given: %s\n", idofPk->value);
         exit(2);
