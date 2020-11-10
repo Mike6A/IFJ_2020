@@ -929,7 +929,10 @@ SyntaxNode* ParseExpression(tTokenizer* tokenizer, int parentPriority, tScope* s
     //@todo ADD Error report...
     if(tokenizer->errorCode == 1){
         fprintf(stderr, "Unexpected EOL\n");
-        exit(2);
+        exit(1);
+    }if(tokenizer->errorCode == 99){
+        fprintf(stderr, "MALOC!!!\n");
+        exit(99);
     }
     if(tokenizer->outputToken.type == tokenType_SCOMMA){
         fprintf(stderr, "Unexpected ';'\n");
@@ -944,10 +947,6 @@ SyntaxNode* ParseExpression(tTokenizer* tokenizer, int parentPriority, tScope* s
         left = unaryExpressionSyntax(operator, operand);
     }else{
         left = PrimaryExpressionSyntax(tokenizer, scope);
-    }
-    if(tokenizer->errorCode == 1){
-        fprintf(stderr, "Unexpected EOL\n");
-        exit(2);
     }
     while (true){
         int priority = GetBinOperatorPriority(tokenizer->outputToken.type);
