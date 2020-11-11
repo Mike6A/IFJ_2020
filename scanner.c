@@ -159,26 +159,19 @@ void getToken(tTokenizer* tokenizer) {
         return;
     }
 
-    while (isSeparator(tokenizer) || tokenizer->actualChar == '\n' || tokenizer->actualChar == '\r'){ //skip all white spaces
-        if (tokenizer->actualChar == '\n') {
-            if (state_EOL(tokenizer) == 0){
-                getNextChar(tokenizer);
-                tokenizer->processed = false;
-                return;
-            }
-        }
-        getNextChar(tokenizer);
-    }
-
     if(tokenizer->actualChar == '/'){ //recognize if is comment or divide operator
         int res_OLC = state_OneLineComment(tokenizer);
-        if (res_OLC != 0 && res_OLC != 3){
+        if (res_OLC == 0) {
+            state_EOL(tokenizer);
+            getNextChar(tokenizer);
+            tokenizer->processed = false;
             return;
-        }
+        } else if (res_OLC != 3)
+            return;
     }
 
 
-    while (isSeparator(tokenizer) || tokenizer->actualChar == '\n' || tokenizer->actualChar == '\r'){ //skip all white spaces
+    while (isSeparator(tokenizer) || tokenizer->actualChar == '\n' || tokenizer->actualChar == '\r' || tokenizer->actualChar == '/'){ //skip all white spaces
         if (tokenizer->actualChar == '\n') {
             if (state_EOL(tokenizer) == 0){
                 getNextChar(tokenizer);
@@ -186,6 +179,16 @@ void getToken(tTokenizer* tokenizer) {
                 return;
             }
         }
+        else if(tokenizer->actualChar == '/'){ //recognize if is comment or divide operator
+            int res_OLC = state_OneLineComment(tokenizer);
+            if (res_OLC == 0) {
+                state_EOL(tokenizer);
+                getNextChar(tokenizer);
+                tokenizer->processed = false;
+                return;
+            } else if (res_OLC != 3)
+                return;
+            }
         getNextChar(tokenizer);
     }
 
@@ -525,7 +528,7 @@ int state_EOL(tTokenizer* tokenizer){
  * @brief This function hanle one line comment state and divide operator
  * 
  * @param tokenizer valid pointer to Tokenizer struct.
- * @return 0 if is correct one line comment
+ * @return 0 if is one line comment correct
  * \n 1 if is it divide operator
  * \n 2 if is block comment uncorrect 
  * \n 3 if is block comment correct 
@@ -536,7 +539,6 @@ int state_OneLineComment(tTokenizer* tokenizer){
         do {
             getNextChar(tokenizer);
         } while(tokenizer->actualChar != '\n' && tokenizer->actualChar != '\r' && !tokenizer->isEOF);
-        getNextChar(tokenizer);
     } else if (tokenizer->actualChar == '*'){  //is block comment
         if (state_BlockComment(tokenizer) != 0) {
             return 2;
@@ -579,9 +581,7 @@ int state_BlockComment(tTokenizer* tokenizer) {
                 return 1;
             }
         }
-    //} while(tokenizer->actualChar > 31 || tokenizer->actualChar == '\n');
     } while(tokenizer->actualChar > 1);
-    getNextChar(tokenizer);
     return 0;
 }
 
