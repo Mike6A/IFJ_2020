@@ -83,10 +83,10 @@
     "description": "spatne zadany if",
     "expected_output": 2
   },
-<<<<<<< HEAD
   "test22_linux": {
     "description": "zle zadany for cyklus",
-=======
+    "expected_output": 2
+  },
   "test101_win.txt": {
     "description": "spatne zadany for",
     "expected_output": 2
@@ -157,7 +157,6 @@
   },
   "test118_win.txt": {
     "description": "return bez funkce",
->>>>>>> 3bafe31bb28b12cf3e02e43d8847e25605a4bc17
     "expected_output": 2
   }
 }
