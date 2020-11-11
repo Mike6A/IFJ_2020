@@ -87,6 +87,10 @@
     "description": "zle zadany for cyklus",
     "expected_output": 2
   },
+  "test23_linux": {
+    "description": "keyword pred promennou, aj pro float64, string",
+    "expected_output": 2
+  },
   "test101_win.txt": {
     "description": "spatne zadany for",
     "expected_output": 2
