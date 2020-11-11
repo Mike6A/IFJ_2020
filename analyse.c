@@ -469,10 +469,11 @@ SyntaxNode* ParseConditionExpresionSyntax(tTokenizer* tokenizer, tScope* scope){
     SyntaxNode *expr = ParseExpression(tokenizer, 0, scope);
     if(expr!= NULL && (expr->type == Node_BooleanExpression || (expr->type == Node_ParenthezedExpression && expr->statements != NULL && expr->statements->node != NULL && expr->statements->node->type == Node_BooleanExpression)))
         return expr;
-    if(expr->type == Node_ParenthezedExpression && expr->statements != NULL && expr->statements->node != NULL)
+    if(expr!= NULL && expr->type == Node_ParenthezedExpression && expr->statements != NULL && expr->statements->node != NULL)
         fprintf(stderr, "Expected: %s \t Given: %s\n", enumTypeOfNode[Node_BooleanExpression] ,enumTypeOfNode[expr->statements->node->type]);
-    else
-        fprintf(stderr, "Expected: %s \t Given: %s\n", enumTypeOfNode[Node_BooleanExpression] ,enumTypeOfNode[expr->type]);
+    else{
+        fprintf(stderr, "Expected: %s \t Given: %s\n", enumTypeOfNode[Node_BooleanExpression] ,expr != NULL ? enumTypeOfNode[expr->type] : "EOL");
+    }
     exit(2);
 }
 
@@ -766,9 +767,7 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer, tScope* scope){
                 definition = declExpressionSyntax(id, assign, expr);
             }
             tToken* separatorScoma = Match(tokenizer, tokenType_SCOMMA, false);
-            if(tokenizer->outputToken.type != tokenType_SCOMMA) {
-                condition = ParseConditionExpresionSyntax(tokenizer, scope);
-            }
+            condition = ParseConditionExpresionSyntax(tokenizer, scope);
             separatorScoma = Match(tokenizer, tokenType_SCOMMA, false);
             if(tokenizer->outputToken.type != tokenType_LBC){
                 tToken* id = Match(tokenizer, tokenType_ID, true);
