@@ -82,5 +82,9 @@
   "test21_linux": {
     "description": "spatne zadany if",
     "expected_output": 2
+  },
+  "test22_linux": {
+    "description": "zle zadany for cyklus",
+    "expected_output": 2
   }
 }

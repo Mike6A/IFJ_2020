@@ -1,0 +1,6 @@
+package main
+
+//invalid for(must contain second argument)
+for ; ; {
+
+}
