@@ -872,6 +872,7 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer, tScope* scope){
             }
             parsingReturn = false;
             return returnExpressionSyntax(kw, returnValues);
+
         }
         if(strcmp(kw->value, "package") == 0){
             fprintf(stderr, "Unexpected 'package'\n");
@@ -879,6 +880,13 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer, tScope* scope){
         }
         if(strcmp(kw->value, "else") == 0){
             fprintf(stderr, "Unexpected 'else'\n");
+            exit(2);
+        }
+        if(strcmp(kw->value, "int") == 0 || strcmp(kw->value, "string") == 0 || strcmp(kw->value, "float64") == 0){
+            fprintf(stderr, "Unexpected type KW '%s'\n", kw->value);
+            /*free(kw->value);
+            free(kw);
+             */
             exit(2);
         }
         /*
