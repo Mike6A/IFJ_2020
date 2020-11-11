@@ -26,15 +26,14 @@ for i in os.listdir("./"):
         test_files.append(i)
 
 for f in test_files:
+    print("\n------{}----------".format(f))
     file = open(f, "r")
     res = subprocess.call(["../IFJ20"], stdin=file, stdout=FNULL)
     if json_file[f]['expected_output'] == res:
-        print("\n------{}----------".format(f))
         print("result ==== OK")
         correct_count += 1
     else:
-        print("{}\n------{}----------".format(bcolors.FAIL, f))
-        print("result ==== FAILED")
+        print(f"{bcolors.FAIL}result ==== FAILED")
         print("returned = {}".format(res))
         print("description: {}{}".format(json_file[f]['description'], bcolors.ENDC))
         fail_count += 1
