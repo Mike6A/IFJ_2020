@@ -17,10 +17,12 @@ int createScope(tScope *scope){
     initHashTable(table, MAX_HASHTABLE_SIZE);
     if(table == NULL) {
         //free(table);
-        return 1;
+        exit(99);
     }
     if(scope->topLocal == NULL){
         tScopeItem* newScope = (tScopeItem *)malloc(sizeof(tScopeItem));
+        if(newScope == NULL)
+            exit(99);
         newScope->next = NULL;
         scope->topLocal = newScope;
         scope->topLocal->table = table;
@@ -29,7 +31,7 @@ int createScope(tScope *scope){
         tScopeItem* newScope = (tScopeItem *)malloc(sizeof(tScopeItem));
         if(newScope == NULL) {
             free(table);
-            return 1;
+            exit(99);
         }
         newScope->next = scope->topLocal;
         newScope->table = table;
@@ -95,6 +97,8 @@ SyntaxNodes* createNodeList(SyntaxNode* node){
         list->node = node;
         list->next = NULL;
         list->last = list;
+    }else{
+        exit(99);
     }
     return list;
 }
@@ -142,19 +146,27 @@ SyntaxNode* createNode(SyntaxNode* left, SyntaxNodes* statements, SyntaxNode* ri
         current->token = token;
         if(name != NULL){
             current->name = (char*)malloc(sizeof(char) * strlen(name) + 1);
+            if(current->name == NULL)
+                exit(99);
             strcpy(current->name, name);
         }
         current->type = type;
+    }else{
+        exit(99);
     }
     return current;
 }
 
 SyntaxNode* createNodeFromToken(tToken* token, char* name, int type){
     SyntaxNode* current = malloc(sizeof(SyntaxNode));
+    if(current == NULL)
+        exit(99);
     initSyntaxNode(current);
     current->token = token;
     if(name != NULL){
         current->name = (char*)malloc(sizeof(char) * strlen(name) + 1);
+        if(current->name == NULL)
+            exit(99);
         strcpy(current->name, name);
     }
     current->type = type;
@@ -162,7 +174,11 @@ SyntaxNode* createNodeFromToken(tToken* token, char* name, int type){
 }
 tToken* CopyToken(tToken* token){
     tToken* newToken = malloc(sizeof(tToken));
+    if(newToken == NULL)
+        exit(99);
     newToken->value = (char*)malloc(sizeof(char) * strlen(token->value) + 1);
+    if(newToken->value == NULL)
+        exit(99);
     strcpy(newToken->value, token->value);
     newToken->type = token->type;
     return newToken;
@@ -186,6 +202,8 @@ SyntaxNode* CopyNode(SyntaxNode* node){
         copyName = (char *) malloc(sizeof(char) * strlen(node->name) + 1);
         if(copyName != NULL)
             strcpy(copyName, node->name);
+        else
+            exit(99);
     }
     return createNode(CopyNode(node->left), CopyNodeList(node->statements),CopyNode(node->right), CopyToken(node->token), copyName, node->type);
 }
@@ -930,6 +948,7 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer, tScope* scope){
         fprintf(stderr,"Expected EOL or continue expression. Not Declaration or Assignment!\n");
         exit(2);
     }
+    if(tokenizer->outputToken.type)
     return NULL;
 }
 SyntaxNodes* ParseGlobalBlockExpressions (tTokenizer* tokenizer, int parentPriority, tScope* scope){
