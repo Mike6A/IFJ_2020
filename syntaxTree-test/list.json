@@ -83,8 +83,81 @@
     "description": "spatne zadany if",
     "expected_output": 2
   },
+<<<<<<< HEAD
   "test22_linux": {
     "description": "zle zadany for cyklus",
+=======
+  "test101_win.txt": {
+    "description": "spatne zadany for",
+    "expected_output": 2
+  },
+  "test102_win.txt": {
+    "description": "spatne zadany for EOL",
+    "expected_output": 2
+  },
+  "test103_win.txt": {
+    "description": "spatne zadany for EOL",
+    "expected_output": 2
+  },
+  "test104_win.txt": {
+    "description": "spatne zadany for EOL",
+    "expected_output": 2
+  },
+  "test105_win.txt": {
+    "description": "deklarace funkce ve for cyklu",
+    "expected_output": 2
+  },
+  "test106_win.txt": {
+    "description": "funkce ve funkci",
+    "expected_output": 2
+  },
+  "test107_win.txt": {
+    "description": "lex chyba",
+    "expected_output": 1
+  },
+  "test108_win.txt": {
+    "description": "v deklaraci misto prommene funkce",
+    "expected_output": 2
+  },
+  "test109_win.txt": {
+    "description": "neukoncene volani funkce",
+    "expected_output": 2
+  },
+  "test110_win.txt": {
+    "description": "OK",
+    "expected_output": 0
+  },
+  "test111_win.txt": {
+    "description": "spatny expresion",
+    "expected_output": 2
+  },
+  "test112_win.txt": {
+    "description": "prirazeni misto expresion v if",
+    "expected_output": 2
+  },
+  "test113_win.txt": {
+    "description": "validni if",
+    "expected_output": 0
+  },
+  "test114_win.txt": {
+    "description": "validni func",
+    "expected_output": 0
+  },
+  "test115_win.txt": {
+    "description": "spatne odranckovani ve func",
+    "expected_output": 2
+  },
+  "test116_win.txt": {
+    "description": "spatne odranckovani ve func",
+    "expected_output": 2
+  },
+  "test117_win.txt": {
+    "description": "prirazeni hodnoty stringu",
+    "expected_output": 2
+  },
+  "test118_win.txt": {
+    "description": "return bez funkce",
+>>>>>>> 3bafe31bb28b12cf3e02e43d8847e25605a4bc17
     "expected_output": 2
   }
 }
