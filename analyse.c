@@ -216,18 +216,19 @@ int GetUnOperatorPriority(int tokenType){
 
 int GetBinOperatorPriority(int tokenType){
     switch (tokenType) {
+
+        case tokenType_MUL:
+        case tokenType_DIV:
+            return 3;
+        case tokenType_PLUS:
+        case tokenType_MINUS:
+            return 2;
         case tokenType_GREATER:
         case tokenType_LESS:
         case tokenType_LE:
         case tokenType_EQ:
         case tokenType_GE:
         case tokenType_NEQ:
-            return 3;
-        case tokenType_MUL:
-        case tokenType_DIV:
-            return 2;
-        case tokenType_PLUS:
-        case tokenType_MINUS:
             return 1;
         default:
             return 0;
@@ -623,22 +624,22 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer, tScope* scope){
         return parenthezedExpressionSyntax(left, expression, right);
     }
 
-    if(tokenizer->outputToken.type == tokenType_ID){
-        bool isSpace = tokenizer->actualChar == ' ';
-        tToken *identifier = Match(tokenizer, tokenType_ID, true);
-        if((tokenizer->outputToken.type == tokenType_ASSIGN || tokenizer->outputToken.type == tokenType_DECL) && parsingReturn){
-            fprintf(stderr, "Expected comma or expression, not Assignment or Declaration!\n");
-            exit(2);
-        }
-        if (tokenizer->outputToken.type == tokenType_DECL && !parsingReturn){
-            return ParseDeclarationSyntax(tokenizer,scope, identifier);
-        }
-        if ((tokenizer->outputToken.type == tokenType_ASSIGN || tokenizer->outputToken.type == tokenType_COMMA) && !parsingReturn){
-            tToken *comma = NULL;
-            SyntaxNode *idNode = createNodeFromToken(identifier, "Identifier",Node_IdentifierToken);
-            SyntaxNodes* list = createNodeList(createNode(idNode, NULL, NULL, NULL, "IdentifierAssignmentONE", Node_AssignmentExpression));
-            while(tokenizer->outputToken.type != tokenType_ASSIGN && tokenizer->outputToken.type == tokenType_COMMA) {
-                comma = Match(tokenizer, tokenType_COMMA, false);
+                if(tokenizer->outputToken.type == tokenType_ID){
+                    bool isSpace = tokenizer->actualChar == ' ';
+                    tToken *identifier = Match(tokenizer, tokenType_ID, true);
+                    if((tokenizer->outputToken.type == tokenType_ASSIGN || tokenizer->outputToken.type == tokenType_DECL) && parsingReturn){
+                        fprintf(stderr, "Expected comma or expression, not Assignment or Declaration!\n");
+                        exit(2);
+                    }
+                    if (tokenizer->outputToken.type == tokenType_DECL && !parsingReturn){
+                        return ParseDeclarationSyntax(tokenizer,scope, identifier);
+                    }
+                    if ((tokenizer->outputToken.type == tokenType_ASSIGN || tokenizer->outputToken.type == tokenType_COMMA) && !parsingReturn){
+                        tToken *comma = NULL;
+                        SyntaxNode *idNode = createNodeFromToken(identifier, "Identifier",Node_IdentifierToken);
+                        SyntaxNodes* list = createNodeList(createNode(idNode, NULL, NULL, NULL, "IdentifierAssignmentONE", Node_AssignmentExpression));
+                        while(tokenizer->outputToken.type != tokenType_ASSIGN && tokenizer->outputToken.type == tokenType_COMMA) {
+                            comma = Match(tokenizer, tokenType_COMMA, false);
                 if(tokenizer->outputToken.type != tokenType_ID){
                     return createNode(NULL, list, NULL, NULL, "FUNCTION CALL PARAMS", Node_FunctionCallParameters);
                 }
