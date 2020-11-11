@@ -486,9 +486,10 @@ SyntaxNode* ParseDeclarationSyntax(tTokenizer* tokenizer, tScope* scope, tToken*
 }
 SyntaxNode* ParseFunctionCallingSyntax(tTokenizer* tokenizer, tScope* scope, tToken* id){
     tToken * openBracket = Match(tokenizer, tokenType_LBN, false);
-    while(tokenizer->outputToken.type == tokenType_EOL){
+
+    /*while(tokenizer->outputToken.type == tokenType_EOL){
         getToken(tokenizer);
-    }
+    }*/
     tToken* comma = NULL;
     SyntaxNode* expr = NULL;
     SyntaxNodes* params = NULL;
@@ -496,9 +497,9 @@ SyntaxNode* ParseFunctionCallingSyntax(tTokenizer* tokenizer, tScope* scope, tTo
         expr = NULL;
         if(tokenizer->outputToken.type == tokenType_COMMA) {
             comma = Match(tokenizer, tokenType_COMMA, false);
-            while(tokenizer->outputToken.type == tokenType_EOL){
+            /*while(tokenizer->outputToken.type == tokenType_EOL){
                 getToken(tokenizer);
-            }
+            }*/
         }
         expr = ParseExpression(tokenizer, 0, scope);
 
@@ -646,11 +647,12 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer, tScope* scope){
                 addToNodeListEnd(list, createNode(idNode, NULL, NULL, NULL, "IdentifierAssignmentONE", Node_AssignmentExpression));
             }
             if(tokenizer->outputToken.type != tokenType_ASSIGN){
-                return createNode(NULL, list, NULL, NULL, NULL, Node_FunctionCallParameters);
+                return createNode(NULL, list, NULL, NULL, "FUNCTION CALL PARAMS", Node_FunctionCallParameters);
             }
             tToken* assign = Match(tokenizer, tokenType_ASSIGN, true);
             while (tokenizer->outputToken.type == tokenType_EOL)
                 getToken(tokenizer);
+
             SyntaxNodes * node = list->first;
             SyntaxNodes* assignValues = NULL;
             SyntaxNode* prevNode = NULL;
@@ -789,9 +791,11 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer, tScope* scope){
                 tToken* paramType = Match(tokenizer, tokenType_KW, true);
                 if(tokenizer->outputToken.type == tokenType_COMMA){
                     comma = Match(tokenizer, tokenType_COMMA, false);
-                    while (tokenizer->outputToken.type == tokenType_EOL){
+                    /*while (tokenizer->outputToken.type == tokenType_EOL){
                         getToken(tokenizer);
                     }
+                     */
+
                 }
                 else if(tokenizer->outputToken.type != tokenType_COMMA && tokenizer->outputToken.type != tokenType_RBN){
                     fprintf(stderr, "Expected: COMMA or CLOSING BRACKET!\n");
