@@ -1,5 +1,5 @@
 package main
 
-main( a:= 4, 4) {
+func main( a:= 4, 4) {
 
 }

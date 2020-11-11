@@ -1,6 +1,6 @@
 package main
 
-main() {
+func main() {
 	s1 := 
 	for ;i < 0; {
 	}

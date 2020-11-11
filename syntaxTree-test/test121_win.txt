@@ -1,6 +1,6 @@
 package main
 
-main() {
+func main() {
 	int
 	if a > 3 {
 	}else{
