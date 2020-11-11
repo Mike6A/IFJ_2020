@@ -1,0 +1,8 @@
+package main
+
+main() {
+	int
+	if a > 3 {
+	}else{
+	}
+}

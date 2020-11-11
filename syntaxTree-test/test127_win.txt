@@ -1,0 +1,5 @@
+package main
+
+main() {
+	if a < 0 { 
+}

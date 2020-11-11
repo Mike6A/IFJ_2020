@@ -1,0 +1,5 @@
+package main
+
+main() {
+	s1 := "string" + 1
+}

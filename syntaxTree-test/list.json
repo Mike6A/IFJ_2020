@@ -88,7 +88,7 @@
     "expected_output": 2
   },
   "test23_linux": {
-    "description": "keyword pred promennou, aj pro float64, string",
+    "description": "int a:= 8",
     "expected_output": 2
   },
   "test101_win.txt": {
@@ -161,6 +161,46 @@
   },
   "test118_win.txt": {
     "description": "return bez funkce",
+    "expected_output": 2
+  },
+  "test119_win.txt": {
+    "description": "deklarace jako parametr funkce",
+    "expected_output": 2
+  },
+  "test120_win.txt": {
+    "description": "volani funkce s mezerou",
+    "expected_output": 2
+  },
+  "test121_win.txt": {
+    "description": "samostatny int",
+    "expected_output": 2
+  },
+  "test122_win.txt": {
+    "description": "print v printu",
+    "expected_output": 2
+  },
+  "test123_win.txt": {
+    "description": "zkouska o pole",
+    "expected_output": 1
+  },
+  "test124_win.txt": {
+    "description": "string za stringem",
+    "expected_output": 2
+  },
+  "test125_win.txt": {
+    "description": "string + 1",
+    "expected_output": 2
+  },
+  "test126_win.txt": {
+    "description": "prirazeni bez pridavane hodnoty",
+    "expected_output": 2
+  },
+  "test127_win.txt": {
+    "description": "neukoneceny if",
+    "expected_output": 2
+  },
+  "test128_win.txt": {
+    "description": "s := int",
     "expected_output": 2
   }
 }

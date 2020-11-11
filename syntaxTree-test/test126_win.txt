@@ -1,0 +1,7 @@
+package main
+
+main() {
+	s1 := 
+	for ;i < 0; {
+	}
+}
