@@ -1,5 +1,7 @@
 package main
 
+func test(){
 if i < 430 { //comment
 }else{
+}
 }

@@ -1,5 +1,7 @@
 package main
 
-if i + 3 < 5 {
-} else {
+func test(){
+if i < 430 { //comment
+}else{
+}
 }
