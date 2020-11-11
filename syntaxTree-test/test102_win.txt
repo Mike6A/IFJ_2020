@@ -1,0 +1,6 @@
+package main
+
+for ;i<0;
+ {
+
+}
