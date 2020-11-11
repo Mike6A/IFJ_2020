@@ -478,6 +478,10 @@ SyntaxNode* ParseConditionExpresionSyntax(tTokenizer* tokenizer, tScope* scope){
 SyntaxNode* ParseDeclarationSyntax(tTokenizer* tokenizer, tScope* scope, tToken* id){
     tToken * declare = Match(tokenizer, tokenType_DECL, true);
     SyntaxNode *expr = ParseExpression(tokenizer, 0, scope);
+    if(expr == NULL){
+        fprintf(stderr, "Expected expression after declaration!\n");
+        exit(2);
+    }
     return declExpressionSyntax(id, declare, expr);
 }
 SyntaxNode* ParseFunctionCallingSyntax(tTokenizer* tokenizer, tScope* scope, tToken* id){
@@ -706,9 +710,7 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer, tScope* scope){
             tToken *closeBlockToken = Match(tokenizer, tokenType_RBC, true);
             SyntaxNode *thenStatement = blockExpressionSyntax(openBlockToken, statements, closeBlockToken);
             SyntaxNode * elseSyntax = NULL;
-
-
-                tToken *elsekw = Match(tokenizer, tokenType_KW, true);
+            tToken *elsekw = Match(tokenizer, tokenType_KW, true);
             if(strcmp(elsekw->value, "else") != 0){
                 fprintf(stderr, "ELSE required!\n");
                 exit(2);
@@ -811,6 +813,7 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer, tScope* scope){
                 CloseBracket = Match(tokenizer, tokenType_RBN, false);
             }
             tToken* openBlockToken = Match(tokenizer, tokenType_LBC, true);
+            tToken* EOL = Match(tokenizer, tokenType_EOL, false);
             functionReturnParams = returnParamsCount;
             SyntaxNodes* funcStatements = ParseBlockExpressions(tokenizer, 0, scope);
             tToken *closeBlockToken = Match(tokenizer, tokenType_RBC, true);
@@ -828,6 +831,10 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer, tScope* scope){
                 if(params != 1 && params <= functionReturnParams)
                     comma = Match(tokenizer, tokenType_COMMA, false);
                 expr = ParseExpression(tokenizer, 0, scope);
+                if(expr == NULL){
+                    fprintf(stderr, "return expect %d expressions. \t Given: %d\n", functionReturnParams, params-1);
+                    exit(2);
+                }
                 if(returnValues == NULL){
                     returnValues = createNodeList(expr);
                 }else{
@@ -843,6 +850,10 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer, tScope* scope){
         }
         if(strcmp(kw->value, "package") == 0){
             fprintf(stderr, "Unexpected 'package'\n");
+            exit(2);
+        }
+        if(strcmp(kw->value, "else") == 0){
+            fprintf(stderr, "Unexpected 'else'\n");
             exit(2);
         }
         /*
@@ -923,7 +934,7 @@ SyntaxNode* ParseExpression(tTokenizer* tokenizer, int parentPriority, tScope* s
     //@todo ADD *,/, true, false, unary operators, +,-,!.
     //@todo ADD Error report...
     if (tokenizer->outputToken.type == tokenType_EOL)
-        getToken(tokenizer);
+        return NULL;
     if(tokenizer->errorCode == 1){
         fprintf(stderr, "Unexpected EOL\n");
         exit(1);
@@ -973,6 +984,16 @@ SyntaxNode* ParseExpression(tTokenizer* tokenizer, int parentPriority, tScope* s
 
 
         SyntaxNode* right = ParseExpression(tokenizer, priority, scope);
+        if(right == NULL){
+            fprintf(stderr, "Unexpected EOL!\n");
+            exit(2);
+        }
+        if( right->type == Node_DeclareExpression ||
+            right->type == Node_AssignmentExpression
+        ){
+            fprintf(stderr, "Unexpected Declare or Assign Expression\n");
+            exit(2);
+        }
         if( operator->type == tokenType_GREATER ||
             operator->type == tokenType_GE ||
             operator->type == tokenType_LESS ||
