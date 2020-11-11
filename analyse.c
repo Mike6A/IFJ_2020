@@ -977,6 +977,10 @@ SyntaxNode* ParseExpression(tTokenizer* tokenizer, int parentPriority, tScope* s
         left = unaryExpressionSyntax(operator, operand);
     }else{
         left = PrimaryExpressionSyntax(tokenizer, scope);
+        if(left == NULL){
+            fprintf(stderr, "Unexpected token!\n");
+            exit(2);
+        }
         if( left->type == Node_IFExpression ||
             left->type == Node_ForExpression
                 )
