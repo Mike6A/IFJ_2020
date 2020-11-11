@@ -242,7 +242,7 @@ SyntaxNode* numberExpressionSyntax(tToken* numberToken){
             NULL,
             "NumberIntExpression",
             Node_NumberIntExpression
-            );
+    );
     return current;
 }
 SyntaxNode* doubleExpressionSyntax(tToken* doubleToken){
@@ -264,7 +264,7 @@ SyntaxNode* stringExpressionSyntax(tToken* stringToken){
             NULL,
             "StringExpression",
             Node_StringExpression
-            );
+    );
     return current;
 }
 
@@ -486,14 +486,20 @@ SyntaxNode* ParseDeclarationSyntax(tTokenizer* tokenizer, tScope* scope, tToken*
 }
 SyntaxNode* ParseFunctionCallingSyntax(tTokenizer* tokenizer, tScope* scope, tToken* id){
     tToken * openBracket = Match(tokenizer, tokenType_LBN, false);
+    while(tokenizer->outputToken.type == tokenType_EOL){
+        getToken(tokenizer);
+    }
     tToken* comma = NULL;
     SyntaxNode* expr = NULL;
     SyntaxNodes* params = NULL;
     while (tokenizer->outputToken.type != tokenType_RBN){
         expr = NULL;
-        if(tokenizer->outputToken.type == tokenType_COMMA)
+        if(tokenizer->outputToken.type == tokenType_COMMA) {
             comma = Match(tokenizer, tokenType_COMMA, false);
-
+            while(tokenizer->outputToken.type == tokenType_EOL){
+                getToken(tokenizer);
+            }
+        }
         expr = ParseExpression(tokenizer, 0, scope);
 
         if(expr!= NULL){
@@ -609,6 +615,8 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer, tScope* scope){
     }
     if(tokenizer->outputToken.type == tokenType_LBN){
         tToken *left = Match(tokenizer, tokenType_LBN, true);
+        while (tokenizer->outputToken.type == tokenType_EOL)
+            getToken(tokenizer);
         SyntaxNode *expression = ParseExpression(tokenizer, 0, scope);
         tToken *right = Match(tokenizer, tokenType_RBN, true);
         return parenthezedExpressionSyntax(left, expression, right);
@@ -641,6 +649,8 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer, tScope* scope){
                 return createNode(NULL, list, NULL, NULL, NULL, Node_FunctionCallParameters);
             }
             tToken* assign = Match(tokenizer, tokenType_ASSIGN, true);
+            while (tokenizer->outputToken.type == tokenType_EOL)
+                getToken(tokenizer);
             SyntaxNodes * node = list->first;
             SyntaxNodes* assignValues = NULL;
             SyntaxNode* prevNode = NULL;
@@ -648,33 +658,41 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer, tScope* scope){
             while(node != NULL){
                 if( (prevNode != NULL && !prevNodeFuncType) || (prevNode != NULL && tokenizer->outputToken.type == tokenType_COMMA)){
                     comma = Match(tokenizer, tokenType_COMMA, false);
+                    while (tokenizer->outputToken.type == tokenType_EOL)
+                        getToken(tokenizer);
                     SyntaxNode* expr = ParseExpression(tokenizer, 0, scope);
-                    if( expr->type == Node_IdentifierToken ||
-                        expr->type == Node_ParenthezedExpression ||
-                        expr->type == Node_BinaryExpression ||
-                        expr->type == Node_IdentifierExpression ||
-                        expr->type == Node_UnaryExpression ||
-                        expr->type == Node_NumberIntToken ||
-                        expr->type == Node_NumberIntExpression ||
-                        expr->type == Node_NumberDoubleExpression ||
-                        expr->type == Node_NumberDoubleToken ||
-                        expr->type == Node_StringExpression ||
-                        expr->type == Node_StringToken
-                        )
-                    {
-                        if (assignValues == NULL) {
-                            assignValues = createNodeList(expr);
+                    if(expr != NULL) {
+                        if (expr->type == Node_IdentifierToken ||
+                            expr->type == Node_ParenthezedExpression ||
+                            expr->type == Node_BinaryExpression ||
+                            expr->type == Node_IdentifierExpression ||
+                            expr->type == Node_UnaryExpression ||
+                            expr->type == Node_NumberIntToken ||
+                            expr->type == Node_NumberIntExpression ||
+                            expr->type == Node_NumberDoubleExpression ||
+                            expr->type == Node_NumberDoubleToken ||
+                            expr->type == Node_StringExpression ||
+                            expr->type == Node_StringToken
+                                ) {
+                            if (assignValues == NULL) {
+                                assignValues = createNodeList(expr);
+                            } else {
+                                addToNodeListEnd(assignValues, expr);
+                            }
                         } else {
-                            addToNodeListEnd(assignValues, expr);
+                            fprintf(stderr, "Assignment went wrong!\n");
+                            exit(2);
                         }
-                    }
-                    else{
-                        fprintf(stderr, "Assignment went wrong!\n");
-                        exit(2);
                     }
                 }else if (prevNode == NULL){
                     if(assignValues == NULL){
-                        assignValues = createNodeList(ParseExpression(tokenizer, 0, scope));
+                        SyntaxNode *expr = ParseExpression(tokenizer, 0, scope);
+                        if(expr!=NULL){
+                            assignValues = createNodeList(expr);
+                        }else{
+                            fprintf(stderr, "Expected expr, given EOL!\n");
+                            exit(2);
+                        }
                     }else{
                         addToNodeListEnd(assignValues, ParseExpression(tokenizer, 0, scope));
                     }
@@ -771,6 +789,9 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer, tScope* scope){
                 tToken* paramType = Match(tokenizer, tokenType_KW, true);
                 if(tokenizer->outputToken.type == tokenType_COMMA){
                     comma = Match(tokenizer, tokenType_COMMA, false);
+                    while (tokenizer->outputToken.type == tokenType_EOL){
+                        getToken(tokenizer);
+                    }
                 }
                 else if(tokenizer->outputToken.type != tokenType_COMMA && tokenizer->outputToken.type != tokenType_RBN){
                     fprintf(stderr, "Expected: COMMA or CLOSING BRACKET!\n");
@@ -783,7 +804,7 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer, tScope* scope){
                         NULL,
                         "OneFunctionParameter",
                         Node_FunctionParameter
-                        );
+                );
                 if(params == NULL){
                     params = createNodeList(oneParam);
                 }else{
@@ -893,7 +914,7 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer, tScope* scope){
     }
     if( tokenizer->outputToken.type == tokenType_ASSIGN ||
         tokenizer->outputToken.type == tokenType_DECL
-    ) {
+            ) {
         fprintf(stderr,"Expected EOL or continue expression. Not Declaration or Assignment!\n");
         exit(2);
     }
@@ -906,10 +927,12 @@ SyntaxNodes* ParseGlobalBlockExpressions (tTokenizer* tokenizer, int parentPrior
         if(tokenizer->outputToken.type == tokenType_EOL){
             getToken(tokenizer);
         }
-        if(list == NULL){
-            list = createNodeList(expr);
-        }else{
-            addToNodeListEnd(list, expr);
+        if(expr != NULL) {
+            if (list == NULL) {
+                list = createNodeList(expr);
+            } else {
+                addToNodeListEnd(list, expr);
+            }
         }
     }
     return list;
@@ -936,7 +959,7 @@ SyntaxNode* ParseExpression(tTokenizer* tokenizer, int parentPriority, tScope* s
     if (tokenizer->outputToken.type == tokenType_EOL)
         return NULL;
     if(tokenizer->errorCode == 1){
-        fprintf(stderr, "Unexpected EOL\n");
+        fprintf(stderr, "Lex chyba!\n");
         exit(1);
     }if(tokenizer->errorCode == 99){
         fprintf(stderr, "MALOC!!!\n");
@@ -957,14 +980,15 @@ SyntaxNode* ParseExpression(tTokenizer* tokenizer, int parentPriority, tScope* s
         left = PrimaryExpressionSyntax(tokenizer, scope);
         if( left->type == Node_IFExpression ||
             left->type == Node_ForExpression
-        )
+                )
             return left;
     }
     while ( tokenizer->outputToken.type != tokenType_EOF &&
             tokenizer->outputToken.type != tokenType_EOL &&
             tokenizer->outputToken.type != tokenType_SCOMMA &&
             tokenizer->outputToken.type != tokenType_RBN &&
-            tokenizer->outputToken.type != tokenType_LBC
+            tokenizer->outputToken.type != tokenType_LBC &&
+            tokenizer->outputToken.type != tokenType_COMMA
             )
     {
         int priority = GetBinOperatorPriority(tokenizer->outputToken.type);
@@ -981,7 +1005,8 @@ SyntaxNode* ParseExpression(tTokenizer* tokenizer, int parentPriority, tScope* s
         //Try to Build Binary expression if exists binary statements
         tToken* operator = CopyToken(&tokenizer->outputToken);
         getToken(tokenizer);
-
+        while (tokenizer->outputToken.type == tokenType_EOL)
+            getToken(tokenizer);
 
         SyntaxNode* right = ParseExpression(tokenizer, priority, scope);
         if(right == NULL){
@@ -990,7 +1015,7 @@ SyntaxNode* ParseExpression(tTokenizer* tokenizer, int parentPriority, tScope* s
         }
         if( right->type == Node_DeclareExpression ||
             right->type == Node_AssignmentExpression
-        ){
+                ){
             fprintf(stderr, "Unexpected Declare or Assign Expression\n");
             exit(2);
         }
@@ -1011,10 +1036,13 @@ SyntaxNode* ParseExpression(tTokenizer* tokenizer, int parentPriority, tScope* s
 }
 
 SyntaxNode* getPackage(tTokenizer* tokenizer){
-   /* if(tokenizer->outputToken.type != tokenType_KW){
-        return NULL;
-    }
-    */
+    /* if(tokenizer->outputToken.type != tokenType_KW){
+         return NULL;
+     }
+     */
+    while (tokenizer->outputToken.type == tokenType_EOL)
+        getToken(tokenizer);
+
     tToken* pkKW = Match(tokenizer, tokenType_KW, true);
     if(strcmp(pkKW->value, "package") != 0){
         fprintf(stderr, "Expected 'package'. Given: %s\n", pkKW->value);
