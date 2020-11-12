@@ -73,13 +73,16 @@ void test_tree(){
     prog = createNode(NULL, NULL, NULL, NULL, "GlobalScope", Node_Global);
     prog->left = getPackage(&tokenizer);
     prog->statements = ParseGlobalBlockExpressions(&tokenizer, 0);
+    if(prog != NULL){
+        printSyntaxTree(prog, "", true);
+    }
     if(isError()){
         deleteSyntaxTree(prog);
         destructBuilder(&tokenizer.sb);
         fprintf(stderr, "%d",getError());
         exit(getError());
     }
-    printSyntaxTree(prog, "", true);
+
     //long res = eval(&tokenizer, prog, &scope);
     deleteSyntaxTree(prog);
 //    while (!tokenizer.isEOF){

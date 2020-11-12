@@ -257,8 +257,9 @@ SyntaxNode* CopyNode(SyntaxNode* node){
 tToken* Match(tTokenizer* tokenizer, int type, bool copy){
     tToken* current = NULL;
     if(tokenizer->outputToken.type == type){
-        if(copy)
+        if(copy) {
             current = CopyToken(&tokenizer->outputToken);
+        }
         getToken(tokenizer);
         if(tokenizer->errorCode != 0){
             if(current != NULL){
@@ -1326,6 +1327,7 @@ SyntaxNode* getPackage(tTokenizer* tokenizer){
     tToken* pkKW = Match(tokenizer, tokenType_KW, true);
     if(pkKW == NULL || strcmp(pkKW->value, "package") != 0){
         deleteToken(pkKW);
+        pkKW = NULL;
         fprintf(stderr, "Expected 'package'. Given: %s\n", pkKW != NULL ? pkKW->value: "");
         error(2);
         return NULL;
@@ -1335,6 +1337,8 @@ SyntaxNode* getPackage(tTokenizer* tokenizer){
     if(pkKW == NULL || strcmp(idofPk->value, "main") != 0){
         deleteToken(pkKW);
         deleteToken(idofPk);
+        pkKW = NULL;
+        idofPk = NULL;
         fprintf(stderr, "Expected 'main'. Given: %s\n", idofPk!=NULL ? idofPk->value: "");
         error(2);
         return NULL;
