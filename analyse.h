@@ -134,9 +134,14 @@ void printSyntaxTree(SyntaxNode* node, char* indent, bool last);
 
 SyntaxNode* getPackage(tTokenizer* tokenizer);
 
-SyntaxNode* ParseExpression(tTokenizer* tokenizer, int priority, tScope* scope);
-SyntaxNodes* ParseGlobalBlockExpressions (tTokenizer* tokenizer, int parentPriority, tScope* scope);
-SyntaxNodes* ParseBlockExpressions(tTokenizer* tokenizer, int priority, tScope* scope);
+SyntaxNode* ParseExpression(tTokenizer* tokenizer, int priority);
+SyntaxNodes* ParseGlobalBlockExpressions (tTokenizer* tokenizer, int parentPriority);
+SyntaxNodes* ParseBlockExpressions(tTokenizer* tokenizer, int priority);
 long eval(tTokenizer* tokenizer, SyntaxNode * root, tScope* scope);
+
+void deleteToken(tToken* token);
 void deleteSyntaxTree(SyntaxNode* node);
+
+bool isError();
+int getError();
 #endif //IFJ_2020_SYNTAXTREE_H
