@@ -1273,18 +1273,18 @@ SyntaxNode* getPackage(tTokenizer* tokenizer){
     }
 
     tToken* pkKW = Match(tokenizer, tokenType_KW, true);
-    if(strcmp(pkKW->value, "package") != 0){
+    if(pkKW == NULL || strcmp(pkKW->value, "package") != 0){
         deleteToken(pkKW);
-        fprintf(stderr, "Expected 'package'. Given: %s\n", pkKW->value);
+        fprintf(stderr, "Expected 'package'. Given: %s\n", pkKW != NULL ? pkKW->value: "");
         error(2);
         return NULL;
     }
     tToken* idofPk = Match(tokenizer, tokenType_ID, true);
     Match(tokenizer, tokenType_EOL, false);
-    if(strcmp(idofPk->value, "main") != 0){
+    if(pkKW == NULL || strcmp(idofPk->value, "main") != 0){
         deleteToken(pkKW);
         deleteToken(idofPk);
-        fprintf(stderr, "Expected 'main'. Given: %s\n", idofPk->value);
+        fprintf(stderr, "Expected 'main'. Given: %s\n", idofPk!=NULL ? idofPk->value: "");
         error(2);
         return NULL;
     }
