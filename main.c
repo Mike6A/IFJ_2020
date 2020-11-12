@@ -71,17 +71,7 @@ void test_tree(){
     getToken(&tokenizer);
     SyntaxNode* prog;
     prog = createNode(NULL, NULL, NULL, NULL, "GlobalScope", Node_Global);
-    if(isError()){
-        deleteSyntaxTree(prog);
-        destructBuilder(&tokenizer.sb);
-        exit( getError());
-    }
     prog->left = getPackage(&tokenizer);
-    if(isError()){
-        deleteSyntaxTree(prog);
-        destructBuilder(&tokenizer.sb);
-        exit( getError());
-    }
     prog->statements = ParseGlobalBlockExpressions(&tokenizer, 0);
     if(isError()){
         deleteSyntaxTree(prog);

@@ -1257,6 +1257,9 @@ SyntaxNode* ParseExpression(tTokenizer* tokenizer, int parentPriority){
 }
 
 SyntaxNode* getPackage(tTokenizer* tokenizer){
+    if(isError()){
+        return NULL;
+    }
     /* if(tokenizer->outputToken.type != tokenType_KW){
          return NULL;
      }
