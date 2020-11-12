@@ -78,6 +78,9 @@ void test_tree(){
     }
     if(isError()){
         deleteSyntaxTree(prog);
+        while (!tokenizer.isEOF && tokenizer.errorCode == 0){
+            getToken(&tokenizer);
+        }
         destructBuilder(&tokenizer.sb);
         fprintf(stderr, "%d",getError());
         exit(getError());
