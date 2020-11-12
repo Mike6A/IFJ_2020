@@ -562,6 +562,7 @@ SyntaxNode* ParseDeclarationSyntax(tTokenizer* tokenizer, tToken* id){
     SyntaxNode *expr = ParseExpression(tokenizer, 0);
     if(expr == NULL){
         fprintf(stderr, "Expected expression after declaration!\n");
+        deleteToken(id);
         deleteToken(declare);
         error(2);
         return NULL;
