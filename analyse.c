@@ -550,6 +550,7 @@ SyntaxNode* ParseConditionExpresionSyntax(tTokenizer* tokenizer){
     else{
         fprintf(stderr, "Expected: %s \t Given: %s\n", enumTypeOfNode[Node_BooleanExpression] ,expr != NULL ? enumTypeOfNode[expr->type] : "EOL");
     }
+    deleteSyntaxTree(expr);
     error(2);
     return NULL;
 }
@@ -585,6 +586,7 @@ SyntaxNode* ParseFunctionCallingSyntax(tTokenizer* tokenizer, tToken* id){
             deleteToken(openBracket);
             deleteSyntaxTree(expr);
             destroyNodeList(params);
+            deleteToken(id);
             return NULL;
         }
         expr = NULL;
@@ -602,6 +604,7 @@ SyntaxNode* ParseFunctionCallingSyntax(tTokenizer* tokenizer, tToken* id){
                     deleteSyntaxTree(expr);
                     deleteToken(openBracket);
                     destroyNodeList(params);
+                    deleteToken(id);
                     fprintf(stderr, "Something went wrong!\n");
                     error(2);
                     return NULL;
@@ -612,6 +615,7 @@ SyntaxNode* ParseFunctionCallingSyntax(tTokenizer* tokenizer, tToken* id){
                         deleteSyntaxTree(expr);
                         deleteToken(openBracket);
                         destroyNodeList(params);
+                        deleteToken(id);
                         fprintf(stderr, "Something went wrong!\n");
                         error(2);
                         return NULL;
