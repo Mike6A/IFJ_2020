@@ -4,6 +4,7 @@
 
 //eg.
 extern char* KEYWORDS[];
+extern int ERRORCODE;
 
 char* getEnumString(TokenType type){
     switch (type)
@@ -67,14 +68,27 @@ void test_hashtable(){
 void test_tree(){
     tTokenizer tokenizer;
     initTokenizer(&tokenizer);
-    tScope scope;
-    initScope(&scope);
-    createScope(&scope);
     getToken(&tokenizer);
     SyntaxNode* prog;
     prog = createNode(NULL, NULL, NULL, NULL, "GlobalScope", Node_Global);
+    if(isError()){
+        deleteSyntaxTree(prog);
+        destructBuilder(&tokenizer.sb);
+        exit( getError());
+    }
     prog->left = getPackage(&tokenizer);
-    prog->statements = ParseGlobalBlockExpressions(&tokenizer, 0, &scope);
+    if(isError()){
+        deleteSyntaxTree(prog);
+        destructBuilder(&tokenizer.sb);
+        exit( getError());
+    }
+    prog->statements = ParseGlobalBlockExpressions(&tokenizer, 0);
+    if(isError()){
+        deleteSyntaxTree(prog);
+        destructBuilder(&tokenizer.sb);
+        fprintf(stderr, "%d",getError());
+        exit(getError());
+    }
     printSyntaxTree(prog, "", true);
     //long res = eval(&tokenizer, prog, &scope);
     deleteSyntaxTree(prog);
@@ -90,7 +104,6 @@ void test_tree(){
 //            printf("RES>>> %ld\n", res);
 //        deleteSyntaxTree(exp);
 //    }
-    removeLastLocalScope(&scope);
     destructBuilder(&tokenizer.sb);
 
 }
