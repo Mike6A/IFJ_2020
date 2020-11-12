@@ -2,9 +2,11 @@
 #include "symtable/symtable.h"
 #include "analyse.h"
 #include "semantics.h"
+#include "stack.h"
 
 //eg.
 extern char* KEYWORDS[];
+extern int ERRORCODE;
 
 char* getEnumString(TokenType type){
     switch (type)
@@ -68,16 +70,26 @@ void test_hashtable(){
 void test_tree(){
     tTokenizer tokenizer;
     initTokenizer(&tokenizer);
-    tScope scope;
-    initScope(&scope);
-    createScope(&scope);
     getToken(&tokenizer);
     SyntaxNode* prog;
     prog = createNode(NULL, NULL, NULL, NULL, "GlobalScope", Node_Global);
     prog->left = getPackage(&tokenizer);
-    prog->statements = ParseGlobalBlockExpressions(&tokenizer, 0, &scope);
-    printSyntaxTree(prog, "", true);
+    prog->statements = ParseGlobalBlockExpressions(&tokenizer, 0);
+    if(prog != NULL){
+        printSyntaxTree(prog, "", true);
+    }
+    if(isError()){
+        deleteSyntaxTree(prog);
+        freeToken(&tokenizer);
+        destructBuilder(&tokenizer.sb);
+        fprintf(stderr, "%d",getError());
+        exit(getError());
+    }
+
     //long res = eval(&tokenizer, prog, &scope);
+
+    tScope scope;
+    initScope(&scope);
     runSemanticAnalyze(prog, &scope);
 
     deleteSyntaxTree(prog);
@@ -93,7 +105,6 @@ void test_tree(){
 //            printf("RES>>> %ld\n", res);
 //        deleteSyntaxTree(exp);
 //    }
-    removeLastLocalScope(&scope);
     destructBuilder(&tokenizer.sb);
 
 }

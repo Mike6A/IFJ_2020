@@ -115,17 +115,6 @@ typedef struct t_syntaxTree {
     char* name;
 }SyntaxNode;
 
-typedef struct scopeItem{
-    tHashTable* table;
-    struct scopeItem* next;
-} tScopeItem;
-typedef struct scope{
-    tScopeItem* topLocal;
-    tScopeItem* global;
-}tScope;
-void initScope(tScope* scope);
-int createScope(tScope *scope);
-int removeLastLocalScope(tScope *scope);
 
 SyntaxNode* createNode(SyntaxNode* left, SyntaxNodes* statements, SyntaxNode* right, tToken* token, const char* name, int type);
 SyntaxNode* CopyNode(SyntaxNode* node);
@@ -134,9 +123,13 @@ void printSyntaxTree(SyntaxNode* node, char* indent, bool last);
 
 SyntaxNode* getPackage(tTokenizer* tokenizer);
 
-SyntaxNode* ParseExpression(tTokenizer* tokenizer, int priority, tScope* scope);
-SyntaxNodes* ParseGlobalBlockExpressions (tTokenizer* tokenizer, int parentPriority, tScope* scope);
-SyntaxNodes* ParseBlockExpressions(tTokenizer* tokenizer, int priority, tScope* scope);
-long eval(tTokenizer* tokenizer, SyntaxNode * root, tScope* scope);
+SyntaxNode* ParseExpression(tTokenizer* tokenizer, int priority);
+SyntaxNodes* ParseGlobalBlockExpressions (tTokenizer* tokenizer, int parentPriority);
+SyntaxNodes* ParseBlockExpressions(tTokenizer* tokenizer, int priority);
+
+void deleteToken(tToken* token);
 void deleteSyntaxTree(SyntaxNode* node);
+
+bool isError();
+int getError();
 #endif //IFJ_2020_SYNTAXTREE_H
