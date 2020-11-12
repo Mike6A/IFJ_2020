@@ -1,6 +1,7 @@
 #include "scanner.h"
 #include "symtable/symtable.h"
 #include "analyse.h"
+#include "semantics.h"
 
 //eg.
 extern char* KEYWORDS[];
@@ -77,6 +78,8 @@ void test_tree(){
     prog->statements = ParseGlobalBlockExpressions(&tokenizer, 0, &scope);
     printSyntaxTree(prog, "", true);
     //long res = eval(&tokenizer, prog, &scope);
+    runSemanticAnalyze(prog, &scope);
+
     deleteSyntaxTree(prog);
 //    while (!tokenizer.isEOF){
 //        getToken(&tokenizer);
