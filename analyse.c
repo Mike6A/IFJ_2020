@@ -1096,8 +1096,8 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
             return NULL;
         }
         if(strcmp(kw->value, "int") == 0 || strcmp(kw->value, "string") == 0 || strcmp(kw->value, "float64") == 0){
-            deleteToken(kw);
             fprintf(stderr, "Unexpected type KW '%s'\n", kw->value);
+            deleteToken(kw);
             error(2);
             return NULL;
         }
