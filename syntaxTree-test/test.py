@@ -22,7 +22,7 @@ class bcolors:
     UNDERLINE = '\033[4m'
 
 for i in os.listdir("./"):
-    if not "test.py" in os.path.basename(i) and not "list.json" in os.path.basename(i):
+    if "linux" in os.path.basename(i) or "win" in os.path.basename(i):
         test_files.append(i)
 
 for f in test_files:
@@ -31,6 +31,7 @@ for f in test_files:
     res = subprocess.call(["../IFJ20"], stdin=file, stdout=FNULL)
     if json_file[f]['expected_output'] == res:
         print("result ==== OK")
+        print("description: {}{}".format(json_file[f]['description'], bcolors.ENDC))
         correct_count += 1
     else:
         print(f"{bcolors.FAIL}result ==== FAILED")
