@@ -11,6 +11,12 @@
 #include "stack.h"
 #include "analyse.h"
 
+typedef struct t_ExpReturnType {
+    TItem type; /**< type of item */
+    char* value; /**< value */
+    long errCode; /**< return code  */
+} tExpReturnType;
+
 long runSemanticAnalyze(SyntaxNode* root);
 
 #endif //IFJ_2020_SEMANTICS_H

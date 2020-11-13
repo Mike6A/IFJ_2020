@@ -44,20 +44,192 @@ tHashItem* getIdentifier(tScopeItem* scope, char* name){
     return item;
 }
 
+tExpReturnType identifierExp(SyntaxNode* root, tScope* scope) {
+    tExpReturnType result;
+    result.errCode = 0;
+    result.value = "";
+    tScopeItem *currentScope = scope->topLocal;
+    char* id = root->right->token->value;
+    tHashItem *item = getIdentifier(currentScope, id);
+
+    if (item == NULL) {
+        fprintf(stderr, "Identifier %s is not declared!\n", id);
+        result.errCode = 3;
+    }
+
+    result.type = item->type;
+
+    return result;
+}
+
+/**
+ * Calculate expression result type
+ * @param root Pointer to the expressions's node
+ * @param scope Pointer to current scope
+ * @return tExpReturnType struct with type and data
+ */
+tExpReturnType evalExpression(SyntaxNode* root, tScope* scope) {
+    enum typeOfNode type = root->type;
+    tExpReturnType result;
+    result.errCode = 0;
+    result.value = "";
+
+    if (type == Node_IdentifierExpression) {
+        return identifierExp(root, scope);
+    }
+    else if (type == Node_NumberIntExpression) {
+        result.type = TInt;
+        result.value = root->right->token->value;
+    }
+    else if (type == Node_NumberDoubleExpression) {
+        result.type = TDouble;
+        result.value = root->right->token->value;
+    }
+    else if (type == Node_StringExpression) {
+        result.type = TString;
+        result.value = root->right->token->value;
+    }
+    else if (type == Node_UnaryExpression) {
+        tExpReturnType rightSide = evalExpression(root->right, scope);
+        if (rightSide.type == TString) {
+            result.errCode = 5;     //TODO is it 5?
+            fprintf(stderr, "Unary operator does not work with string\n");
+            return result;
+        }
+        result.type = rightSide.type;
+        switch (root->token->type) {
+            case tokenType_PLUS:
+            case tokenType_MINUS:
+                return result;
+            default:                //shouldn't happen at all
+                result.errCode = 5;
+                fprintf(stderr, "Unary operator is only + or -\n");
+                return result;
+        }
+    }
+
+    /*
+    if(root->type == Node_BinaryExpression){
+        long left = eval(tokenizer, root->left, scope);
+        long right = eval(tokenizer, root->right, scope);
+        switch (root->token->type) {
+            case tokenType_PLUS:
+                return left + right;
+            case tokenType_MINUS:
+                return left - right;
+            case tokenType_MUL:
+                return left * right;
+            case tokenType_DIV:
+                return left / right;
+            case tokenType_GREATER:
+                return left > right;
+            case tokenType_LESS:
+                return left < right;
+            case tokenType_GE:
+                return left >= right;
+            case tokenType_LE:
+                return left <= right;
+            case tokenType_EQ:
+                return left == right;
+            case tokenType_NEQ:
+                return left != right;
+            default:
+                return -1;
+        }
+    }
+    if(root->type == Node_ParenthezedExpression){
+        return eval(tokenizer, root->statements->node, scope);
+    }*/
+    return result;
+}
+
+long numberIntExp(SyntaxNode* root, tScope* scope){
+    char* end;
+    long result = strtol(root->right->token->value, &end, 10);
+    printf("numIntExp >>> %ld\n", result);
+    return result;
+}
+
+/**
+ * Declare variable. Returns error if already declared
+ * @param root Pointer to the node
+ * @param scope Pointer to current scope
+ * @return Return code (0 = OK)
+ */
+long declareExp(SyntaxNode* root, tScope* scope) {
+    tScopeItem *currentScope = scope->topLocal;
+    char* id = root->left->token->value;
+
+    tHashItem *item = getIdentifier(currentScope, id);
+    if (item != NULL) {
+        fprintf(stderr, "Variable %s is already declared!\n", id);
+        return 3;
+    }
+
+    tExpReturnType result = evalExpression(root->right, scope);
+    if (result.errCode == 0) {
+        addVarToHT(currentScope->table, id, result.type, result.value, true);
+    }
+
+    return result.errCode;
+}
+
+/**
+ * Main switch to redirect code to other functions
+ * @param root Pointer to the node
+ * @param scope Pointer to current scope
+ * @return Return code (0 = OK)
+ */
+long statementMainSwitch(SyntaxNode* root, tScope* scope) {
+    enum typeOfNode type = root->type;
+    switch(type){
+        case Node_DeclareExpression:                //DONE
+            return declareExp(root, scope);
+        case Node_AssignmentExpression:
+            break;
+        case Node_ParenthezedExpression:
+            break;
+        case Node_IFExpression:
+            break;
+        case Node_ForExpression:
+            break;
+        case Node_FunctionCallExpression:
+            break;
+        case Node_ReturnExpression:
+            break;
+
+        //corner of hated expressions
+        case Node_IdentifierExpression: break;
+        case Node_BinaryExpression: break;
+
+        case Node_NumberIntExpression:
+        case Node_NumberDoubleExpression:
+        case Node_StringExpression:
+        case Node_UnaryExpression:
+            return evalExpression(root, scope).errCode;
+
+        case Node_BooleanExpression: break;
+
+        default:
+            return 7;
+    }
+
+    return 0;
+}
+
+
 /**
  * WIP!!! Block expression node
  * @param root Pointer to the node
  * @param scope Pointer to current scope
- * @return Error code (0 = OK)
+ * @return Return code (0 = OK)
  */
 long blockExp(SyntaxNode* root, tScope* scope) {
     createScope(scope);
 
     SyntaxNodes *statement = root->statements != NULL ? root->statements->first : NULL;
-    while (statement != NULL){
-        long returnCode = 0;
-
-        //statement->node->type;    //TODO currently working on
+    while (statement != NULL) {
+        long returnCode = statementMainSwitch(statement->node, scope);  //main logic
 
         if (returnCode != 0) {
             removeLastLocalScope(scope);
@@ -71,61 +243,12 @@ long blockExp(SyntaxNode* root, tScope* scope) {
     return 0;
 }
 
-/* ---- These 4 functions are going to be rewritten ----- */
-long numberIntExp(SyntaxNode* root, tScope* scope){
-    char* end;
-    long result = strtol(root->right->token->value, &end, 10);
-    printf("numIntExp >>> %ld\n", result);
-    return result;
-}
-
-long identifierExp(SyntaxNode* root, tScope* scope){
-    tScopeItem *currentScope = scope->topLocal;
-    char* id = root->right->token->value;
-    tHashItem *item = getIdentifier(currentScope, id);
-
-    if (item == NULL){
-        fprintf(stderr, "ERROR: Identifier %s was not declared!\n", id);
-        exit(3);
-    }
-    return 0;
-}
-
-long declareExp(SyntaxNode* root, tScope* scope){
-    tScopeItem *currentScope = scope->topLocal;
-    char* id = root->left->token->value;
-    tHashItem *item = getIdentifier(currentScope, id);
-
-    if (item == NULL){
-        addVarToHT(currentScope->table, id, TInt, "value", true);  //TODO
-    }
-
-    return 0;
-}
-
-long assignmentToExp(SyntaxNode* root, tScope* scope){
-    tScopeItem *currentScope = scope->topLocal;
-
-    char* id = "a";
-    tHashItem* item = getIdentifier(currentScope, id);  //TODO loop through statements
-
-    if (item == NULL){
-        fprintf(stderr, "Identifier %s was not declared!\n", id);
-        exit(3);
-    }
-
-    char* end;
-    long result = strtol (item->value,&end,10);
-    printf("\t%s\tRES >>> \t%ld\n", root->name,result);
-    return result;
-}
-/* ------------------------------------------------------ */
 
 /**
  * Function to check functions in code
  * @param root Pointer to the node
  * @param scope Pointer to current scope
- * @return Error code (0 = OK)
+ * @return Return code (0 = OK)
  */
 long runFunctionExp(SyntaxNode* root, tScope* scope){
     char* funcName = root->left->left->token->value;
@@ -157,7 +280,7 @@ long runFunctionExp(SyntaxNode* root, tScope* scope){
 /**
  * Adds all inbuilt functions to the global scope
  * @param scope Pointer to the global scope
- * @return Error code (0 = OK)
+ * @return Return code (0 = OK)
  */
 long addInbuiltFunctions(tScope* scope) {
     tHashTable* table = scope->global->table;
@@ -218,7 +341,7 @@ long addInbuiltFunctions(tScope* scope) {
 /**
  * Main function of semantic analysis
  * @param root Start node of ASS
- * @return Error code (0 = OK)
+ * @return Return code (0 = OK)
  */
 long runSemanticAnalyze(SyntaxNode* root){
     if(root == NULL){
@@ -255,6 +378,11 @@ long runSemanticAnalyze(SyntaxNode* root){
         if (mainFunc->declared == true && mainFunc->func != NULL && mainFunc->func->params_count == 0 && mainFunc->func->return_count == 0) {
             removeLastLocalScope(&scope);
             return 0;
+        }
+        else {
+            fprintf(stderr, "Main function should not have parameters or return value\n");
+            removeLastLocalScope(&scope);
+            return 6;
         }
     }
 
