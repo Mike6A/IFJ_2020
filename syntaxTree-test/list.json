@@ -91,6 +91,10 @@
     "description": "int a:= 8",
     "expected_output": 2
   },
+  "test24_linux": {
+    "description": "retrun value neni kw",
+    "expected_output": 2
+  },
   "test101_win.txt": {
     "description": "spatne zadany for",
     "expected_output": 2
