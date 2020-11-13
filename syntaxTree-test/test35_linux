@@ -1,0 +1,7 @@
+package main
+
+func main(){
+	a := 5
+	b := 4.4
+	b = float2int(b)
+}

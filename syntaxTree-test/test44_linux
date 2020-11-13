@@ -1,0 +1,11 @@
+package main
+
+func rek(a int) (int){
+	a = rek(a)
+	return a
+}
+
+func main(){
+	a := 8
+	a,_ = inputi(a) 	
+}

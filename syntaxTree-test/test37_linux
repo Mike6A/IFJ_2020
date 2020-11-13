@@ -1,0 +1,6 @@
+package main
+
+func main(){
+	s := ""
+	s, _ = substr("123465", 1, 3)
+}
