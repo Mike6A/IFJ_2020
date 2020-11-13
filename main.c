@@ -50,7 +50,7 @@ void test_tokenizer(){
     } while (tokenizer.outputToken.type != tokenType_EOF);
     destructBuilder(&tokenizer.sb);
 }
-
+/*
 void test_hashtable(){
     tHashTable table;
     initHashTable(&table, 10);
@@ -66,7 +66,7 @@ void test_hashtable(){
     removeHashItem(&table, "myVar1");
     destructHashTable(&table);
 }
-
+*/
 void test_tree(){
     tTokenizer tokenizer;
     initTokenizer(&tokenizer);
@@ -87,10 +87,7 @@ void test_tree(){
     }
 
     //long res = eval(&tokenizer, prog, &scope);
-
-    tScope scope;
-    initScope(&scope);
-    runSemanticAnalyze(prog, &scope);
+    long returnCode = runSemanticAnalyze(prog);
 
     deleteSyntaxTree(prog);
 //    while (!tokenizer.isEOF){
@@ -106,7 +103,7 @@ void test_tree(){
 //        deleteSyntaxTree(exp);
 //    }
     destructBuilder(&tokenizer.sb);
-
+    exit(returnCode);
 }
 
 void test_GetTOKEN() {

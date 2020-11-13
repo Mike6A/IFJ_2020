@@ -4,10 +4,10 @@
  * @brief Header file for stack.
  */
 
-#include "symtable/symtable.h"
-
 #ifndef IFJ_2020_STACK_H
 #define IFJ_2020_STACK_H
+
+#include "symtable/symtable.h"
 
 typedef struct scopeItem{
     tHashTable* table;

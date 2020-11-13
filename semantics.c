@@ -7,10 +7,33 @@
 #include "semantics.h"
 
 /**
+ * Parses string to TData type of data type
+ * @param str String to parse
+ * @return TData type
+ */
+TItem getDataTypeFromString(char* str) {
+    if (strcmp(str, "int") == 0)
+    {
+        return TInt;
+    }
+    else if (strcmp(str, "float64") == 0)
+    {
+        return TDouble;
+    }
+    else
+    {
+        return TString;
+    }
+}
+
+/**
+ * Looks up for identifier in all reachable scopes
+ * @param scope Scope where to start
+ * @param name Name of identifier
  * @return tHashItem* if found, otherwise NULL
  */
 tHashItem* getIdentifier(tScopeItem* scope, char* name){
-    tHashItem *item;
+    tHashItem *item = NULL;
     do {
         item = getHashItem(scope->table, name);
         if (item == NULL){
@@ -21,21 +44,42 @@ tHashItem* getIdentifier(tScopeItem* scope, char* name){
     return item;
 }
 
-void declareIdentifier(tScopeItem* scope, char* key, char* value) {
-    fprintf(stderr, "INFO: Declaring identifier %s with value %s\n", key, value);
-    addDataToHT(scope->table, key, value, true);
+/**
+ * WIP!!! Block expression node
+ * @param root Pointer to the node
+ * @param scope Pointer to current scope
+ * @return Error code (0 = OK)
+ */
+long blockExp(SyntaxNode* root, tScope* scope) {
+    createScope(scope);
+
+    SyntaxNodes *statement = root->statements != NULL ? root->statements->first : NULL;
+    while (statement != NULL){
+        long returnCode = 0;
+
+        //statement->node->type;    //TODO currently working on
+
+        if (returnCode != 0) {
+            removeLastLocalScope(scope);
+            return returnCode;
+        }
+
+        statement = statement->next;
+    }
+
+    removeLastLocalScope(scope);
+    return 0;
 }
 
-
-
-long checkNumberIntExp(SyntaxNode* root, tScope* scope){
+/* ---- These 4 functions are going to be rewritten ----- */
+long numberIntExp(SyntaxNode* root, tScope* scope){
     char* end;
     long result = strtol(root->right->token->value, &end, 10);
     printf("numIntExp >>> %ld\n", result);
     return result;
 }
 
-long checkIdentifierExp(SyntaxNode* root, tScope* scope){
+long identifierExp(SyntaxNode* root, tScope* scope){
     tScopeItem *currentScope = scope->topLocal;
     char* id = root->right->token->value;
     tHashItem *item = getIdentifier(currentScope, id);
@@ -47,19 +91,19 @@ long checkIdentifierExp(SyntaxNode* root, tScope* scope){
     return 0;
 }
 
-long checkDeclareExp(SyntaxNode* root, tScope* scope){
+long declareExp(SyntaxNode* root, tScope* scope){
     tScopeItem *currentScope = scope->topLocal;
     char* id = root->left->token->value;
     tHashItem *item = getIdentifier(currentScope, id);
 
     if (item == NULL){
-        declareIdentifier(currentScope, id, "1");
+        addVarToHT(currentScope->table, id, TInt, "value", true);  //TODO
     }
 
     return 0;
 }
 
-long checkAssigntToExp(SyntaxNode* root, tScope* scope){
+long assignmentToExp(SyntaxNode* root, tScope* scope){
     tScopeItem *currentScope = scope->topLocal;
 
     char* id = "a";
@@ -75,42 +119,156 @@ long checkAssigntToExp(SyntaxNode* root, tScope* scope){
     printf("\t%s\tRES >>> \t%ld\n", root->name,result);
     return result;
 }
+/* ------------------------------------------------------ */
 
+/**
+ * Function to check functions in code
+ * @param root Pointer to the node
+ * @param scope Pointer to current scope
+ * @return Error code (0 = OK)
+ */
+long runFunctionExp(SyntaxNode* root, tScope* scope){
+    char* funcName = root->left->left->token->value;
+    tHashTable* table = scope->topLocal->table;
 
-
-long runSemanticAnalyze(SyntaxNode* root, tScope* scope){
-    if(root == NULL){
-        return 0;
-    }
-    SyntaxNode* node = root;
-
-    if (node-> type == Node_IdentifierExpression){
-        checkIdentifierExp(node, scope);
-    }
-    else if (node->type == Node_AssignmentToExpression){
-        checkAssigntToExp(node, scope);
-    }
-    else if (node->type == Node_DeclareExpression){
-        checkDeclareExp(node, scope);
-    }
-    else if (node->type == Node_NumberIntExpression){
-        checkNumberIntExp(node, scope);
+    if (getHashItem(table, funcName) != NULL) {
+        fprintf(stderr, "Function %s is already declared!\n", funcName);
+        return 3;
     }
 
-    runSemanticAnalyze(node->left, scope);
-    SyntaxNodes *statement = node->statements != NULL ? node->statements->first : NULL;
-
-    while (statement != NULL){
-        runSemanticAnalyze(statement->node, scope);
-        statement = statement->next;
+    addFuncToHT(table, funcName, true);
+    SyntaxNodes *param = root->left->statements != NULL ? root->left->statements->first : NULL;
+    while (param != NULL) {
+        addParamToFunc(table, funcName, param->node->left->token->value, getDataTypeFromString(param->node->right->token->value));
+        param = param->next;
     }
-    runSemanticAnalyze(node->right, scope);
+    SyntaxNodes *ret = root->statements != NULL ? root->statements->first : NULL;
+    while (ret != NULL) {
+        addReturnTypeToFunc(table, funcName, getDataTypeFromString(ret->node->token->value));
+        ret = ret->next;
+    }
 
-    return 0;
+    return blockExp(root->right, scope);   //run things in the body of the function | also return it's errCode
 }
 
 
-//TODO Free ctrl c/V
+
+
+/**
+ * Adds all inbuilt functions to the global scope
+ * @param scope Pointer to the global scope
+ * @return Error code (0 = OK)
+ */
+long addInbuiltFunctions(tScope* scope) {
+    tHashTable* table = scope->global->table;
+    //func inputs() (string,int)
+    addFuncToHT(table, "inputs", true);
+    addReturnTypeToFunc(table, "inputs", TString);
+    addReturnTypeToFunc(table, "inputs", TInt);
+    //func inputi() (string,int)
+    addFuncToHT(table, "inputi", true);
+    addReturnTypeToFunc(table, "inputi", TInt);
+    addReturnTypeToFunc(table, "inputi", TInt);
+    //func inputf() (string,int)
+    addFuncToHT(table, "inputf", true);
+    addReturnTypeToFunc(table, "inputf", TDouble);
+    addReturnTypeToFunc(table, "inputf", TInt);
+    //func print ( term1 , term2 , …, term𝑛 )
+    //addFuncToHT(table, "print", true);
+    //addParamToFunc(table, "print",)
+
+    //func int2float(i int) (float64)
+    addFuncToHT(table, "int2float", true);
+    addParamToFunc(table, "int2float", "i", TInt);
+    addReturnTypeToFunc(table, "int2float", TDouble);
+
+    //func float2int(f float64) (int)
+    addFuncToHT(table, "float2int", true);
+    addParamToFunc(table, "float2int", "f", TDouble);
+    addReturnTypeToFunc(table, "float2int", TInt);
+
+    //func len(s string) (int)
+    addFuncToHT(table, "len", true);
+    addParamToFunc(table, "len", "s", TString);
+    addReturnTypeToFunc(table, "len", TInt);
+
+    //func substr(s string, i int, n int) (string, int)
+    addFuncToHT(table, "substr", true);
+    addParamToFunc(table, "substr", "s", TString);
+    addParamToFunc(table, "substr", "i", TInt);
+    addParamToFunc(table, "substr", "n", TInt);
+    addReturnTypeToFunc(table, "substr", TString);
+    addReturnTypeToFunc(table, "substr", TInt);
+
+    //func ord(s string, i int) (int, int)
+    addFuncToHT(table, "ord", true);
+    addParamToFunc(table, "ord", "s", TString);
+    addParamToFunc(table, "ord", "i", TInt);
+    addReturnTypeToFunc(table, "ord", TInt);
+    addReturnTypeToFunc(table, "ord", TInt);
+
+    //func chr(i int) (string, int)
+    addFuncToHT(table, "chr", true);
+    addParamToFunc(table, "chr", "i", TInt);
+    addReturnTypeToFunc(table, "chr", TString);
+    addReturnTypeToFunc(table, "chr", TInt);
+    return 0;
+}
+
+/**
+ * Main function of semantic analysis
+ * @param root Start node of ASS
+ * @return Error code (0 = OK)
+ */
+long runSemanticAnalyze(SyntaxNode* root){
+    if(root == NULL){
+        return 99;
+    }
+
+    tScope scope;
+    initScope(&scope);
+    createScope(&scope);
+
+    addInbuiltFunctions(&scope);    //loads inbuild functions
+
+    if (root->type == Node_Global){
+        SyntaxNodes *statement = root->statements != NULL ? root->statements->first : NULL;
+        while (statement != NULL){
+            if (statement->node->type != Node_FunctionExpression){
+                fprintf(stderr, "%s is outside of any function!\n", statement->node->name);
+                return 3;
+            }
+
+            long returnCode = runFunctionExp(statement->node, &scope);  //evaluate expressions
+
+            if (returnCode != 0) {
+                removeLastLocalScope(&scope);
+                return returnCode;
+            }
+
+            statement = statement->next;
+        }
+    }
+
+    if (getHashItem(scope.topLocal->table, "main") != NULL) {               /** Checks if main function is declared as it should be */
+        tHashItem* mainFunc = getHashItem(scope.topLocal->table, "main");
+        if (mainFunc->declared == true && mainFunc->func != NULL && mainFunc->func->params_count == 0 && mainFunc->func->return_count == 0) {
+            removeLastLocalScope(&scope);
+            return 0;
+        }
+    }
+
+    fprintf(stderr, "Main function not declared\n");
+    removeLastLocalScope(&scope);
+    return 3;
+}
+
+
+
+
+
+/** OLD code of David's semantics */
+/*
 long eval(tTokenizer* tokenizer, SyntaxNode * root, tScope* scope){
     if(root == NULL){
         return 0;
@@ -241,5 +399,5 @@ long eval(tTokenizer* tokenizer, SyntaxNode * root, tScope* scope){
     }
 
     return -1;
-}
+}*/
 
