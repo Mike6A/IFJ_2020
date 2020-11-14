@@ -545,6 +545,7 @@ long runSemanticAnalyze(SyntaxNode* root){
 
             if (returnCode != 0) {
                 removeLastLocalScope(&scope);
+                destroyList(&strList);
                 return returnCode;
             }
 
