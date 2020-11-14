@@ -30,29 +30,30 @@ long parseStringToInt(char* str) {
     return strtol(str, NULL, 10);
 }
 
-void parseIntToString(long num, char* str) {
-    sprintf(str, "%d", num);
-}
-
-double parseStringToFloat64(char* str) {
-
-    return 0.0;
-}
-
-void parseFloat64ToString(double num, char* str) {
-    sprintf(str, "%f", num);
-}
-
-char* appendString(char* str1, char* str2) {
-    unsigned size = strlen(str1) + strlen(str2) + 1;
-    char* result = (char*) malloc(size * sizeof(char));
-    snprintf(result, size, "%s%s", str1, str2);
+char* parseIntToString(long num, tStringLinkedListItem* strList) {
+    char* result = (char*) malloc(75 * sizeof(char));
+    snprintf(result, 75, "%ld", num);
+    addListItem(strList, result);   //remember this string
     return result;
 }
 
-void appendString2(char* destination, char* str1, char* str2) {
+double parseStringToFloat64(char* str) {
+    return strtod(str, NULL);
+}
+
+char* parseFloat64ToString(double num, tStringLinkedListItem* strList) {
+    char* result = (char*) malloc(75 * sizeof(char));
+    snprintf(result, 75, "%lf", num);
+    addListItem(strList, result);   //remember this string
+    return result;
+}
+
+char* appendString(char* str1, char* str2, tStringLinkedListItem* strList) {
     unsigned size = strlen(str1) + strlen(str2) + 1;
-    snprintf(destination, size, "%s%s", str1, str2);
+    char* result = (char*) malloc(size * sizeof(char));
+    snprintf(result, size, "%s%s", str1, str2);
+    addListItem(strList, result);   //remember this string
+    return result;
 }
 
 /**
@@ -96,9 +97,10 @@ tExpReturnType identifierExp(SyntaxNode* root, tScope* scope) {
  * Calculate expression result type
  * @param root Pointer to the expressions's node
  * @param scope Pointer to current scope
+ * @param strList Pointer to list of strings
  * @return tExpReturnType struct with type and data
  */
-tExpReturnType evalExpression(SyntaxNode* root, tScope* scope) {
+tExpReturnType evalExpression(SyntaxNode* root, tScope* scope, tStringLinkedListItem* strList) {
     enum typeOfNode type = root->type;
     tExpReturnType result;
     result.errCode = 0;
@@ -120,7 +122,7 @@ tExpReturnType evalExpression(SyntaxNode* root, tScope* scope) {
         result.value = root->right->token->value;
     }
     else if (type == Node_UnaryExpression) {
-        tExpReturnType rightSide = evalExpression(root->right, scope);
+        tExpReturnType rightSide = evalExpression(root->right, scope, strList);
         if (rightSide.type == TString) {
             result.errCode = 5;     //TODO is it 5?
             fprintf(stderr, "Unary operator does not work with string\n");
@@ -136,8 +138,7 @@ tExpReturnType evalExpression(SyntaxNode* root, tScope* scope) {
                     result.value = rightSide.value;
                 }
                 else {
-                    char res[25];
-                    appendString2(res, "-", rightSide.value);
+                    char* res = appendString("-", rightSide.value, strList);
                     result.value = res;
                 }
                 return result;
@@ -189,7 +190,7 @@ tExpReturnType evalExpression(SyntaxNode* root, tScope* scope) {
  * @param scope Pointer to current scope
  * @return Return code (0 = OK)
  */
-long declareExp(SyntaxNode* root, tScope* scope) {
+long declareExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLinkedListItem* strList) {
     tScopeItem *currentScope = scope->topLocal;
     char* id = root->left->token->value;
 
@@ -199,7 +200,18 @@ long declareExp(SyntaxNode* root, tScope* scope) {
         return 3;
     }
 
-    tExpReturnType result = evalExpression(root->right, scope);
+    tHashItem *parentFunc = getIdentifier(currentScope, parentFunction);
+    if (parentFunc->func->params_count > 0) {
+        for (int i = 0; i < parentFunc->func->params_count; i++) {
+            if (strcmp(parentFunc->func->params[i], id) == 0)   //trying to declare identifier that has same name as parameter in function
+            {
+                fprintf(stderr, "Variable \"%s\" is declared as parameter of function \"%s\"!\n", id, parentFunction);
+                return 3;
+            }
+        }
+    }
+
+    tExpReturnType result = evalExpression(root->right, scope, strList);
     if (result.errCode == 0) {
         addVarToHT(currentScope->table, id, result.type, result.value, true);
     }
@@ -213,11 +225,11 @@ long declareExp(SyntaxNode* root, tScope* scope) {
  * @param scope Pointer to current scope
  * @return Return code (0 = OK)
  */
-long statementMainSwitch(SyntaxNode* root, tScope* scope) {
+long statementMainSwitch(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLinkedListItem* strList) {
     enum typeOfNode type = root->type;
     switch(type){
         case Node_DeclareExpression:                //DONE
-            return declareExp(root, scope);
+            return declareExp(root, scope, parentFunction, strList);
         case Node_AssignmentExpression:
             break;
         case Node_ParenthezedExpression:
@@ -241,7 +253,7 @@ long statementMainSwitch(SyntaxNode* root, tScope* scope) {
         case Node_NumberDoubleExpression:       //DONE
         case Node_StringExpression:             //DONE
         case Node_UnaryExpression:              //DONE
-            return evalExpression(root, scope).errCode;
+            return evalExpression(root, scope, strList).errCode;
 
         default:
             return 7;
@@ -255,14 +267,16 @@ long statementMainSwitch(SyntaxNode* root, tScope* scope) {
  * WIP!!! Block expression node
  * @param root Pointer to the node
  * @param scope Pointer to current scope
+ * @param parentFunction Function this code is under
+ * @param strList Pointer to list of used strings
  * @return Return code (0 = OK)
  */
-long blockExp(SyntaxNode* root, tScope* scope) {
+long blockExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLinkedListItem* strList) {
     createScope(scope);
 
     SyntaxNodes *statement = root->statements != NULL ? root->statements->first : NULL;
     while (statement != NULL) {
-        long returnCode = statementMainSwitch(statement->node, scope);  //main logic
+        long returnCode = statementMainSwitch(statement->node, scope, parentFunction, strList);  //main logic
 
         if (returnCode != 0) {
             removeLastLocalScope(scope);
@@ -283,7 +297,7 @@ long blockExp(SyntaxNode* root, tScope* scope) {
  * @param scope Pointer to current scope
  * @return Return code (0 = OK)
  */
-long runFunctionExp(SyntaxNode* root, tScope* scope){
+long runFunctionExp(SyntaxNode* root, tScope* scope, tStringLinkedListItem* strList){
     char* funcName = root->left->left->token->value;
     tHashTable* table = scope->topLocal->table;
 
@@ -304,7 +318,7 @@ long runFunctionExp(SyntaxNode* root, tScope* scope){
         ret = ret->next;
     }
 
-    return blockExp(root->right, scope);   //run things in the body of the function | also return it's errCode
+    return blockExp(root->right, scope, funcName, strList);   //run things in the body of the function | also return it's errCode
 }
 
 
@@ -381,6 +395,9 @@ long runSemanticAnalyze(SyntaxNode* root){
         return 99;
     }
 
+    tStringLinkedListItem strList;
+    createList(&strList);
+
     tScope scope;
     initScope(&scope);
     createScope(&scope);
@@ -395,7 +412,7 @@ long runSemanticAnalyze(SyntaxNode* root){
                 return 3;
             }
 
-            long returnCode = runFunctionExp(statement->node, &scope);  //evaluate expressions
+            long returnCode = runFunctionExp(statement->node, &scope, &strList);  //evaluate expressions
 
             if (returnCode != 0) {
                 removeLastLocalScope(&scope);
@@ -410,17 +427,21 @@ long runSemanticAnalyze(SyntaxNode* root){
         tHashItem* mainFunc = getHashItem(scope.topLocal->table, "main");
         if (mainFunc->declared == true && mainFunc->func != NULL && mainFunc->func->params_count == 0 && mainFunc->func->return_count == 0) {
             removeLastLocalScope(&scope);
+            destroyList(&strList);
             return 0;
         }
         else {
             fprintf(stderr, "Main function should not have parameters or return value\n");
             removeLastLocalScope(&scope);
+
+            destroyList(&strList);
             return 6;
         }
     }
 
     fprintf(stderr, "Main function not declared\n");
     removeLastLocalScope(&scope);
+    destroyList(&strList);
     return 3;
 }
 

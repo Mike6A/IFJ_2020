@@ -2,7 +2,6 @@
 #include "symtable/symtable.h"
 #include "analyse.h"
 #include "semantics.h"
-#include "stack.h"
 
 //eg.
 extern char* KEYWORDS[];

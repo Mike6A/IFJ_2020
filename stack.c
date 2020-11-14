@@ -6,6 +6,55 @@
 
 #include "stack.h"
 
+void createList(tStringLinkedListItem* list) {
+    list->next = NULL;
+    list->value = NULL;
+}
+
+/**
+ * Adds string to the list. Use only malloc-ed strings...
+ * @param list Pointer to list
+ * @param str ONLY FROM MALLOC!!!! OR WILL CRASH PROGRAM
+ * @return 99 if malloc error
+ */
+int addListItem(tStringLinkedListItem* list, char* str) {
+    if (list->value == NULL) {
+        list->value =  str;
+        return 0;
+    }
+
+    tStringLinkedListItem* node = malloc(sizeof(tStringLinkedListItem));
+    if (node == NULL) {
+        return 99;
+    }
+
+    node->value = str;
+    node->next = NULL;
+
+    tStringLinkedListItem* tmp = list;
+    while (tmp != NULL && tmp->next != NULL) {
+        tmp = tmp->next;
+    }
+
+    tmp->next = node;
+    return 0;
+}
+
+int destroyList(tStringLinkedListItem* list) {
+    if (list->value != NULL) {
+        free(list->value);
+    }
+    list = list->next;
+    while (list != NULL) {
+        tStringLinkedListItem* tmp = list;
+        list = list->next;
+        free(tmp->value);
+        free(tmp);
+    }
+    return 0;
+}
+
+
 void initScope(tScope* scope) {
     scope->topLocal = NULL;
     scope->global = NULL;
