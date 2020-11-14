@@ -15,6 +15,7 @@ typedef struct t_ExpReturnType {
     TItem type; /**< type of item */
     char* value; /**< value */
     long errCode; /**< return code  */
+    bool constant;  /**< true if item is constant (known value) | false if unknown value */
 } tExpReturnType;
 
 long runSemanticAnalyze(SyntaxNode* root);

@@ -6,6 +6,8 @@
 
 #include "semantics.h"
 
+#define MAX_NUM2STRING_DIGITS 75
+
 /**
  * Parses string to TData type of data type
  * @param str String to parse
@@ -31,8 +33,8 @@ long parseStringToInt(char* str) {
 }
 
 char* parseIntToString(long num, tStringLinkedListItem* strList) {
-    char* result = (char*) malloc(75 * sizeof(char));
-    snprintf(result, 75, "%ld", num);
+    char* result = (char*) malloc(MAX_NUM2STRING_DIGITS * sizeof(char));
+    snprintf(result, MAX_NUM2STRING_DIGITS, "%ld", num);
     addListItem(strList, result);   //remember this string
     return result;
 }
@@ -42,8 +44,8 @@ double parseStringToFloat64(char* str) {
 }
 
 char* parseFloat64ToString(double num, tStringLinkedListItem* strList) {
-    char* result = (char*) malloc(75 * sizeof(char));
-    snprintf(result, 75, "%lf", num);
+    char* result = (char*) malloc(MAX_NUM2STRING_DIGITS * sizeof(char));
+    snprintf(result, MAX_NUM2STRING_DIGITS, "%lf", num);
     addListItem(strList, result);   //remember this string
     return result;
 }
@@ -74,21 +76,37 @@ tHashItem* getIdentifier(tScopeItem* scope, char* name){
     return item;
 }
 
-tExpReturnType identifierExp(SyntaxNode* root, tScope* scope) {
+tExpReturnType identifierExp(SyntaxNode* root, tScope* scope, char* parentFunction) {
     tExpReturnType result;
     result.errCode = 0;
-    result.value = NULL;
+    result.value = "";
+    result.constant = false;
     tScopeItem *currentScope = scope->topLocal;
     char* id = root->right->token->value;
-    tHashItem *item = getIdentifier(currentScope, id);
+    tHashItem* item = getIdentifier(currentScope, id);
 
     if (item == NULL) {
+        tHashItem* func = getIdentifier(currentScope, parentFunction);
+        if (func->func->params_count > 0) {
+            for (int i = 0; i < func->func->params_count; i++) {
+                if (strcmp(func->func->params[i], id) == 0)   //trying to find identifier in func params
+                {
+                    result.type = func->func->paramsTypes[i];
+                    return result;
+                }
+            }
+        }
+
         fprintf(stderr, "Identifier %s is not declared!\n", id);
         result.errCode = 3;
+        return result;
     }
 
     result.type = item->type;
-    result.value = item->value;
+    result.constant = item->declared;
+    if (result.constant) {
+        result.value = item->value;
+    }
 
     return result;
 }
@@ -100,38 +118,49 @@ tExpReturnType identifierExp(SyntaxNode* root, tScope* scope) {
  * @param strList Pointer to list of strings
  * @return tExpReturnType struct with type and data
  */
-tExpReturnType evalExpression(SyntaxNode* root, tScope* scope, tStringLinkedListItem* strList) {
+tExpReturnType evalExpression(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLinkedListItem* strList) {
     enum typeOfNode type = root->type;
     tExpReturnType result;
     result.errCode = 0;
     result.value = "";
+    result.constant = false;
+    result.type = TString;
 
     if (type == Node_IdentifierExpression) {
-        return identifierExp(root, scope);
+        return identifierExp(root, scope, parentFunction);
     }
     else if (type == Node_NumberIntExpression) {
         result.type = TInt;
         result.value = root->right->token->value;
+        result.constant = true;
     }
     else if (type == Node_NumberDoubleExpression) {
         result.type = TDouble;
         result.value = root->right->token->value;
+        result.constant = true;
     }
     else if (type == Node_StringExpression) {
         result.type = TString;
         result.value = root->right->token->value;
+        result.constant = true;
     }
     else if (type == Node_UnaryExpression) {
-        tExpReturnType rightSide = evalExpression(root->right, scope, strList);
+        tExpReturnType rightSide = evalExpression(root->right, scope, parentFunction, strList);
         if (rightSide.type == TString) {
             result.errCode = 5;     //TODO is it 5?
             fprintf(stderr, "Unary operator does not work with string\n");
             return result;
         }
+        if (rightSide.constant == false) {
+            return rightSide;
+        }
+
         result.type = rightSide.type;
+        result.constant = true;
         switch (root->token->type) {
             case tokenType_PLUS:
-                break;
+                result.value = rightSide.value;
+                return result;
             case tokenType_MINUS:
                 if (strlen(rightSide.value) > 0 && rightSide.value[0] == '-') {
                     rightSide.value += 1;
@@ -148,39 +177,141 @@ tExpReturnType evalExpression(SyntaxNode* root, tScope* scope, tStringLinkedList
                 return result;
         }
     }
+    else if (type == Node_BinaryExpression) {
+        tExpReturnType rightSide = evalExpression(root->right, scope, parentFunction, strList);
+        if (rightSide.errCode != 0) {   //check return code for errors
+            result.errCode = rightSide.errCode;
+            return result;
+        }
+        tExpReturnType leftSide = evalExpression(root->left, scope, parentFunction, strList);
+        if (leftSide.errCode != 0) {    //check return code for errors
+            result.errCode = leftSide.errCode;
+            return result;
+        }
 
-    /*
-    if(root->type == Node_BinaryExpression){
-        long left = eval(tokenizer, root->left, scope);
-        long right = eval(tokenizer, root->right, scope);
-        switch (root->token->type) {
-            case tokenType_PLUS:
-                return left + right;
-            case tokenType_MINUS:
-                return left - right;
-            case tokenType_MUL:
-                return left * right;
-            case tokenType_DIV:
-                return left / right;
-            case tokenType_GREATER:
-                return left > right;
-            case tokenType_LESS:
-                return left < right;
-            case tokenType_GE:
-                return left >= right;
-            case tokenType_LE:
-                return left <= right;
-            case tokenType_EQ:
-                return left == right;
-            case tokenType_NEQ:
-                return left != right;
-            default:
-                return -1;
+        if (leftSide.type != rightSide.type) {      //types must be same
+            result.errCode = 5;
+            fprintf(stderr, "Types in binary operation must be the same!\n");
+            return result;
+        }
+
+        TokenType tokenType = root->token->type;
+        if (rightSide.type == TString) {                //string
+            result.type = TString;
+            if (tokenType == tokenType_PLUS) {
+                if (rightSide.constant == true && leftSide.constant == true) {
+                    result.value = appendString(leftSide.value, rightSide.value, strList);
+                    result.constant = true;
+                }
+                return result;
+            }
+            else {  //minus, div, mul
+                fprintf(stderr, "Only plus (concatenation) is valid operation with strings!\n");
+                result.errCode = 5;
+            }
+        }
+        else if (rightSide.type == TInt) {                  //int
+            result.type = TInt;
+            if (rightSide.constant == true && tokenType == tokenType_DIV) {
+                if (parseStringToInt(rightSide.value) == 0){
+                    fprintf(stderr, "Division by zero is not allowed!\n");
+                    result.errCode = 9;
+                    return result;
+                }
+            }
+            if (rightSide.constant == false || leftSide.constant == false) {
+                if (tokenType == tokenType_MUL) {
+                    if (rightSide.constant != leftSide.constant){
+                        long tmp = 1;
+                        if (rightSide.constant == true) {
+                            tmp = parseStringToInt(rightSide.value);
+                        }
+                        else if (leftSide.constant == true) {
+                            tmp = parseStringToInt(leftSide.value);
+                        }
+                        if (tmp == 0) {
+                            result.value = "0";
+                            result.constant = true;
+                        }
+                    }
+                }
+
+                return result;
+            }
+
+            long right = parseStringToInt(rightSide.value);
+            long left = parseStringToInt(leftSide.value);
+            result.constant = true;
+            if (tokenType == tokenType_PLUS) {
+                result.value = parseIntToString(left + right, strList);
+            }
+            else if (tokenType == tokenType_MINUS) {
+                result.value = parseIntToString(left - right, strList);
+            }
+            else if (tokenType == tokenType_MUL) {
+                result.value = parseIntToString(left * right, strList);
+            }
+            else if (tokenType == tokenType_DIV) {
+                result.value = parseIntToString(left / right, strList);
+            }
+        }
+        else if (rightSide.type == TDouble) {                   //float64
+            result.type = TDouble;
+            if (rightSide.constant == true && tokenType == tokenType_DIV) {
+                double right = parseStringToFloat64(rightSide.value);
+                if (right > -0.000000001 && right < 0.000000001)        //TODO accuracy
+                {
+                    fprintf(stderr, "Division by zero is not allowed!\n");
+                    result.errCode = 9;
+                    return result;
+                }
+            }
+            if (rightSide.constant == false || leftSide.constant == false) {
+                if (tokenType == tokenType_MUL) {
+                    if (rightSide.constant != leftSide.constant){
+                        double tmp = 1;
+                        if (rightSide.constant == true) {
+                            tmp = parseStringToFloat64(rightSide.value);
+                        }
+                        else if (leftSide.constant == true) {
+                            tmp = parseStringToFloat64(leftSide.value);
+                        }
+                        if (tmp > -0.000000001 && tmp < 0.000000001) {
+                            result.value = "0.0";
+                            result.constant = true;
+                        }
+                    }
+                }
+                return result;
+            }
+
+            double left = parseStringToFloat64(leftSide.value);
+            double right = parseStringToFloat64(rightSide.value);
+            result.constant = true;
+            if (tokenType == tokenType_PLUS) {
+                result.value = parseFloat64ToString(left + right, strList);
+            }
+            else if (tokenType == tokenType_MINUS) {
+                result.value = parseFloat64ToString(left - right, strList);
+
+            }
+            else if (tokenType == tokenType_MUL) {
+                result.value = parseFloat64ToString(left * right, strList);
+
+            }
+            else if (tokenType == tokenType_DIV) {
+                result.value = parseFloat64ToString(left / right, strList);
+            }
+        }
+
+    }
+    else if (type == Node_ParenthezedExpression) {
+        SyntaxNodes *statement = root->statements != NULL ? root->statements->first : NULL;
+        if (statement != NULL) {
+            result = evalExpression(statement->node, scope, parentFunction, strList);
         }
     }
-    if(root->type == Node_ParenthezedExpression){
-        return eval(tokenizer, root->statements->node, scope);
-    }*/
+
     return result;
 }
 
@@ -211,9 +342,9 @@ long declareExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLi
         }
     }
 
-    tExpReturnType result = evalExpression(root->right, scope, strList);
+    tExpReturnType result = evalExpression(root->right, scope, parentFunction, strList);
     if (result.errCode == 0) {
-        addVarToHT(currentScope->table, id, result.type, result.value, true);
+        addVarToHT(currentScope->table, id, result.type, result.value, result.constant);
     }
 
     return result.errCode;
@@ -232,8 +363,6 @@ long statementMainSwitch(SyntaxNode* root, tScope* scope, char* parentFunction, 
             return declareExp(root, scope, parentFunction, strList);
         case Node_AssignmentExpression:
             break;
-        case Node_ParenthezedExpression:
-            break;
         case Node_IFExpression:
             break;
         case Node_ForExpression:
@@ -244,16 +373,19 @@ long statementMainSwitch(SyntaxNode* root, tScope* scope, char* parentFunction, 
             break;
 
         //corner of hated expressions
-        case Node_IdentifierExpression: break;
-        case Node_BinaryExpression: break;
+        case Node_IdentifierExpression:         //DONE
+            return identifierExp(root, scope, parentFunction).errCode;
+
 
         case Node_BooleanExpression: break;
 
+        case Node_ParenthezedExpression:
+        case Node_BinaryExpression:
         case Node_NumberIntExpression:          //DONE
         case Node_NumberDoubleExpression:       //DONE
         case Node_StringExpression:             //DONE
         case Node_UnaryExpression:              //DONE
-            return evalExpression(root, scope, strList).errCode;
+            return evalExpression(root, scope, parentFunction, strList).errCode;
 
         default:
             return 7;
@@ -320,8 +452,6 @@ long runFunctionExp(SyntaxNode* root, tScope* scope, tStringLinkedListItem* strL
 
     return blockExp(root->right, scope, funcName, strList);   //run things in the body of the function | also return it's errCode
 }
-
-
 
 
 /**
@@ -394,7 +524,6 @@ long runSemanticAnalyze(SyntaxNode* root){
     if(root == NULL){
         return 99;
     }
-
     tStringLinkedListItem strList;
     createList(&strList);
 
