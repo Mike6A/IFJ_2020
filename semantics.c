@@ -26,6 +26,35 @@ TItem getDataTypeFromString(char* str) {
     }
 }
 
+long parseStringToInt(char* str) {
+    return strtol(str, NULL, 10);
+}
+
+void parseIntToString(long num, char* str) {
+    sprintf(str, "%d", num);
+}
+
+double parseStringToFloat64(char* str) {
+
+    return 0.0;
+}
+
+void parseFloat64ToString(double num, char* str) {
+    sprintf(str, "%f", num);
+}
+
+char* appendString(char* str1, char* str2) {
+    unsigned size = strlen(str1) + strlen(str2) + 1;
+    char* result = (char*) malloc(size * sizeof(char));
+    snprintf(result, size, "%s%s", str1, str2);
+    return result;
+}
+
+void appendString2(char* destination, char* str1, char* str2) {
+    unsigned size = strlen(str1) + strlen(str2) + 1;
+    snprintf(destination, size, "%s%s", str1, str2);
+}
+
 /**
  * Looks up for identifier in all reachable scopes
  * @param scope Scope where to start
@@ -47,7 +76,7 @@ tHashItem* getIdentifier(tScopeItem* scope, char* name){
 tExpReturnType identifierExp(SyntaxNode* root, tScope* scope) {
     tExpReturnType result;
     result.errCode = 0;
-    result.value = "";
+    result.value = NULL;
     tScopeItem *currentScope = scope->topLocal;
     char* id = root->right->token->value;
     tHashItem *item = getIdentifier(currentScope, id);
@@ -58,6 +87,7 @@ tExpReturnType identifierExp(SyntaxNode* root, tScope* scope) {
     }
 
     result.type = item->type;
+    result.value = item->value;
 
     return result;
 }
@@ -99,7 +129,17 @@ tExpReturnType evalExpression(SyntaxNode* root, tScope* scope) {
         result.type = rightSide.type;
         switch (root->token->type) {
             case tokenType_PLUS:
+                break;
             case tokenType_MINUS:
+                if (strlen(rightSide.value) > 0 && rightSide.value[0] == '-') {
+                    rightSide.value += 1;
+                    result.value = rightSide.value;
+                }
+                else {
+                    char res[25];
+                    appendString2(res, "-", rightSide.value);
+                    result.value = res;
+                }
                 return result;
             default:                //shouldn't happen at all
                 result.errCode = 5;
@@ -140,13 +180,6 @@ tExpReturnType evalExpression(SyntaxNode* root, tScope* scope) {
     if(root->type == Node_ParenthezedExpression){
         return eval(tokenizer, root->statements->node, scope);
     }*/
-    return result;
-}
-
-long numberIntExp(SyntaxNode* root, tScope* scope){
-    char* end;
-    long result = strtol(root->right->token->value, &end, 10);
-    printf("numIntExp >>> %ld\n", result);
     return result;
 }
 
@@ -202,13 +235,13 @@ long statementMainSwitch(SyntaxNode* root, tScope* scope) {
         case Node_IdentifierExpression: break;
         case Node_BinaryExpression: break;
 
-        case Node_NumberIntExpression:
-        case Node_NumberDoubleExpression:
-        case Node_StringExpression:
-        case Node_UnaryExpression:
-            return evalExpression(root, scope).errCode;
-
         case Node_BooleanExpression: break;
+
+        case Node_NumberIntExpression:          //DONE
+        case Node_NumberDoubleExpression:       //DONE
+        case Node_StringExpression:             //DONE
+        case Node_UnaryExpression:              //DONE
+            return evalExpression(root, scope).errCode;
 
         default:
             return 7;
