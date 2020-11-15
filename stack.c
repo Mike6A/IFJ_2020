@@ -41,14 +41,12 @@ int addListItem(tStringLinkedListItem* list, char* str) {
 }
 
 int destroyList(tStringLinkedListItem* list) {
-    if (list->value != NULL) {
-        free(list->value);
-    }
-    list = list->next;
     while (list != NULL) {
         tStringLinkedListItem* tmp = list;
         list = list->next;
-        free(tmp->value);
+        if (tmp->value != NULL) {
+            free(tmp->value);
+        }
         free(tmp);
     }
     return 0;

@@ -303,6 +303,10 @@ tExpReturnType evalExpression(SyntaxNode* root, tScope* scope, char* parentFunct
                 result.value = parseFloat64ToString(left / right, strList);
             }
         }
+        else {      //else if (rightSide.type == TBool) -> only bool should fall to this else
+            fprintf(stderr, "Using booleans in binary operations is not allowed!\n");
+            result.errCode = 5;
+        }
 
     }
     else if (type == Node_ParenthezedExpression) {
@@ -310,6 +314,131 @@ tExpReturnType evalExpression(SyntaxNode* root, tScope* scope, char* parentFunct
         if (statement != NULL) {
             result = evalExpression(statement->node, scope, parentFunction, strList);
         }
+    }
+    else if (type == Node_BooleanExpression) {
+        result.type = TBool;
+        tExpReturnType rightSide = evalExpression(root->right, scope, parentFunction, strList);
+        if (rightSide.errCode != 0) {   //check return code for errors
+            result.errCode = rightSide.errCode;
+            return result;
+        }
+        tExpReturnType leftSide = evalExpression(root->left, scope, parentFunction, strList);
+        if (leftSide.errCode != 0) {    //check return code for errors
+            result.errCode = leftSide.errCode;
+            return result;
+        }
+
+        if (leftSide.type != rightSide.type) {      //types must be same
+            result.errCode = 5;
+            fprintf(stderr, "Types in boolean operation must be the same!\n");
+            return result;
+        }
+
+        if (rightSide.type == TInt) {
+            long right = parseStringToInt(rightSide.value);
+            long left = parseStringToInt(leftSide.value);
+            result.constant = true;
+
+            long isTrue = 0;
+            TokenType tokenType = root->token->type;
+            switch (tokenType) {
+                case tokenType_GREATER:
+                    isTrue = left > right;
+                    break;
+                case tokenType_LESS:
+                    isTrue = left < right;
+                    break;
+                case tokenType_GE:
+                    isTrue = left >= right;
+                    break;
+                case tokenType_LE:
+                    isTrue = left <= right;
+                    break;
+                case tokenType_EQ:
+                    isTrue = left == right;
+                    break;
+                case tokenType_NEQ:
+                    isTrue = left != right;
+                    break;
+                default:                        //shouldn't happen
+                    result.value = "0";
+                    result.errCode = 99;
+                    fprintf(stderr, "Unexpected operator inside boolean expression!\n");
+                    return result;
+            }
+            result.value = parseIntToString(isTrue, strList);
+        }
+        else if (rightSide.type == TDouble) {
+            double right = parseStringToFloat64(rightSide.value);
+            double left = parseStringToFloat64(leftSide.value);
+            result.constant = true;
+
+            long isTrue = 0;
+            TokenType tokenType = root->token->type;
+            switch (tokenType) {
+                case tokenType_GREATER:
+                    isTrue = left > right;
+                    break;
+                case tokenType_LESS:
+                    isTrue = left < right;
+                    break;
+                case tokenType_GE:
+                    isTrue = left >= right;
+                    break;
+                case tokenType_LE:
+                    isTrue = left <= right;
+                    break;
+                case tokenType_EQ:
+                    isTrue = left == right;
+                    break;
+                case tokenType_NEQ:
+                    isTrue = left != right;
+                    break;
+                default:                        //shouldn't happen
+                    result.value = "0";
+                    result.errCode = 99;
+                    fprintf(stderr, "Unexpected operator inside boolean expression!\n");
+                    return result;
+            }
+            result.value = parseFloat64ToString(isTrue, strList);
+        }
+        else if (rightSide.type == TString) {
+            int cmp = strcmp(leftSide.value, rightSide.value);  //+ -> left is greater | 0 -> same | - -> right is greater
+
+            long isTrue = 0;
+            TokenType tokenType = root->token->type;
+            switch (tokenType) {
+                case tokenType_GREATER:
+                    isTrue = (cmp > 0);
+                    break;
+                case tokenType_LESS:
+                    isTrue =  (cmp < 0);
+                    break;
+                case tokenType_GE:
+                    isTrue =  (cmp >= 0);
+                    break;
+                case tokenType_LE:
+                    isTrue = (cmp <= 0);
+                    break;
+                case tokenType_EQ:
+                    isTrue = (cmp == 0);
+                    break;
+                case tokenType_NEQ:
+                    isTrue = (cmp != 0);
+                    break;
+                default:                        //shouldn't happen
+                    result.value = "0";
+                    result.errCode = 99;
+                    fprintf(stderr, "Unexpected operator inside boolean expression!\n");
+                    return result;
+            }
+            result.value = parseIntToString(isTrue, strList);
+        }
+        else {      //else if (rightSide.type == TBool) -> only bool should fall to this else | BOOLTHEN -> add condition for == or !=
+            fprintf(stderr, "Using booleans as operands in boolean expression is not allowed!\n");
+            result.errCode = 5;
+        }
+
     }
 
     return result;
@@ -372,15 +501,12 @@ long statementMainSwitch(SyntaxNode* root, tScope* scope, char* parentFunction, 
         case Node_ReturnExpression:
             break;
 
-        //corner of hated expressions
         case Node_IdentifierExpression:         //DONE
             return identifierExp(root, scope, parentFunction).errCode;
 
-
-        case Node_BooleanExpression: break;
-
-        case Node_ParenthezedExpression:
-        case Node_BinaryExpression:
+        case Node_BooleanExpression:            //DONE
+        case Node_ParenthezedExpression:        //DONE
+        case Node_BinaryExpression:             //DONE
         case Node_NumberIntExpression:          //DONE
         case Node_NumberDoubleExpression:       //DONE
         case Node_StringExpression:             //DONE
@@ -524,8 +650,9 @@ long runSemanticAnalyze(SyntaxNode* root){
     if(root == NULL){
         return 99;
     }
-    tStringLinkedListItem strList;
-    createList(&strList);
+
+    tStringLinkedListItem* strList = malloc(sizeof(tStringLinkedListItem));
+    createList(strList);
 
     tScope scope;
     initScope(&scope);
@@ -541,11 +668,11 @@ long runSemanticAnalyze(SyntaxNode* root){
                 return 3;
             }
 
-            long returnCode = runFunctionExp(statement->node, &scope, &strList);  //evaluate expressions
+            long returnCode = runFunctionExp(statement->node, &scope, strList);  //evaluate expressions
 
             if (returnCode != 0) {
                 removeLastLocalScope(&scope);
-                destroyList(&strList);
+                destroyList(strList);
                 return returnCode;
             }
 
@@ -557,21 +684,21 @@ long runSemanticAnalyze(SyntaxNode* root){
         tHashItem* mainFunc = getHashItem(scope.topLocal->table, "main");
         if (mainFunc->declared == true && mainFunc->func != NULL && mainFunc->func->params_count == 0 && mainFunc->func->return_count == 0) {
             removeLastLocalScope(&scope);
-            destroyList(&strList);
+            destroyList(strList);
             return 0;
         }
         else {
             fprintf(stderr, "Main function should not have parameters or return value\n");
             removeLastLocalScope(&scope);
 
-            destroyList(&strList);
+            destroyList(strList);
             return 6;
         }
     }
 
     fprintf(stderr, "Main function not declared\n");
     removeLastLocalScope(&scope);
-    destroyList(&strList);
+    destroyList(strList);
     return 3;
 }
 
