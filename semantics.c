@@ -7,6 +7,7 @@
 #include "semantics.h"
 
 #define MAX_NUM2STRING_DIGITS 75
+#define MAX_DOUBLE_ACCURACY 0.000000001
 
 /**
  * Parses string to TData type of data type
@@ -86,7 +87,7 @@ tExpReturnType identifierExp(SyntaxNode* root, tScope* scope, char* parentFuncti
     tHashItem* item = getIdentifier(currentScope, id);
 
     if (item == NULL) {
-        tHashItem* func = getIdentifier(currentScope, parentFunction);
+        tHashItem* func = getIdentifier(currentScope, parentFunction);      //TODO test for recursion error finding bad variables
         if (func->func->params_count > 0) {
             for (int i = 0; i < func->func->params_count; i++) {
                 if (strcmp(func->func->params[i], id) == 0)   //trying to find identifier in func params
@@ -107,7 +108,7 @@ tExpReturnType identifierExp(SyntaxNode* root, tScope* scope, char* parentFuncti
     if (result.constant) {
         result.value = item->value;
     }
-
+    //TODO codegen: you'll need this variable, not sure how exactly
     return result;
 }
 
@@ -151,6 +152,7 @@ tExpReturnType evalExpression(SyntaxNode* root, tScope* scope, char* parentFunct
             fprintf(stderr, "Unary operator does not work with string\n");
             return result;
         }
+        //TODO codegen: from this point, if we don't use optimization
         if (rightSide.constant == false) {
             return rightSide;
         }
@@ -199,6 +201,7 @@ tExpReturnType evalExpression(SyntaxNode* root, tScope* scope, char* parentFunct
         if (rightSide.type == TString) {                //string
             result.type = TString;
             if (tokenType == tokenType_PLUS) {
+                //TODO codegen: string concatenate, values -> leftSide.constant => leftSide.value | rightSide.constant => rightSide.value
                 if (rightSide.constant == true && leftSide.constant == true) {
                     result.value = appendString(leftSide.value, rightSide.value, strList);
                     result.constant = true;
@@ -219,6 +222,8 @@ tExpReturnType evalExpression(SyntaxNode* root, tScope* scope, char* parentFunct
                     return result;
                 }
             }
+            //TODO codegen: int operations, values -> leftSide.constant => leftSide.value | tokenType | rightSide.constant => rightSide.value
+
             if (rightSide.constant == false || leftSide.constant == false) {
                 if (tokenType == tokenType_MUL) {
                     if (rightSide.constant != leftSide.constant){
@@ -259,13 +264,14 @@ tExpReturnType evalExpression(SyntaxNode* root, tScope* scope, char* parentFunct
             result.type = TDouble;
             if (rightSide.constant == true && tokenType == tokenType_DIV) {
                 double right = parseStringToFloat64(rightSide.value);
-                if (right > -0.000000001 && right < 0.000000001)        //TODO accuracy
+                if (right > -MAX_DOUBLE_ACCURACY && right < MAX_DOUBLE_ACCURACY)        //TODO accuracy
                 {
                     fprintf(stderr, "Division by zero is not allowed!\n");
                     result.errCode = 9;
                     return result;
                 }
             }
+            //TODO codegen: double operations, values -> leftSide.constant => leftSide.value | tokenType | rightSide.constant => rightSide.value
             if (rightSide.constant == false || leftSide.constant == false) {
                 if (tokenType == tokenType_MUL) {
                     if (rightSide.constant != leftSide.constant){
@@ -276,7 +282,7 @@ tExpReturnType evalExpression(SyntaxNode* root, tScope* scope, char* parentFunct
                         else if (leftSide.constant == true) {
                             tmp = parseStringToFloat64(leftSide.value);
                         }
-                        if (tmp > -0.000000001 && tmp < 0.000000001) {
+                        if (tmp > MAX_DOUBLE_ACCURACY && tmp < MAX_DOUBLE_ACCURACY) {
                             result.value = "0.0";
                             result.constant = true;
                         }
@@ -334,13 +340,24 @@ tExpReturnType evalExpression(SyntaxNode* root, tScope* scope, char* parentFunct
             return result;
         }
 
+        TokenType tokenType = root->token->type;
+        if (tokenType != tokenType_GREATER && tokenType != tokenType_LESS && tokenType != tokenType_GE && tokenType != tokenType_LE && tokenType != tokenType_EQ  && tokenType != tokenType_NEQ) {
+            result.value = "0";
+            result.errCode = 99;
+            fprintf(stderr, "Unexpected operator inside boolean expression!\n");
+            return result;      //shouldn't happen
+        }
+
+        //TODO codegen: boolean compare, values -> leftSide.constant => leftSide.value | tokenType | rightSide.constant => rightSide.value
         if (rightSide.type == TInt) {
+            if (leftSide.constant == false || rightSide.constant == false) {
+                return result;
+            }
             long right = parseStringToInt(rightSide.value);
             long left = parseStringToInt(leftSide.value);
             result.constant = true;
 
             long isTrue = 0;
-            TokenType tokenType = root->token->type;
             switch (tokenType) {
                 case tokenType_GREATER:
                     isTrue = left > right;
@@ -357,24 +374,22 @@ tExpReturnType evalExpression(SyntaxNode* root, tScope* scope, char* parentFunct
                 case tokenType_EQ:
                     isTrue = left == right;
                     break;
-                case tokenType_NEQ:
+                //case tokenType_NEQ:
+                default:
                     isTrue = left != right;
                     break;
-                default:                        //shouldn't happen
-                    result.value = "0";
-                    result.errCode = 99;
-                    fprintf(stderr, "Unexpected operator inside boolean expression!\n");
-                    return result;
             }
             result.value = parseIntToString(isTrue, strList);
         }
         else if (rightSide.type == TDouble) {
+            if (leftSide.constant == false || rightSide.constant == false) {
+                return result;
+            }
             double right = parseStringToFloat64(rightSide.value);
             double left = parseStringToFloat64(leftSide.value);
             result.constant = true;
 
             long isTrue = 0;
-            TokenType tokenType = root->token->type;
             switch (tokenType) {
                 case tokenType_GREATER:
                     isTrue = left > right;
@@ -391,22 +406,20 @@ tExpReturnType evalExpression(SyntaxNode* root, tScope* scope, char* parentFunct
                 case tokenType_EQ:
                     isTrue = left == right;
                     break;
-                case tokenType_NEQ:
+                //case tokenType_NEQ:
+                default:
                     isTrue = left != right;
                     break;
-                default:                        //shouldn't happen
-                    result.value = "0";
-                    result.errCode = 99;
-                    fprintf(stderr, "Unexpected operator inside boolean expression!\n");
-                    return result;
             }
             result.value = parseFloat64ToString(isTrue, strList);
         }
         else if (rightSide.type == TString) {
+            if (leftSide.constant == false || rightSide.constant == false) {
+                return result;
+            }
             int cmp = strcmp(leftSide.value, rightSide.value);  //+ -> left is greater | 0 -> same | - -> right is greater
 
             long isTrue = 0;
-            TokenType tokenType = root->token->type;
             switch (tokenType) {
                 case tokenType_GREATER:
                     isTrue = (cmp > 0);
@@ -423,14 +436,10 @@ tExpReturnType evalExpression(SyntaxNode* root, tScope* scope, char* parentFunct
                 case tokenType_EQ:
                     isTrue = (cmp == 0);
                     break;
-                case tokenType_NEQ:
+                //case tokenType_NEQ:
+                default:
                     isTrue = (cmp != 0);
                     break;
-                default:                        //shouldn't happen
-                    result.value = "0";
-                    result.errCode = 99;
-                    fprintf(stderr, "Unexpected operator inside boolean expression!\n");
-                    return result;
             }
             result.value = parseIntToString(isTrue, strList);
         }
@@ -442,6 +451,50 @@ tExpReturnType evalExpression(SyntaxNode* root, tScope* scope, char* parentFunct
     }
 
     return result;
+}
+
+/**
+ * Checks return semantics, if the return types are as it should be
+ * @param root Pointer to return node
+ * @param scope Pointer to current scope
+ * @param parentFunction Name of function this return belongs to
+ * @param strList Pointer to list of string to delete
+ * @return Return code (0 = OK)
+ */
+long returnExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLinkedListItem* strList) {
+    int returnCode = 0;
+    tHashItem* func = getIdentifier(scope->topLocal, parentFunction);
+    if (func != NULL) {     //function is declared (if not, there's something wrong)
+        int retCount = 0;
+        SyntaxNodes *retVal = root->statements != NULL ? root->statements->first : NULL;
+        while (retVal != NULL) {
+            tExpReturnType retItem = evalExpression(retVal->node, scope, parentFunction, strList);
+            if (retCount < func->func->return_count) {      //check the number of parameters
+                if (retItem.type != func->func->return_vals[retCount]) {
+                    fprintf(stderr, "%d. return from function \"%s\" is an incompatible type!\n", retCount+1, parentFunction);
+                    returnCode = 6;
+                }
+            }
+            else {
+                fprintf(stderr, "Return from function \"%s\" has more parameters than defined!\n", parentFunction);
+                returnCode = 6;
+            }
+
+            if (returnCode != 0) {  //exit
+                return returnCode;
+            }
+            retCount++;
+            retVal = retVal->next;
+        }
+    }
+    else {
+        fprintf(stderr, "Return of function \"%s\" is defined, but function not...something went wrong...\n", parentFunction);
+        returnCode = 6;
+        return returnCode;
+    }
+
+    //TODO codegen: return variables + destroy scope
+    return returnCode;
 }
 
 /**
@@ -474,6 +527,7 @@ long declareExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLi
     tExpReturnType result = evalExpression(root->right, scope, parentFunction, strList);
     if (result.errCode == 0) {
         addVarToHT(currentScope->table, id, result.type, result.value, result.constant);
+        //TODO codegen: declare variable in current scope | name: id, value: result.value, constant: result.constant
     }
 
     return result.errCode;
@@ -487,7 +541,7 @@ long declareExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLi
  */
 long statementMainSwitch(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLinkedListItem* strList) {
     enum typeOfNode type = root->type;
-    switch(type){
+    switch(type) {
         case Node_DeclareExpression:                //DONE
             return declareExp(root, scope, parentFunction, strList);
         case Node_AssignmentExpression:
@@ -498,8 +552,8 @@ long statementMainSwitch(SyntaxNode* root, tScope* scope, char* parentFunction, 
             break;
         case Node_FunctionCallExpression:
             break;
-        case Node_ReturnExpression:
-            break;
+        case Node_ReturnExpression:             //DONE
+            return returnExp(root, scope, parentFunction, strList);
 
         case Node_IdentifierExpression:         //DONE
             return identifierExp(root, scope, parentFunction).errCode;
@@ -544,6 +598,7 @@ long blockExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLink
         statement = statement->next;
     }
 
+    //TODO codegen: destroy scope, shouldn't be used when scope is already destroyed with return!
     removeLastLocalScope(scope);
     return 0;
 }
@@ -576,6 +631,7 @@ long runFunctionExp(SyntaxNode* root, tScope* scope, tStringLinkedListItem* strL
         ret = ret->next;
     }
 
+    //TODO codegen: function head + scope + parameters
     return blockExp(root->right, scope, funcName, strList);   //run things in the body of the function | also return it's errCode
 }
 
@@ -685,6 +741,7 @@ long runSemanticAnalyze(SyntaxNode* root){
         if (mainFunc->declared == true && mainFunc->func != NULL && mainFunc->func->params_count == 0 && mainFunc->func->return_count == 0) {
             removeLastLocalScope(&scope);
             destroyList(strList);
+            //TODO codegen: now you can throw the program to the interpret
             return 0;
         }
         else {
@@ -709,46 +766,7 @@ long runSemanticAnalyze(SyntaxNode* root){
 /** OLD code of David's semantics */
 /*
 long eval(tTokenizer* tokenizer, SyntaxNode * root, tScope* scope){
-    if(root == NULL){
-        return 0;
-    }
-    if(root->type == Node_BlockExpression) {
-        createScope(scope);
-        SyntaxNodes *statements = root->statements->first;
-        long res = 0;
-        while (statements != NULL) {
-            res = eval(tokenizer, statements->node, scope);
-            statements = statements->next;
-        }
-        removeLastLocalScope(scope);
 
-        return res;
-    }
-    if(root->type == Node_NumberIntExpression){
-        char* end;
-        long result = strtol (root->right->token->value, &end, 10);
-        printf("\t%s\tRES >>> \t%ld\n", root->name,result);
-        return result;
-    }
-    if(root->type == Node_IdentifierExpression){
-        tScopeItem *currentScope = scope->topLocal;
-        tHashItem *item;
-        do {
-            item = getHashItem(currentScope->table, root->right->token->value);
-            if(item == NULL){
-                currentScope = currentScope->next;
-            }
-        }while(item == NULL && currentScope != NULL);
-
-        if(item == NULL){
-            fprintf(stderr, "Identifier %s was not declared!\n", root->right->token->value);
-            exit(3);
-        }
-        char* end;
-        long result = strtol (item->value,&end,10);
-        printf("\t%s\tRES >>> \t%ld\n", root->name,result);
-        return result;
-    }
     if(root->type == Node_AssignmentExpression){
         tHashItem *item = getHashItem(scope->topLocal->table, root->left->token->value);
         if(item == NULL){
@@ -793,48 +811,6 @@ long eval(tTokenizer* tokenizer, SyntaxNode * root, tScope* scope){
         }
         fprintf(stderr, "Identifier %s was declared! CannotRedeclare\n", root->left->token->value);
         exit(3);
-    }
-    if(root->type == Node_UnaryExpression){
-        long operand = eval(tokenizer, root->right, scope);
-        switch (root->token->type) {
-            case tokenType_PLUS:
-                return operand;
-            case tokenType_MINUS:
-                return -operand;
-            default:
-                return -1;
-        }
-    }
-    if(root->type == Node_BinaryExpression){
-        long left = eval(tokenizer, root->left, scope);
-        long right = eval(tokenizer, root->right, scope);
-        switch (root->token->type) {
-            case tokenType_PLUS:
-                return left + right;
-            case tokenType_MINUS:
-                return left - right;
-            case tokenType_MUL:
-                return left * right;
-            case tokenType_DIV:
-                return left / right;
-            case tokenType_GREATER:
-                return left > right;
-            case tokenType_LESS:
-                return left < right;
-            case tokenType_GE:
-                return left >= right;
-            case tokenType_LE:
-                return left <= right;
-            case tokenType_EQ:
-                return left == right;
-            case tokenType_NEQ:
-                return left != right;
-            default:
-                return -1;
-        }
-    }
-    if(root->type == Node_ParenthezedExpression){
-        return eval(tokenizer, root->statements->node, scope);
     }
 
     return -1;
