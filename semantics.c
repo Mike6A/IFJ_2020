@@ -533,6 +533,105 @@ long declareExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLi
     return result.errCode;
 }
 
+tExpReturnType assignmentExpSingleIdentifier(SyntaxNode* root, tScope* scope, char* parentFunction) {
+    tExpReturnType result;
+    result.errCode = 0;
+    result.value = "";
+    result.constant = false;
+    tScopeItem *currentScope = scope->topLocal;
+    char* id = root->left->token->value;
+    tHashItem* item = getIdentifier(currentScope, id);
+
+    if (item == NULL) {
+        tHashItem* func = getIdentifier(currentScope, parentFunction);      //TODO test for recursion error finding bad variables
+        if (func->func->params_count > 0) {
+            for (int i = 0; i < func->func->params_count; i++) {
+                if (strcmp(func->func->params[i], id) == 0)   //trying to find identifier in func params
+                {
+                    result.type = func->func->paramsTypes[i];
+                    return result;
+                }
+            }
+        }
+
+        fprintf(stderr, "Identifier %s is not declared!\n", id);
+        result.errCode = 3;
+        return result;
+    }
+
+    result.type = item->type;
+    result.constant = item->declared;
+    if (result.constant) {
+        result.value = item->value;
+    }
+    //TODO codegen: you'll need this variable
+    return result;
+}
+
+long assignmentExpSingle(SyntaxNode* dest, SyntaxNode* value, tScope* scope, char* parentFunction, tStringLinkedListItem* strList) {
+    tExpReturnType leftSide = assignmentExpSingleIdentifier(dest, scope, parentFunction);       //TODO not gut
+    if (leftSide.errCode != 0) {
+        return leftSide.errCode;
+    }
+    tExpReturnType rightSide = evalExpression(value, scope, parentFunction, strList);   //gut
+    if (rightSide.errCode != 0) {
+        return rightSide.errCode;
+    }
+
+    if (leftSide.type != rightSide.type) {
+        fprintf(stderr, "Assignment of incompatible types!\n");
+        return 5;
+    }
+
+    //TODO codegen: leftSide = variable | rightSide = value
+
+    tHashItem* item = getIdentifier(scope->topLocal, dest->left->token->value);
+    item->value = malloc(sizeof(char) * (strlen(rightSide.value) + 1));     //need to copy string or it will destroy everything (bad pointer)
+    if (item->value == NULL)
+        return 99;
+    strcpy(item->value, rightSide.value);
+
+    return 0;
+}
+
+long assignmentExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLinkedListItem* strList) {
+    SyntaxNodes *destination = root->left->statements != NULL ? root->left->statements->first : NULL;
+    SyntaxNodes *value = root->right->statements != NULL ? root->right->statements->first : NULL;
+    int returnCode = 0;
+    while (destination != NULL && value != NULL) {
+        returnCode = assignmentExpSingle(destination->node, value->node, scope, parentFunction, strList);
+        if (returnCode != 0) {
+            return returnCode;
+        }
+        destination = destination->next;
+        value = value->next;
+    }
+
+    if (value != NULL || destination != NULL) {     //number of expressions isn't equal
+        return 6;   //TODO idk if it's 6
+    }
+
+    return 0;
+}
+
+
+//call function WIP
+/*
+tExpReturnType callFunction(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLinkedListItem* strList) {
+    tExpReturnType result;
+    result.errCode = 0;
+    result.value = "";
+    result.constant = false;
+    result.type = TString;
+
+
+
+
+
+
+    return result;
+}*/
+
 /**
  * Main switch to redirect code to other functions
  * @param root Pointer to the node
@@ -542,16 +641,17 @@ long declareExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLi
 long statementMainSwitch(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLinkedListItem* strList) {
     enum typeOfNode type = root->type;
     switch(type) {
-        case Node_DeclareExpression:                //DONE
+        case Node_DeclareExpression:            //DONE
             return declareExp(root, scope, parentFunction, strList);
-        case Node_AssignmentExpression:
-            break;
+        case Node_AssignmentExpression:         //DONE
+            return assignmentExp(root, scope, parentFunction, strList);
         case Node_IFExpression:
             break;
         case Node_ForExpression:
             break;
-        case Node_FunctionCallExpression:
+        case Node_FunctionCallExpression:       //WORKING ON
             break;
+            //return callFunction(root, scope, parentFunction, strList).errCode;
         case Node_ReturnExpression:             //DONE
             return returnExp(root, scope, parentFunction, strList);
 
@@ -576,7 +676,7 @@ long statementMainSwitch(SyntaxNode* root, tScope* scope, char* parentFunction, 
 
 
 /**
- * WIP!!! Block expression node
+ * Block expression node
  * @param root Pointer to the node
  * @param scope Pointer to current scope
  * @param parentFunction Function this code is under
@@ -656,7 +756,7 @@ long addInbuiltFunctions(tScope* scope) {
     addReturnTypeToFunc(table, "inputf", TDouble);
     addReturnTypeToFunc(table, "inputf", TInt);
     //func print ( term1 , term2 , …, term𝑛 )
-    //addFuncToHT(table, "print", true);
+    //addFuncToHT(table, "print", true);    //TODO print function directly to fce checks
     //addParamToFunc(table, "print",)
 
     //func int2float(i int) (float64)
@@ -758,61 +858,3 @@ long runSemanticAnalyze(SyntaxNode* root){
     destroyList(strList);
     return 3;
 }
-
-
-
-
-
-/** OLD code of David's semantics */
-/*
-long eval(tTokenizer* tokenizer, SyntaxNode * root, tScope* scope){
-
-    if(root->type == Node_AssignmentExpression){
-        tHashItem *item = getHashItem(scope->topLocal->table, root->left->token->value);
-        if(item == NULL){
-            if(root->token->type == tokenType_DECL){
-                char value[1024];
-                long res = eval(tokenizer, root->right, scope);
-                sprintf(value, "%ld", res);
-                if(addDataToHT(scope->topLocal->table, root->left->token->value, value, true) == 1){
-                    fprintf(stderr, "ERRTABLE\n");
-                }
-                printf("\t%s\tRES >>> \t%ld\n", root->name,res);
-                return res;
-            }else if (root->token->type == tokenType_ASSIGN){
-                tScopeItem *currentScope = scope->topLocal->next;
-                while(item == NULL && currentScope != NULL){
-                    item = getHashItem(currentScope->table, root->left->token->value);
-                    if(item == NULL){
-                        currentScope = currentScope->next;
-                    }
-                }
-                if(currentScope == NULL){
-                    fprintf(stderr, "Identifier %s was not declared! CannotAssign\n", root->left->token->value);
-                    exit(3);
-                }
-                char value[1024];
-                long res = eval(tokenizer, root->right, scope);
-                sprintf(value, "%ld", res);
-                strcpy(item->value, value);
-                printf("\t%s\tRES >>> \t%ld\n", root->name,res);
-                return res;
-            }
-            fprintf(stderr, "Identifier %s was not declared! CannotAssign\n", root->left->token->value);
-            exit(3);
-        }
-        if(root->token->type == tokenType_ASSIGN){
-            char value[1024];
-            long res = eval(tokenizer, root->right, scope);
-            sprintf(value, "%ld", res);
-            strcpy(item->value, value);
-            printf("\t%s\tRES >>> \t%ld\n", root->name,res);
-            return res;
-        }
-        fprintf(stderr, "Identifier %s was declared! CannotRedeclare\n", root->left->token->value);
-        exit(3);
-    }
-
-    return -1;
-}*/
-
