@@ -372,14 +372,22 @@ void state_Num(tTokenizer* tokenizer){
  * @param tokenizer valid pointer to Tokenizer struct.
  */
 void state_BasicDouble(tTokenizer* tokenizer){
+    bool mandatoryNum = false;
     do {
 		if (appendChar(&tokenizer->sb, tokenizer->actualChar) == 1){
 			tokenizer->errorCode = 99;
             return;
 		}
   		getNextChar(tokenizer);
+        if (isActNumber(tokenizer))
+            mandatoryNum = true;
     } while (isActNumber(tokenizer));
 
+    if (!mandatoryNum){
+        tokenizer->outputToken.value = "";
+        tokenizer->errorCode = 1;
+        return;
+    }
     //exp num with decimal part
     if (tokenizer->actualChar == 'e' || tokenizer->actualChar == 'E'){
 		if (appendChar(&tokenizer->sb, tokenizer->actualChar) == 1){
