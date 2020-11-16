@@ -195,6 +195,14 @@
     "description": "cela, desetina a exp, nebosahuje desetinou cast",
     "expected_output": 1
   },
+  "test50_linux": {
+    "description": "nepovolene 0 na zacatku cisla",
+    "expected_output": 1
+  },
+  "test51_linux": {
+    "description": "ingorovani zacatecnich nul v exponentu",
+    "expected_output": 0
+  },
   "test101_win.txt": {
     "description": "spatne zadany for",
     "expected_output": 2
