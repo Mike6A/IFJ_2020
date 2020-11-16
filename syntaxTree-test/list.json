@@ -179,6 +179,22 @@
     "description": "SA: +/ za sebou v expr",
     "expected_output": 7
   },
+  "test46_linux": {
+    "description": "desetine cislo neobsahuje desetinou cast",
+    "expected_output": 1
+  },
+  "test47_linux": {
+    "description": "cela, desetina a exp, nebosahuje exp cast",
+    "expected_output": 1
+  },
+  "test48_linux": {
+    "description": "cela a exp cast, neobsahuje exp cast",
+    "expected_output": 1
+  },
+  "test49_linux": {
+    "description": "cela, desetina a exp, nebosahuje desetinou cast",
+    "expected_output": 1
+  },
   "test101_win.txt": {
     "description": "spatne zadany for",
     "expected_output": 2
