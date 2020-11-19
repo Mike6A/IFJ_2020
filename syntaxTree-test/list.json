@@ -95,6 +95,114 @@
     "description": "retrun value neni kw",
     "expected_output": 2
   },
+  "test25_linux": {
+    "description": "SA: argumenty v main",
+    "expected_output": 6
+  },
+  "test26_linux": {
+    "description": "SA: volani funkce pri deklaraci",
+    "expected_output": 7
+  },
+  "test27_linux": {
+    "description": "SA: prirazeni dvou hodnot ale funkce vraci jen jednu",
+    "expected_output": 6
+  },
+  "test28_linux": {
+    "description": "SA: funkce ma vracet jednu hodnotu ale vraci dve",
+    "expected_output": 6
+  },
+  "test29_linux": {
+    "description": "SA: funkce ma vracet jednu hodnotu ale vraci zadnou",
+    "expected_output": 6
+  },
+  "test30_linux": {
+    "description": "SA: volani inputi s parametrem",
+    "expected_output": 6
+  },
+  "test31_linux": {
+    "description": "SA: validni volani funkce inputi",
+    "expected_output": 0
+  },
+  "test32_linux": {
+    "description": "SA: prirazeni inputs() do int value",
+    "expected_output": 6
+  },
+  "test33_linux": {
+    "description": "SA: prirazeni funkce promenne bez navratoveho typu",
+    "expected_output": 3
+  },
+  "test34_linux": {
+    "description": "SA: validni volani funkce print",
+    "expected_output": 0
+  },
+  "test35_linux": {
+    "description": "SA: pokus o predefinovani funkce pomoci float2int()",
+    "expected_output": 3
+  },
+  "test36_linux": {
+    "description": "SA: validni volani int2float() a float2int()",
+    "expected_output": 0
+  },
+  "test37_linux": {
+    "description": "SA: validni volani substr()",
+    "expected_output": 0
+  },
+  "test38_linux": {
+    "description": "SA: secitani int a string",
+    "expected_output": 5
+  },
+  "test39_linux": {
+    "description": "SA: nedefinovana promenna",
+    "expected_output": 3
+  },
+  "test40_linux": {
+    "description": "SA: volani nedefinovane funkce",
+    "expected_output": 3
+  },
+  "test41_linux": {
+    "description": "SA: predefinovani funkce",
+    "expected_output": 3
+  },
+  "test42_linux": {
+    "description": "SA: relacni oprator v prirazeni",
+    "expected_output": 5
+  },
+  "test43_linux": {
+    "description": "SA: deleni nulou",
+    "expected_output": 9
+  },
+  "test44_linux": {
+    "description": "SA: validni kod s nekonecnou smyckou",
+    "expected_output": 0
+  },
+  "test45_linux": {
+    "description": "SA: +/ za sebou v expr",
+    "expected_output": 7
+  },
+  "test46_linux": {
+    "description": "desetine cislo neobsahuje desetinou cast",
+    "expected_output": 1
+  },
+  "test47_linux": {
+    "description": "cela, desetina a exp, nebosahuje exp cast",
+    "expected_output": 1
+  },
+  "test48_linux": {
+    "description": "cela a exp cast, neobsahuje exp cast",
+    "expected_output": 1
+  },
+  "test49_linux": {
+    "description": "cela, desetina a exp, nebosahuje desetinou cast",
+    "expected_output": 1
+  },
+  "test50_linux": {
+    "description": "nepovolene 0 na zacatku cisla",
+    "expected_output": 1
+  },
+  "test51_linux": {
+    "description": "ingorovani zacatecnich nul v exponentu",
+    "expected_output": 0
+  },
   "test101_win.txt": {
     "description": "spatne zadany for",
     "expected_output": 2
@@ -180,8 +288,8 @@
     "expected_output": 2
   },
   "test122_win.txt": {
-    "description": "print v printu",
-    "expected_output": 2
+    "description": "SA: print v printu",
+    "expected_output": 7
   },
   "test123_win.txt": {
     "description": "zkouska o pole",
@@ -192,8 +300,8 @@
     "expected_output": 2
   },
   "test125_win.txt": {
-    "description": "string + 1",
-    "expected_output": 2
+    "description": "SA: string + 1",
+    "expected_output": 5
   },
   "test126_win.txt": {
     "description": "prirazeni bez pridavane hodnoty",

@@ -1,0 +1,11 @@
+package main
+
+func mojeF(a int){
+}
+
+func mojeF() {
+
+}
+
+func main(){
+}
