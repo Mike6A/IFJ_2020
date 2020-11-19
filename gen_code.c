@@ -61,6 +61,35 @@ do{\
     "RETURN\n"
 }while(0)
 
+///build-in functions for data type conversion
+
+#define BIF_INT2FLOAT
+do{\
+
+    "#func int2float(i int) (float64)\n"
+    "LABEL _func_int2float\n"
+    "PUSHFRAME\n"
+    "DEFVAR LF@final_float\n"
+    "INT2FLOAT LF@final_float LF@arg_0\n"
+    "POPFRAME\n"
+    "RETURN\n"
+
+}while(0);
+
+#define BIF_FLOAT2INT
+do{\
+
+    "#func float2int(f float64) (int)\n"
+    "LABEL _func_float2int\n"
+    "PUSHFRAME\n"
+    "DEFVAR LF@final_int\n"
+    "int2float LF@final_int LF@arg_0\n"
+    "POPFRAME\n"
+    "RETURN\n"
+
+}while(0);
+
+
 
 int main()
 {
