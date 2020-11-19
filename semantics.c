@@ -83,7 +83,13 @@ tExpReturnType identifierExp(SyntaxNode* root, tScope* scope, char* parentFuncti
     result.value = "";
     result.constant = false;
     tScopeItem *currentScope = scope->topLocal;
-    char* id = root->right->token->value;
+
+    char* id;           //TODO patch before David will fix bug in identifier in call function
+    if (root->right != NULL)
+        id = root->right->token->value;
+    else
+        id = root->left->token->value;
+
     tHashItem* item = getIdentifier(currentScope, id);
 
     if (item == NULL) {
@@ -598,18 +604,81 @@ long assignmentExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStrin
     SyntaxNodes *destination = root->left->statements != NULL ? root->left->statements->first : NULL;
     SyntaxNodes *value = root->right->statements != NULL ? root->right->statements->first : NULL;
     int returnCode = 0;
-    while (destination != NULL && value != NULL) {
-        returnCode = assignmentExpSingle(destination->node, value->node, scope, parentFunction, strList);
-        if (returnCode != 0) {
-            return returnCode;
+
+    if (value->node->type == Node_FunctionCallExpression) { //values from return from function
+        tHashItem* tItem = getIdentifier(scope->global, value->node->token->value);
+        if (tItem != NULL) {
+            tFuncItem* func = tItem->func;
+            //function is already defined
+            if (func != NULL) {
+                if (destination->node == NULL) {    //nobody wants return values from this function. Poor function
+                    return 0;
+                }
+                for (int i = 0; i < func->return_count; i++) {
+                    if (destination == NULL) {
+                        fprintf(stderr, "Not using all return values from function \"%s\"!\n", value->node->token->value);
+                        return 6;
+                    }
+
+                    tExpReturnType leftSide = assignmentExpSingleIdentifier(destination->node, scope, parentFunction);
+                    if (leftSide.errCode != 0) {
+                        return leftSide.errCode;
+                    }
+                    if (leftSide.type != func->return_vals[i]) {
+                        fprintf(stderr, "Incompatible types in assignment of function return values!\n");
+                        return 6;
+                    }
+                    destination = destination->next;
+                }
+
+                if (destination != NULL) {
+                    fprintf(stderr, "Function \"%s\" does only return %d values!\n", value->node->token->value, func->return_count);
+                    return 6;
+                }
+            }
+            else {  //shouldn't happen, cuz only functions are defined in global scope
+                fprintf(stderr, "\"%s\" is already defined as a variable, function needs another name!", value->node->token->value);
+                return 3;
+            }
+        }   //function is not defined
+        else {
+            addFuncToHT(scope->global->table, value->node->token->value, false);
+
+            SyntaxNodes *param = value->node->statements != NULL ? value->node->statements->first : NULL;
+            while (param != NULL) {
+                tExpReturnType paramItem = evalExpression(param->node, scope, value->node->token->value, strList);
+                if (paramItem.errCode != 0) {
+                    return paramItem.errCode;
+                }
+                addParamToFunc(scope->global->table, value->node->token->value, "", paramItem.type);
+                param = param->next;
+            }
+
+            while (destination != NULL) {
+                tExpReturnType paramItem = assignmentExpSingleIdentifier(destination->node, scope, parentFunction);
+                if (paramItem.errCode != 0) {
+                    return paramItem.errCode;
+                }
+                addReturnTypeToFunc(scope->global->table, value->node->token->value, paramItem.type);
+                destination = destination->next;
+            }
         }
-        destination = destination->next;
-        value = value->next;
+
+    }
+    else {  //normal values
+        while (destination != NULL && value != NULL) {
+            returnCode = assignmentExpSingle(destination->node, value->node, scope, parentFunction, strList);
+            if (returnCode != 0) {
+                return returnCode;
+            }
+            destination = destination->next;
+            value = value->next;
+        }
+        if (value != NULL || destination != NULL) {     //number of expressions isn't equal
+            return 6;   //TODO idk if it's 6
+        }
     }
 
-    if (value != NULL || destination != NULL) {     //number of expressions isn't equal
-        return 6;   //TODO idk if it's 6
-    }
 
     return 0;
 }
@@ -714,22 +783,77 @@ long runFunctionExp(SyntaxNode* root, tScope* scope, tStringLinkedListItem* strL
     char* funcName = root->left->left->token->value;
     tHashTable* table = scope->topLocal->table;
 
-    if (getHashItem(table, funcName) != NULL) {
+    //definition first
+    if (getHashItem(table, funcName) == NULL) {
+        addFuncToHT(table, funcName, true);
+        SyntaxNodes *param = root->left->statements != NULL ? root->left->statements->first : NULL;
+        while (param != NULL) {
+            addParamToFunc(table, funcName, param->node->left->token->value, getDataTypeFromString(param->node->right->token->value));
+            param = param->next;
+        }
+        SyntaxNodes *ret = root->statements != NULL ? root->statements->first : NULL;
+        while (ret != NULL) {
+            addReturnTypeToFunc(table, funcName, getDataTypeFromString(ret->node->token->value));
+            ret = ret->next;
+        }
+    }
+    else if (getHashItem(table, funcName)->declared == false) {  //function was already called, so now we need to check if params and return values are correct
+        tFuncItem* func = getHashItem(table, funcName)->func;
+
+        SyntaxNodes *param = root->left->statements != NULL ? root->left->statements->first : NULL;
+        int index = 0;
+        while (param != NULL) {
+            if (index >= func->params_count || getDataTypeFromString(param->node->right->token->value) != func->paramsTypes[index]) {
+                fprintf(stderr, "Function \"%s\" has been called with different parameters!", funcName);
+                return 6;
+            }
+
+            if (func->params[index] != NULL) {  //memoryleak fix
+                free(func->params[index]);
+            }
+            func->params[index] = malloc(sizeof(char) * (strlen(param->node->left->token->value) + 1));     //need to copy string or it will destroy everything (bad pointer)
+            if (func->params[index] == NULL)
+                return 99;
+            strcpy(func->params[index], param->node->left->token->value);   //update name of fce's parameter
+
+            index++;
+            param = param->next;
+        }
+
+        if (func->params_count > index) {
+            fprintf(stderr, "Function \"%s\" has been called with more parameters!", funcName);
+            return 6;
+        }
+
+        if (func->return_count > 0) {
+            SyntaxNodes *ret = root->statements != NULL ? root->statements->first : NULL;
+            index = 0;
+            while (ret != NULL) {
+                if (index >= func->return_count || getDataTypeFromString(ret->node->token->value) != func->return_vals[index]) {
+                    fprintf(stderr, "Function \"%s\" has been called with different return values!", funcName);
+                    return 6;
+                }
+                index++;
+                ret = ret->next;
+            }
+        }
+        else {  //add return values
+            SyntaxNodes *ret = root->statements != NULL ? root->statements->first : NULL;
+            while (ret != NULL) {
+                addReturnTypeToFunc(table, funcName, getDataTypeFromString(ret->node->token->value));
+                ret = ret->next;
+            }
+        }
+
+
+        getHashItem(table, funcName)->declared = true;  //function is now finally declared
+
+    }
+    else {
         fprintf(stderr, "Function %s is already declared!\n", funcName);
         return 3;
     }
 
-    addFuncToHT(table, funcName, true);
-    SyntaxNodes *param = root->left->statements != NULL ? root->left->statements->first : NULL;
-    while (param != NULL) {
-        addParamToFunc(table, funcName, param->node->left->token->value, getDataTypeFromString(param->node->right->token->value));
-        param = param->next;
-    }
-    SyntaxNodes *ret = root->statements != NULL ? root->statements->first : NULL;
-    while (ret != NULL) {
-        addReturnTypeToFunc(table, funcName, getDataTypeFromString(ret->node->token->value));
-        ret = ret->next;
-    }
 
     //TODO codegen: function head + scope + parameters
     return blockExp(root->right, scope, funcName, strList);   //run things in the body of the function | also return it's errCode
@@ -814,7 +938,7 @@ long runSemanticAnalyze(SyntaxNode* root){
     initScope(&scope);
     createScope(&scope);
 
-    addInbuiltFunctions(&scope);    //loads inbuild functions
+    addInbuiltFunctions(&scope);    //loads inbuilt functions
 
     if (root->type == Node_Global){
         SyntaxNodes *statement = root->statements != NULL ? root->statements->first : NULL;
