@@ -611,6 +611,26 @@ long assignmentExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStrin
             tFuncItem* func = tItem->func;
             //function is already defined
             if (func != NULL) {
+                int index = 0;      //check function parameters
+                SyntaxNodes *param = value->node->statements != NULL ? value->node->statements->first : NULL;
+                while (param != NULL) {
+                    tExpReturnType paramItem = evalExpression(param->node, scope, value->node->token->value, strList);
+                    if (paramItem.errCode != 0) {
+                        return paramItem.errCode;
+                    }
+
+                    if (index >= func->params_count || paramItem.type != func->paramsTypes[index]) {
+                        fprintf(stderr, "Function \"%s\" has been called with different parameters!", value->node->token->value);
+                        return 6;
+                    }
+                    param = param->next;
+                    index++;
+                }
+                if (index != func->params_count) {
+                    fprintf(stderr, "Function \"%s\" has been called with different parameters!", value->node->token->value);
+                    return 6;
+                }
+
                 if (destination->node == NULL) {    //nobody wants return values from this function. Poor function
                     return 0;
                 }
@@ -685,21 +705,59 @@ long assignmentExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStrin
 
 
 //call function WIP
-/*
-tExpReturnType callFunction(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLinkedListItem* strList) {
-    tExpReturnType result;
-    result.errCode = 0;
-    result.value = "";
-    result.constant = false;
-    result.type = TString;
+int callFunction(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLinkedListItem* strList) {
+    int result = 0;
 
+    tHashItem* tItem = getIdentifier(scope->global, root->token->value);
+    if (tItem != NULL) {
+        tFuncItem* func = tItem->func;
+        //function is already defined
+        if (func != NULL) {
+            int index = 0;      //check function parameters
+            SyntaxNodes *param = root->statements != NULL ? root->statements->first : NULL;
+            while (param != NULL) {
+                tExpReturnType paramItem = evalExpression(param->node, scope, parentFunction, strList);
+                if (paramItem.errCode != 0) {
+                    return paramItem.errCode;
+                }
 
+                if (index >= func->params_count || paramItem.type != func->paramsTypes[index]) {
+                    fprintf(stderr, "Function \"%s\" has been called with different parameters!", root->token->value);
+                    return 6;
+                }
+                param = param->next;
+                index++;
+            }
+            if (index != func->params_count) {
+                fprintf(stderr, "Function \"%s\" has been called with different parameters!", root->token->value);
+                return 6;
+            }
+        }
+        else {  //shouldn't happen, cuz only functions are defined in global scope
+            fprintf(stderr, "\"%s\" is already defined as a variable, function needs another name!", root->token->value);
+            return 3;
+        }
+    }   //function is not defined
+    else {
+        addFuncToHT(scope->global->table, root->token->value, false);
+
+        SyntaxNodes *param = root->statements != NULL ? root->statements->first : NULL;
+        while (param != NULL) {
+            tExpReturnType paramItem = evalExpression(param->node, scope, root->token->value, strList);
+            if (paramItem.errCode != 0) {
+                return paramItem.errCode;
+            }
+            addParamToFunc(scope->global->table, root->token->value, "", paramItem.type);
+            param = param->next;
+        }
+
+    }
 
 
 
 
     return result;
-}*/
+}
 
 /**
  * Main switch to redirect code to other functions
@@ -719,8 +777,7 @@ long statementMainSwitch(SyntaxNode* root, tScope* scope, char* parentFunction, 
         case Node_ForExpression:
             break;
         case Node_FunctionCallExpression:       //WORKING ON
-            break;
-            //return callFunction(root, scope, parentFunction, strList).errCode;
+            return callFunction(root, scope, parentFunction, strList);
         case Node_ReturnExpression:             //DONE
             return returnExp(root, scope, parentFunction, strList);
 
@@ -836,6 +893,10 @@ long runFunctionExp(SyntaxNode* root, tScope* scope, tStringLinkedListItem* strL
                 index++;
                 ret = ret->next;
             }
+            if (index != func->return_count) {
+                fprintf(stderr, "Function \"%s\" has been called with different return values!", funcName);
+                return 6;
+            }
         }
         else {  //add return values
             SyntaxNodes *ret = root->statements != NULL ? root->statements->first : NULL;
@@ -845,9 +906,7 @@ long runFunctionExp(SyntaxNode* root, tScope* scope, tStringLinkedListItem* strL
             }
         }
 
-
         getHashItem(table, funcName)->declared = true;  //function is now finally declared
-
     }
     else {
         fprintf(stderr, "Function %s is already declared!\n", funcName);
