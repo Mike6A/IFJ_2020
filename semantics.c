@@ -611,6 +611,10 @@ long assignmentExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStrin
             tFuncItem* func = tItem->func;
             //function is already defined
             if (func != NULL) {
+                if (strcmp("print", value->node->token->value) == 0) {   //print can have more parameters
+                    fprintf(stderr, "Function \"print\" has zero return parameters!");
+                    return 6;
+                }
                 int index = 0;      //check function parameters
                 SyntaxNodes *param = value->node->statements != NULL ? value->node->statements->first : NULL;
                 while (param != NULL) {
@@ -707,12 +711,14 @@ long assignmentExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStrin
 //call function WIP
 int callFunction(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLinkedListItem* strList) {
     int result = 0;
-
     tHashItem* tItem = getIdentifier(scope->global, root->token->value);
     if (tItem != NULL) {
         tFuncItem* func = tItem->func;
         //function is already defined
         if (func != NULL) {
+            if (strcmp("print", root->token->value) == 0) {   //print can have more parameters
+                return 0;
+            }
             int index = 0;      //check function parameters
             SyntaxNodes *param = root->statements != NULL ? root->statements->first : NULL;
             while (param != NULL) {
@@ -753,9 +759,6 @@ int callFunction(SyntaxNode* root, tScope* scope, char* parentFunction, tStringL
 
     }
 
-
-
-
     return result;
 }
 
@@ -776,7 +779,7 @@ long statementMainSwitch(SyntaxNode* root, tScope* scope, char* parentFunction, 
             break;
         case Node_ForExpression:
             break;
-        case Node_FunctionCallExpression:       //WORKING ON
+        case Node_FunctionCallExpression:       //DONE
             return callFunction(root, scope, parentFunction, strList);
         case Node_ReturnExpression:             //DONE
             return returnExp(root, scope, parentFunction, strList);
@@ -939,7 +942,7 @@ long addInbuiltFunctions(tScope* scope) {
     addReturnTypeToFunc(table, "inputf", TDouble);
     addReturnTypeToFunc(table, "inputf", TInt);
     //func print ( term1 , term2 , …, term𝑛 )
-    //addFuncToHT(table, "print", true);    //TODO print function directly to fce checks
+    addFuncToHT(table, "print", true);    //TODO print function directly to fce checks
     //addParamToFunc(table, "print",)
 
     //func int2float(i int) (float64)
