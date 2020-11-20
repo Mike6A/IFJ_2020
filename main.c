@@ -52,9 +52,6 @@ void test_tokenizer(){
 void test_hashtable(){
     tHashTable table;
     initHashTable(&table, 10);
-    addDataToHT(&table, "myVar", "25", true);
-    addDataToHT(&table, "mysecondVar", "10", true);
-    addDataToHT(&table, "myVar1", "25", true);
 
     tHashItem* item = getHashItem(&table, "mysecondVar");
     printf("%s, %s\n", item->id, item->value);
