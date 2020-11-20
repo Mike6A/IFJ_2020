@@ -41,17 +41,28 @@ int initHashTable(tHashTable* ht, int size){
 }
 
 /**
+ * @brief This function delete function parameters
+ * 
+ * @param func pointer to function item
+ */
+void deleteFunctItem(tFuncItem *func){
+    for(unsigned i = 0; i < func->params_count; i++)
+        free(func->params[i]);
+}
+
+/**
  * @brief This function delete item.
  * 
  * @param item Valid pointer to Hash table item.
  */
 void deleteItem(tHashItem* item){
     free(item->id);
-    if (strlen(item->value) > 0)
+    if (item->value != NULL && strlen(item->value) > 0)
         free(item->value);
-    if (item->params_count > 0)
-        for (int j = 0; j < item->params_count; j++)
-            free(item->params[j]);
+    if (item->func != NULL){
+        deleteFunctItem(item->func);
+        free(item->func);
+    }
     free(item);
 }
 
@@ -74,21 +85,45 @@ void destructHashTable(tHashTable* ht) {
 }
 
 /**
+ * @brief This function get item from HT.
+ * 
+ * @param ht valid pointer to hash table.
+ * @param id id of item 
+ * @return pointer to HashItem if was found \n
+ *         NULL if wasnot found
+ */
+tHashItem* getHashItem(tHashTable* ht, char* id){
+    int key = getHash(ht, id);
+    for(tHashItem* tmp = ht->table[key]; tmp != NULL; tmp = tmp->next)
+        if (strcmp(tmp->id, id) == 0)
+            return tmp;
+    return NULL;
+}
+
+/**
  * @brief This function add item to Hash table.
  * 
  * @param ht Valid pointer to hash table.
  * @param item Item which will be added to Hash table.
- * @param key Hash key.
+ * @return 0 if is correctly added \n
+ *         1 if is already in HT \n
+ *         2 if is already in HT but type is different
  */
-void addItemToHT(tHashTable* ht, tHashItem* item, int key) {
-    tHashItem* tmp = ht->table[key];
-    if (tmp == NULL)
+int addItemToHT(tHashTable* ht, tHashItem* item) {
+    tHashItem* searched = getHashItem(ht, item->id);
+    if (searched == NULL) {
+        int key = getHash(ht, item->id);
+        if (ht->table[key] == NULL){
+            ht->table[key] = item;
+            return 0;
+        }
+        item->next = ht->table[key];
         ht->table[key] = item;
-    else {
-        while(tmp->next != NULL)
-            tmp = tmp->next;
-        
-        tmp->next = item;
+        return 0;
+    } else {
+        if (searched->type == item->type)
+            return 1;
+        return 2;
     }
 }
 
@@ -99,29 +134,30 @@ void addItemToHT(tHashTable* ht, tHashItem* item, int key) {
  * @param id Variable ID.
  * @param value Value of variable.
  * @param declared if is variable declared.
- * @return 0 if alloc was successful 
+ * @return 0 if is correctly added \n
+ *         1 if is already in HT \n
+ *         2 if is already in HT but type is different \n
+ *         99 if malloc wasn't successful
  */
-int addDataToHT(tHashTable* ht, char* id, char* value, bool declared) {
+int addVarToHT(tHashTable* ht, char* id, TItem type, char* value, bool declared) {
     tHashItem* item = (tHashItem*)malloc(sizeof(tHashItem));
+    item->type = type;
 
-    item->id = malloc(sizeof(char) * (strlen(id) + 1));
+    item->id = malloc(sizeof(char) * (strlen(id) + 1)); //id
     if (item->id == NULL)
-        return 1;
+        return 99;
     strcpy(item->id, id);
 
-    item->value = malloc(sizeof(char) * (strlen(value) + 1));
+    item->value = malloc(sizeof(char) * (strlen(value) + 1)); //value
     if (item->value == NULL)
-        return 1;
+        return 99;
     strcpy(item->value, value);
 
-    item->params_count = 0;
     item->declared = declared;
-    item->type = TData;
     item->next = NULL;
+    item->func = NULL;
 
-    int key = getHash(ht, id);
-    addItemToHT(ht, item, key);
-    return 0;
+    return addItemToHT(ht, item);
 }
 
 /**
@@ -129,40 +165,81 @@ int addDataToHT(tHashTable* ht, char* id, char* value, bool declared) {
  * 
  * @param ht Valid pointer to hash table.
  * @param id Function ID.
- * @param params Function parameters.
- * @param params_count Count of function parameters.
  * @param declared if is function declared.
- * @return 0 if alloc was successful
+ * @return 0 if is correctly added \n
+ *         1 if is already in HT \n
+ *         2 if is already in HT but type is different \n
+ *         99 if malloc wasn't successful
  */
-int addFuncToHT(tHashTable* ht, char* id, char** params, unsigned params_count, bool declared) {
+int addFuncToHT(tHashTable* ht, char* id, bool declared) {
     tHashItem* item = (tHashItem*)malloc(sizeof(tHashItem));
 
-    item->id = malloc(sizeof(char) * (strlen(id) + 1));
+    item->id = (char*)malloc(sizeof(char) * (strlen(id) + 1)); //id
     if (item->id == NULL)
-        return 1;
+        return 99;
     strcpy(item->id, id);
 
-    if (params_count > 0) {
-        item->params = malloc(sizeof(char*) * params_count);
-        for(int i = 0; i < params_count; i++) {
-            item->params[i] = malloc(sizeof(char) * (strlen(params[i]) + 1));
-            if (item->params[i] == NULL)
-                return 1;
-            strcpy(params[i], item->params[i]);
-        }
-    }
-    item->params_count = 0;
+    item->value = NULL;
     item->declared = declared;
     item->type = TFunc;
     item->next = NULL;
 
-    int key = getHash(ht, id);
-    addItemToHT(ht, item, key);
-    return 0;
+    item->func = (tFuncItem*)malloc(sizeof(tFuncItem));
+    if (item->func == NULL)
+        return 99;
+    item->func->params_count = 0;
+    item->func->return_count = 0;
+
+    return addItemToHT(ht, item);
 }
 
 /**
- * @brief 
+ * @brief This function add params to function
+ * 
+ * @param ht Valid pointer to hash table.
+ * @param id Function ID.
+ * @param param Id of param.
+ * @param type Type of param.
+ * @return 0 if is correctly added \n
+ *         1 if ID wasn't found\n
+ *         99 if malloc wasn't successful
+ */
+int addParamToFunc(tHashTable* ht, char* id, char* param, TItem type){
+    tHashItem* searched = getHashItem(ht, id);
+    if (searched != NULL && searched->type == TFunc) {
+        unsigned index = searched->func->params_count++;
+        searched->func->params[index] = malloc(sizeof(char) * (strlen(param) + 1)); //value
+        if (searched->func->params[index] == NULL)
+            return 99;
+        strcpy(searched->func->params[index], param);
+        searched->func->paramsTypes[index] = type;
+        return 0;
+    }
+    return 1;
+}
+
+/**
+ * @brief This function add return type to function
+ * 
+ * @param ht Valid pointer to hash table.
+ * @param id Function ID.
+ * @param type Type of return value.
+ * @return 0 if is correctly added \n
+ *         1 if ID wasn't found \n
+ *         99 if malloc wasn't successful
+ */
+int addReturnTypeToFunc(tHashTable* ht, char* id, TItem type){
+    tHashItem* searched = getHashItem(ht, id);
+    if (searched != NULL && searched->type == TFunc) {
+        unsigned index = searched->func->return_count++;
+        searched->func->return_vals[index] = type;
+        return 0;
+    }
+    return 1;
+}
+
+/**
+ * @brief This function remove item from HT. 
  * 
  * @param ht Valid pointer to hash table.
  * @param id String ID.
@@ -176,7 +253,7 @@ int removeHashItem(tHashTable* ht, char* id) {
             //delete + corr ptr
             ht->table[key] = tmp->next;
             deleteItem(tmp);
-            return 1;
+            return 0;
         }
         while(tmp->next != NULL) {
             if (strcmp(tmp->next->id, id) == 0) {
@@ -184,7 +261,7 @@ int removeHashItem(tHashTable* ht, char* id) {
                 tHashItem* toDelete = tmp->next;
                 tmp->next = tmp->next->next;
                 deleteItem(toDelete);
-                return 1;
+                return 0;
             }
             tmp = tmp->next;
         }
@@ -193,23 +270,16 @@ int removeHashItem(tHashTable* ht, char* id) {
 }
 
 /**
- * @brief This functio get Hash item.
+ * @brief This funtion check if is declared func/var.
  * 
  * @param ht Valid pointer to hash table.
  * @param id String ID.
- * @return tHashItem* return valid pointer to item if exists
+ * @return true/false if item was found
+ * @return false if item wasn't found
  */
-tHashItem* getHashItem(tHashTable* ht, char *id) {
-    int key = getHash(ht, id);
-    tHashItem* tmp = ht->table[key];
-    if (tmp == NULL)
-        return NULL;
-    else {
-        while(tmp->next != NULL) {
-            if (strcmp(tmp->id, id) == 0)
-                return tmp;
-            tmp = tmp->next;
-        }
-        return tmp; 
-    }
+bool isDeclared(tHashTable* ht, char *id){
+    tHashItem* searched = getHashItem(ht, id);
+    if (searched != NULL)
+        return searched->declared;
+    return false;
 }
