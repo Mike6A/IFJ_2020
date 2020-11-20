@@ -23,6 +23,50 @@ void bif_lenght()
 
 }
 
+void bif_substr()
+{
+    printf("# func substr(s string,i int,n int) (string, int)\n");
+    printf("LABEL _func_substr\n");
+    printf("PUSHFRAME\n");
+    printf("DEFVAR LF@final_substr\n");
+    printf("MOVE LF@final_substr string@\n");
+    printf("DEFVAR LF@in_string\n");
+    printf("DEFVAR LF@str_len\n");
+    printf("DEFVAR LF@substr_len\n");
+    printf("STRLEN LF@str_len LF@arg_0\n");
+    printf("MOVE LF@substr_len LF@str_len\n");
+    printf("MOVE LF@in_string bool@true\n");
+    printf("LT LF@in_string LF@arg_1 int@1\n");
+    printf("JUMPIFEQ _func_error LF@in_string bool@true\n");
+    printf("GT LF@in_string LF@arg_1 LF@str_len\n");
+    printf("JUMPIFEQ _func_error LF@in_string bool@true\n");
+    printf("LT LF@in_string LF@arg_2 int@0\n");
+    printf("JUMPIFEQ _func_error LF@in_string bool@true\n");
+    printf("SUB LF@substr_len LF@substr_len LF@arg_1\n");
+    printf("GT LF@in_string LF@arg_2 LF@substr_len\n");
+    printf("JUMPIFNEQ _func_continue LF@in_string bool@true\n");
+    printf("ADD LF@substr_len LF@substr_len int@1\n");
+    printf("MOVE LF@arg_2 LF@substr_len\n");
+    printf("LABEL _func_continue\n");
+    printf("DEFVAR LF@index\n");
+    printf("MOVE LF@index LF@arg_1\n");
+    printf("SUB LF@index LF@index int@1\n");
+    printf("DEFVAR LF@char_on_index\n");
+    printf("DEFVAR LF@loop_counter\n");
+    printf("MOVE LF@loop_counter int@0\n"); 
+    printf("LABEL _func_loop\n");
+    printf("GETCHAR LF@char_on_index LF@arg_0 LF@index\n");
+    printf("CONCAT LF@final_substr LF@final_substr LF@char_on_index\n");
+    printf("ADD LF@index LF@index int@1\n");
+    printf("ADD LF@loop_counter LF@loop_counter int@1\n");
+    printf("JUMPIFNEQ _func_loop LF@loop_counter LF@arg_2\n");
+    printf("WRITE LF@final_substr\n");
+    printf("LABEL _func_error\n");
+    printf("POPFRAME\n");
+    printf("RETURN\n");
+
+}
+
 void bif_ord()
 {
 
@@ -99,11 +143,7 @@ void bif_float2int()
 int main()
 {
 
-    bif_lenght();
-    bif_ord();
-    bif_chr();
-    bif_int2float();
-    bif_float2int();
+    bif_substr();
 
 
     return 0;
