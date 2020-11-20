@@ -140,10 +140,83 @@ void bif_float2int()
 
 }
 
+///built-in function for value output
+
+void bif_print()
+{
+
+    printf("# func print (term1,term2,...,term𝑛)\n");
+
+
+}
+
+///built-in functions for read literates and print terms
+
+void bif_inputs()
+{
+
+    printf("# func inputs() (string,int)\n");
+    printf("LABEL _func_inputs\n");
+    printf("PUSHFRAME\n");
+    printf("DEFVAR LF@input\n");
+    printf("DEFVAR LF@input_type\n");
+    printf("READ LF@input string\n");
+    printf("TYPE LF@input_type LF@input\n");
+    printf("JUMPIFNEQ _func_error LF@input_type string@string\n");
+    printf("WRITE LF@input\n");
+    printf("WRITE string@\010\n");
+    printf("LABEL _func_error\n");
+    printf("POPFRAME\n");
+    printf("RETURN\n");
+
+}
+
+void bif_inputi()
+{
+
+    printf("# func inputi() (int,int)\n");
+    printf("LABEL _func_inputi\n");
+    printf("PUSHFRAME\n");
+    printf("DEFVAR LF@input\n");
+    printf("DEFVAR LF@input_type\n");
+    printf("READ LF@input int\n");
+    printf("TYPE LF@input_type LF@input\n");
+    printf("JUMPIFNEQ _func_error LF@input_type string@int\n");
+    printf("WRITE LF@input\n");
+    printf("WRITE string@\010\n");
+    printf("LABEL _func_error\n");
+    printf("POPFRAME\n");
+    printf("RETURN\n");
+
+}
+
+void bif_inputf()
+{
+
+    printf("# func inputf() (float64,int)\n");
+    printf("LABEL _func_inputf\n");
+    printf("PUSHFRAME\n");
+    printf("DEFVAR LF@input\n");
+    printf("DEFVAR LF@input_type\n");
+    printf("READ LF@input float\n");
+    printf("TYPE LF@input_type LF@input\n");
+    printf("JUMPIFNEQ _func_error LF@input_type string@float\n");
+    printf("WRITE LF@input\n");
+    printf("WRITE string@\010\n");
+    printf("LABEL _func_error\n");
+    printf("POPFRAME\n");
+    printf("RETURN\n");
+
+}
+
+
+
 int main()
 {
 
-    bif_substr();
+    bif_inputs();
+    bif_inputi();
+    bif_inputf();
 
 
     return 0;
