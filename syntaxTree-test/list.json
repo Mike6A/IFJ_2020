@@ -113,7 +113,7 @@
   },
   "test29_linux": {
     "description": "SA: funkce ma vracet jednu hodnotu ale vraci zadnou",
-    "expected_output": 6
+    "expected_output": 2
   },
   "test30_linux": {
     "description": "SA: volani inputi s parametrem",
@@ -177,7 +177,7 @@
   },
   "test45_linux": {
     "description": "SA: +/ za sebou v expr",
-    "expected_output": 7
+    "expected_output": 2
   },
   "test46_linux": {
     "description": "desetine cislo neobsahuje desetinou cast",
