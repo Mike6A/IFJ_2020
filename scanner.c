@@ -335,13 +335,24 @@ void state_ID(tTokenizer* tokenizer) {
  */
 void state_Num(tTokenizer* tokenizer){
     cleanBuilder(&tokenizer->sb);
+    int countOfZerosInBeginning = 0;
+    bool firstNonZeroDigit = false;
     do {
 		if (appendChar(&tokenizer->sb, tokenizer->actualChar) == 1){
 			tokenizer->errorCode = 99;
             return;
 		}
+        if (tokenizer->actualChar != '0' && isActNumber(tokenizer))
+            firstNonZeroDigit = true;
+        if (tokenizer->actualChar == '0' && !firstNonZeroDigit)
+            countOfZerosInBeginning++;
   		getNextChar(tokenizer);
     } while (isActNumber(tokenizer));
+
+    if (countOfZerosInBeginning > 0 && tokenizer->sb.len > 1){
+        tokenizer->errorCode = 1;
+        return;
+    }
 
     //num with decimal part
     if (tokenizer->actualChar == '.'){
@@ -374,14 +385,22 @@ void state_Num(tTokenizer* tokenizer){
  * @param tokenizer valid pointer to Tokenizer struct.
  */
 void state_BasicDouble(tTokenizer* tokenizer){
+    bool mandatoryNum = false;
     do {
 		if (appendChar(&tokenizer->sb, tokenizer->actualChar) == 1){
 			tokenizer->errorCode = 99;
             return;
 		}
   		getNextChar(tokenizer);
+        if (isActNumber(tokenizer))
+            mandatoryNum = true;
     } while (isActNumber(tokenizer));
 
+    if (!mandatoryNum){
+        tokenizer->outputToken.value = "";
+        tokenizer->errorCode = 1;
+        return;
+    }
     //exp num with decimal part
     if (tokenizer->actualChar == 'e' || tokenizer->actualChar == 'E'){
 		if (appendChar(&tokenizer->sb, tokenizer->actualChar) == 1){
@@ -409,14 +428,26 @@ void state_BasicDouble(tTokenizer* tokenizer){
 void state_ExpNum(tTokenizer* tokenizer){
   	getNextChar(tokenizer);
     if (isActNumber(tokenizer) || tokenizer->actualChar == '+' || tokenizer->actualChar == '-'){
+        char lastAddedDigit = '1';
+        bool firstNonZeroDigit = false;
         //loop until stdin is a digit
         do {
-		    if (appendChar(&tokenizer->sb, tokenizer->actualChar) == 1){
+            if (tokenizer->actualChar != '0' && isActNumber(tokenizer))
+                firstNonZeroDigit = true;
+            if (tokenizer->actualChar != '0' || (tokenizer->actualChar == '0' && firstNonZeroDigit))
+		        if (appendChar(&tokenizer->sb, tokenizer->actualChar) == 1){
+			        tokenizer->errorCode = 99;
+                    return;
+		        }
+            lastAddedDigit = tokenizer->actualChar;
+  		    getNextChar(tokenizer);
+        } while (isActNumber(tokenizer));
+
+        if (!firstNonZeroDigit && lastAddedDigit == '0')
+		    if (appendChar(&tokenizer->sb, '0') == 1){
 			    tokenizer->errorCode = 99;
                 return;
 		    }
-  		    getNextChar(tokenizer);
-        } while (isActNumber(tokenizer));
 
         //return token with double 
 	    if (getStringFromBuilder(&tokenizer->sb, &tokenizer->outputToken.value) == 1){

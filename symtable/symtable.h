@@ -11,8 +11,17 @@
 #include <stdbool.h>
 
 #define MAX_HASHTABLE_SIZE 65536
+#define MAX_PARAMS_COUNT 100
 
-typedef enum { TData, TFunc } TItem;
+typedef enum { TInt, TDouble, TString, TFunc } TItem;
+
+typedef struct t_Func {
+    char* params[MAX_PARAMS_COUNT]; /**< function parameters */
+    TItem paramsTypes[MAX_PARAMS_COUNT]; /**< parameters types */
+    TItem return_vals[MAX_PARAMS_COUNT]; /**< return types */
+    unsigned return_count; /**< count of return types */
+    unsigned params_count; /**< count of function parameters */
+} tFuncItem;
 
 /**
  * @brief Hash table item structure
@@ -22,8 +31,7 @@ typedef struct t_HashItem {
     char* id; /**< ID */
     char* value; /**< value */
     bool declared; /**< if is declared */
-    char** params; /**< function parameters */
-    unsigned params_count; /**< count of function parameters */
+    tFuncItem* func; /**< pointer to Func parametrs */
     struct t_HashItem* next; /**< pointer to next item with same key */
 } tHashItem;
 
@@ -37,10 +45,14 @@ typedef struct t_HashTable {
 
 int initHashTable(tHashTable* ht, int size);
 void destructHashTable(tHashTable* ht);
-int addDataToHT(tHashTable* ht, char* id, char* value, bool declared);
-int addFuncToHT(tHashTable* ht, char* id, char** params, unsigned params_count, bool declared);
+
+int addVarToHT(tHashTable* ht, char* id, TItem type, char* value, bool declared);
+int addFuncToHT(tHashTable* ht, char* id, bool declared);
+int addParamToFunc(tHashTable* ht, char* id, char* param, TItem type);
+int addReturnTypeToFunc(tHashTable* ht, char* id, TItem type);
 int removeHashItem(tHashTable* ht, char* id);
 tHashItem* getHashItem(tHashTable* ht, char* id);
+bool isDeclared(tHashTable* ht, char *id);
 
 
 #endif

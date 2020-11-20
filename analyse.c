@@ -647,16 +647,13 @@ SyntaxNode* ParseFunctionCallingSyntax(tTokenizer* tokenizer, tToken* id){
                 free(expr);
                 expr = NULL;
             }else {
-
                 if (params == NULL) {
                     params = createNodeList(expr);
                 } else {
                     addToNodeListEnd(params, expr);
                 }
             }
-
         }
-
     }
     Match(tokenizer, tokenType_RBN, false);
     if(functionCalling > 0)
@@ -902,6 +899,7 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
                 }
                 return assignExpressionSyntax(list, assign, assignValues);
             }
+
         }
         if(tokenizer->outputToken.type == tokenType_LBN){
             if(isSpace){
@@ -984,7 +982,6 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
             tToken* functionNameToken = Match(tokenizer, tokenType_ID, true);
             Match(tokenizer, tokenType_LBN, false);
             SyntaxNodes* params = NULL;
-
             int returnParamsCount = 0;
             while(tokenizer->outputToken.type != tokenType_RBN){
                 if(isError()){
@@ -1101,6 +1098,7 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
             }
             parsingReturn = false;
             return returnExpressionSyntax(kw, returnValues);
+
         }
         if(strcmp(kw->value, "package") == 0){
             deleteToken(kw);
@@ -1152,6 +1150,7 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
         tokenizer->outputToken.type == tokenType_EQ ||
         tokenizer->outputToken.type == tokenType_LE)
     {
+
         fprintf(stderr,"Unexpected comparison token!\n");
         error(2);
         return NULL;
@@ -1292,6 +1291,7 @@ SyntaxNode* ParseExpression(tTokenizer* tokenizer, int parentPriority){
             }
         }
 
+
         SyntaxNode* right = ParseExpression(tokenizer, priority);
         if(right == NULL){
             deleteToken(operator);
@@ -1387,137 +1387,7 @@ void printSyntaxTree(SyntaxNode* node, char* indent, bool last) {
     printSyntaxTree(node->right, newIndent, true);
 }
 
-long eval(tTokenizer* tokenizer, SyntaxNode * root, tScope* scope){
-    if(root == NULL){
-        return 0;
-    }
-    if(root->type == Node_BlockExpression) {
-        createScope(scope);
-        SyntaxNodes *statements = root->statements->first;
-        long res = 0;
-        while (statements != NULL) {
-            res = eval(tokenizer, statements->node, scope);
-            statements = statements->next;
-        }
-        removeLastLocalScope(scope);
 
-        return res;
-    }
-    if(root->type == Node_NumberIntExpression){
-        char* end;
-        long result = strtol (root->right->token->value, &end, 10);
-        printf("\t%s\tRES >>> \t%ld\n", root->name,result);
-        return result;
-    }
-    if(root->type == Node_IdentifierExpression){
-        tScopeItem *currentScope = scope->topLocal;
-        tHashItem *item;
-        do {
-            item = getHashItem(currentScope->table, root->right->token->value);
-            if(item == NULL){
-                currentScope = currentScope->next;
-            }
-        }while(item == NULL && currentScope != NULL);
-
-        if(item == NULL){
-            fprintf(stderr, "Identifier %s was not declared!\n", root->right->token->value);
-            exit(3);
-        }
-        char* end;
-        long result = strtol (item->value,&end,10);
-        printf("\t%s\tRES >>> \t%ld\n", root->name,result);
-        return result;
-    }
-    if(root->type == Node_AssignmentExpression){
-        tHashItem *item = getHashItem(scope->topLocal->table, root->left->token->value);
-        if(item == NULL){
-            if(root->token->type == tokenType_DECL){
-                char value[1024];
-                long res = eval(tokenizer, root->right, scope);
-                sprintf(value, "%ld", res);
-                if(addDataToHT(scope->topLocal->table, root->left->token->value, value, true) == 1){
-                    fprintf(stderr, "ERRTABLE\n");
-                }
-                printf("\t%s\tRES >>> \t%ld\n", root->name,res);
-                return res;
-            }else if (root->token->type == tokenType_ASSIGN){
-                tScopeItem *currentScope = scope->topLocal->next;
-                while(item == NULL && currentScope != NULL){
-                    item = getHashItem(currentScope->table, root->left->token->value);
-                    if(item == NULL){
-                        currentScope = currentScope->next;
-                    }
-                }
-                if(currentScope == NULL){
-                    fprintf(stderr, "Identifier %s was not declared! CannotAssign\n", root->left->token->value);
-                    exit(3);
-                }
-                char value[1024];
-                long res = eval(tokenizer, root->right, scope);
-                sprintf(value, "%ld", res);
-                strcpy(item->value, value);
-                printf("\t%s\tRES >>> \t%ld\n", root->name,res);
-                return res;
-            }
-            fprintf(stderr, "Identifier %s was not declared! CannotAssign\n", root->left->token->value);
-            exit(3);
-        }
-        if(root->token->type == tokenType_ASSIGN){
-            char value[1024];
-            long res = eval(tokenizer, root->right, scope);
-            sprintf(value, "%ld", res);
-            strcpy(item->value, value);
-            printf("\t%s\tRES >>> \t%ld\n", root->name,res);
-            return res;
-        }
-        fprintf(stderr, "Identifier %s was declared! CannotRedeclare\n", root->left->token->value);
-        exit(3);
-    }
-    if(root->type == Node_UnaryExpression){
-        long operand = eval(tokenizer, root->right, scope);
-        switch (root->token->type) {
-            case tokenType_PLUS:
-                return operand;
-            case tokenType_MINUS:
-                return -operand;
-            default:
-                return -1;
-        }
-    }
-    if(root->type == Node_BinaryExpression){
-        long left = eval(tokenizer, root->left, scope);
-        long right = eval(tokenizer, root->right, scope);
-        switch (root->token->type) {
-            case tokenType_PLUS:
-                return left + right;
-            case tokenType_MINUS:
-                return left - right;
-            case tokenType_MUL:
-                return left * right;
-            case tokenType_DIV:
-                return left / right;
-            case tokenType_GREATER:
-                return left > right;
-            case tokenType_LESS:
-                return left < right;
-            case tokenType_GE:
-                return left >= right;
-            case tokenType_LE:
-                return left <= right;
-            case tokenType_EQ:
-                return left == right;
-            case tokenType_NEQ:
-                return left != right;
-            default:
-                return -1;
-        }
-    }
-    if(root->type == Node_ParenthezedExpression){
-        return eval(tokenizer, root->statements->node, scope);
-    }
-
-    return -1;
-}
 void deleteToken(tToken* token){
     if(token != NULL){
         if(token->value != NULL) {
