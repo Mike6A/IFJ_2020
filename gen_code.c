@@ -8,6 +8,8 @@
 
 #include <stdio.h>
 
+///---------BUILT-IN FUNCTIONS-----------------
+
 /// built-in string functions
 
 void bif_lenght()
@@ -209,15 +211,73 @@ void bif_inputf()
 
 }
 
+///---------GENERATE PREFIX & SUFFIX FOR ALL FUNCTIONS-----------------
+
+void program_start()
+{
+
+    printf("# START OF GEN_CODE\n");
+    printf(".IFJcode20\n");
+    printf("JUMP _main\n");
+
+}
+
+void main_prefix()
+{
+
+    printf("# MAIN FUNCTION\n");
+    printf("LABEL _main\n");
+    printf("CREATEFRAME");
+
+}
+
+void main_suffix()
+{
+
+    printf("POPFRAME\n");
+    printf("CLEARS\n");
+
+}
+
+void program_exit(int err_code)
+{
+
+    printf("EXIT int@%d\n",err_code);
+    printf("# END OF GEN_CODE\n");
+
+}
+
+void general_func_prefix(char *func_name)
+{
+
+    printf("# START OF THE FUNCTION %s\n",func_name);
+    printf("LABEL _%s\n",func_name);
+    printf("PUSHFRAME");
+
+}
+
+void general_func_suffix(char *func_name)
+{
+
+    printf("LABEL _%s_ret\n", func_name);
+    printf("POPFRAME\n");
+    printf("RETURN\n");
+
+}
 
 
 int main()
 {
 
-    bif_inputs();
-    bif_inputi();
-    bif_inputf();
+    char *function_name = "TEST";
+    int error_code = 0;
 
+    program_start();
+    main_prefix();
+    general_func_prefix(function_name);
+    general_func_suffix(function_name);
+    main_suffix();
+    program_exit(error_code);
 
     return 0;
 }
