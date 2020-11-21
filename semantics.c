@@ -770,11 +770,14 @@ int callFunction(SyntaxNode* root, tScope* scope, char* parentFunction, tStringL
 
 int ifExpression(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLinkedListItem* strList) {
     tExpReturnType condition = evalExpression(root->left, scope, parentFunction, strList);
+    if (condition.errCode != 0) {
+        return condition.errCode;
+    }
+
     if (condition.type != TBool) {
         fprintf(stderr, "Bad expression in if condition!\n");
         return 5;
     }
-
 
 
     return 0;
