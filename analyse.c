@@ -1345,6 +1345,9 @@ SyntaxNode *getFunctionNode(tTokenizer * tokenizer){
             return NULL;
         }
     }
+    if(tokenizer->outputToken.type == tokenType_EOF){
+        return NULL;
+    }
     tToken *kw = Match(tokenizer, tokenType_KW, true);
     if(kw == NULL){
         error(2);
