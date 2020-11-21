@@ -9,6 +9,8 @@
 #define MAX_NUM2STRING_DIGITS 75
 #define MAX_DOUBLE_ACCURACY 0.000000001
 
+long blockExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLinkedListItem* strList);
+
 /**
  * Parses string to TData type of data type
  * @param str String to parse
@@ -597,15 +599,17 @@ long assignmentExpSingle(SyntaxNode* dest, SyntaxNode* value, tScope* scope, cha
 
     //TODO codegen: leftSide = variable | rightSide = value
 
-    tHashItem* item = getIdentifier(scope->topLocal, dest->left->token->value);
-    item->value = malloc(sizeof(char) * (strlen(rightSide.value) + 1));     //need to copy string or it will destroy everything (bad pointer)
-    if (item->value == NULL)
-        return 99;
-    strcpy(item->value, rightSide.value);
-
+    tHashItem* item = getIdentifier(scope->topLocal, dest->left->token->value); //if item is null -> function param
+    if (item != NULL) {
+        item->value = malloc(sizeof(char) * (strlen(rightSide.value) + 1));     //need to copy string or it will destroy everything (bad pointer)
+        if (item->value == NULL)
+            return 99;
+        strcpy(item->value, rightSide.value);
+    }
     return 0;
 }
 
+//TODO asignment of values from function needs to reset constant to variable
 long assignmentExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLinkedListItem* strList) {
     SyntaxNodes *destination = root->left->statements != NULL ? root->left->statements->first : NULL;
     SyntaxNodes *value = root->right->statements != NULL ? root->right->statements->first : NULL;
@@ -779,6 +783,16 @@ int ifExpression(SyntaxNode* root, tScope* scope, char* parentFunction, tStringL
         return 5;
     }
 
+    //TODO assignment of constants in if/else is broken, cuz compiler doesn't know which path to choose...so always false
+    int result = blockExp(root->statements->first->node, scope, parentFunction, strList);    //true
+    if (result != 0) {
+        return result;
+    }
+
+    result = blockExp(root->right->right, scope, parentFunction, strList);    //else
+    if (result != 0) {
+        return result;
+    }
 
     return 0;
 }
