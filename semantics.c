@@ -92,10 +92,16 @@ tExpReturnType identifierExp(SyntaxNode* root, tScope* scope, char* parentFuncti
     else
         id = root->left->token->value;
 
+    if (strcmp(id, "_") == 0) {
+        result.type = TEverything;
+        return result;
+    }
+
     tHashItem* item = getIdentifier(currentScope, id);
 
     if (item == NULL) {
-        tHashItem* func = getIdentifier(scope->global, parentFunction);      //TODO test for recursion error finding bad variables
+        tHashItem* func = getIdentifier(scope->topLocal, parentFunction);      //TODO test for recursion error finding bad variables
+        //tHashItem* func = getIdentifier(scope->global, parentFunction);      //TODO test for recursion error finding bad variables
         if (func->func->params_count > 0) {
             for (int i = 0; i < func->func->params_count; i++) {
                 if (strcmp(func->func->params[i], id) == 0)   //trying to find identifier in func params
@@ -196,6 +202,12 @@ tExpReturnType evalExpression(SyntaxNode* root, tScope* scope, char* parentFunct
         tExpReturnType leftSide = evalExpression(root->left, scope, parentFunction, strList);
         if (leftSide.errCode != 0) {    //check return code for errors
             result.errCode = leftSide.errCode;
+            return result;
+        }
+
+        if (leftSide.type == TEverything || rightSide.type == TEverything) {
+            result.errCode = 3;
+            fprintf(stderr, "Can't use underscore in binary operations!\n");
             return result;
         }
 
@@ -471,7 +483,8 @@ tExpReturnType evalExpression(SyntaxNode* root, tScope* scope, char* parentFunct
  */
 long returnExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLinkedListItem* strList) {
     int returnCode = 0;
-    tHashItem* func = getIdentifier(scope->global, parentFunction);
+    tHashItem* func = getIdentifier(scope->topLocal, parentFunction);
+    //tHashItem* func = getIdentifier(scope->global, parentFunction);
     if (func != NULL) {     //function is declared (if not, there's something wrong)
         int retCount = 0;
         SyntaxNodes *retVal = root->statements != NULL ? root->statements->first : NULL;
@@ -522,7 +535,8 @@ long declareExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLi
         return 3;
     }
 
-    tHashItem *parentFunc = getIdentifier(scope->global, parentFunction);
+    tHashItem *parentFunc = getIdentifier(scope->topLocal, parentFunction);
+    //tHashItem *parentFunc = getIdentifier(scope->global, parentFunction);
     if (parentFunc->func->params_count > 0) {
         for (int i = 0; i < parentFunc->func->params_count; i++) {
             if (strcmp(parentFunc->func->params[i], id) == 0)   //trying to declare identifier that has same name as parameter in function
@@ -557,7 +571,8 @@ tExpReturnType assignmentExpSingleIdentifier(SyntaxNode* root, tScope* scope, ch
             return result;
         }
 
-        tHashItem* func = getIdentifier(scope->global, parentFunction);      //TODO test for recursion error finding bad variables
+        tHashItem* func = getIdentifier(scope->topLocal, parentFunction);      //TODO test for recursion error finding bad variables
+        //tHashItem* func = getIdentifier(scope->global, parentFunction);      //TODO test for recursion error finding bad variables
         if (func->func->params_count > 0) {
             for (int i = 0; i < func->func->params_count; i++) {
                 if (strcmp(func->func->params[i], id) == 0)   //trying to find identifier in func params
@@ -592,7 +607,7 @@ long assignmentExpSingle(SyntaxNode* dest, SyntaxNode* value, tScope* scope, cha
         return rightSide.errCode;
     }
 
-    if (leftSide.type != rightSide.type) {
+    if (leftSide.type != rightSide.type && leftSide.type != TEverything) {
         fprintf(stderr, "Assignment of incompatible types!\n");
         return 5;
     }
@@ -616,7 +631,8 @@ long assignmentExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStrin
     int returnCode = 0;
 
     if (value->node->type == Node_FunctionCallExpression) { //values from return from function
-        tHashItem* tItem = getIdentifier(scope->global, value->node->token->value);
+        tHashItem* tItem = getIdentifier(scope->topLocal, value->node->token->value);
+        //tHashItem* tItem = getIdentifier(scope->global, value->node->token->value);
         if (tItem != NULL) {
             tFuncItem* func = tItem->func;
             //function is already defined
@@ -631,6 +647,11 @@ long assignmentExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStrin
                     tExpReturnType paramItem = evalExpression(param->node, scope, value->node->token->value, strList);
                     if (paramItem.errCode != 0) {
                         return paramItem.errCode;
+                    }
+
+                    if (paramItem.type == TEverything) {
+                        fprintf(stderr, "You can't use underscore in function \"%s\" parameter!\n", value->node->token->value);
+                        return 3;
                     }
 
                     if (index >= func->params_count || paramItem.type != func->paramsTypes[index]) {
@@ -721,7 +742,8 @@ long assignmentExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStrin
 //call function WIP
 int callFunction(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLinkedListItem* strList) {
     int result = 0;
-    tHashItem* tItem = getIdentifier(scope->global, root->token->value);
+    tHashItem* tItem = getIdentifier(scope->topLocal, root->token->value);
+    //tHashItem* tItem = getIdentifier(scope->global, root->token->value);
     if (tItem != NULL) {
         tFuncItem* func = tItem->func;
         //function is already defined
@@ -735,6 +757,11 @@ int callFunction(SyntaxNode* root, tScope* scope, char* parentFunction, tStringL
                 tExpReturnType paramItem = evalExpression(param->node, scope, parentFunction, strList);
                 if (paramItem.errCode != 0) {
                     return paramItem.errCode;
+                }
+
+                if (paramItem.type == TEverything) {
+                    fprintf(stderr, "You can't use underscore in function \"%s\" parameter!\n", root->token->value);
+                    return 3;
                 }
 
                 if (index >= func->params_count || paramItem.type != func->paramsTypes[index]) {
@@ -760,6 +787,10 @@ int callFunction(SyntaxNode* root, tScope* scope, char* parentFunction, tStringL
         SyntaxNodes *param = root->statements != NULL ? root->statements->first : NULL;
         while (param != NULL) {
             tExpReturnType paramItem = evalExpression(param->node, scope, root->token->value, strList);
+            if (paramItem.type == TEverything) {
+                fprintf(stderr, "You can't use underscore in function \"%s\" parameter!\n", root->token->value);
+                return 3;
+            }
             if (paramItem.errCode != 0) {
                 return paramItem.errCode;
             }
@@ -1127,8 +1158,24 @@ long runSemanticAnalyze(SyntaxNode* root){
     if (getHashItem(scope.topLocal->table, "main") != NULL) {               /** Checks if main function is declared as it should be */
         tHashItem* mainFunc = getHashItem(scope.topLocal->table, "main");
         if (mainFunc->declared == true && mainFunc->func != NULL && mainFunc->func->params_count == 0 && mainFunc->func->return_count == 0) {
+
+            for(int i = 0; i < scope.global->table->size; i++) {
+                for(tHashItem* tmp = scope.global->table->table[i]; tmp != NULL; tmp = tmp->next)  {
+                    if (tmp->func != NULL) {
+                        if (tmp->declared == false) {
+                            fprintf(stderr, "Function \"%s\" not declared!\n", tmp->id);
+                            removeLastLocalScope(&scope);
+                            destroyList(strList);
+                            return 3;
+                        }
+                    }
+                }
+
+            }
+
             removeLastLocalScope(&scope);
             destroyList(strList);
+
             //TODO codegen: now you can throw the program to the interpret
             return 0;
         }
@@ -1141,7 +1188,10 @@ long runSemanticAnalyze(SyntaxNode* root){
         }
     }
 
-    fprintf(stderr, "Main function not declared\n");
+
+
+
+    fprintf(stderr, "Main function not declared!\n");
     removeLastLocalScope(&scope);
     destroyList(strList);
     return 3;
