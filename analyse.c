@@ -1130,8 +1130,9 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
             SyntaxNodes* returnValues = NULL;
             SyntaxNode* expr = NULL;
             int params = 0;
-            while(params++ < functionReturnParams){
-                if(params != 1 && params <= functionReturnParams)
+            //while(params++ < functionReturnParams){
+            while(tokenizer->outputToken.type != tokenType_EOL){
+                if(params++ != 0)
                     Match(tokenizer, tokenType_COMMA, false);
                 expr = ParseExpression(tokenizer, 0);
                 if(expr == NULL){
