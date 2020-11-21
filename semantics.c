@@ -652,7 +652,7 @@ long assignmentExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStrin
                 int index = 0;      //check function parameters
                 SyntaxNodes *param = value->node->statements != NULL ? value->node->statements->first : NULL;
                 while (param != NULL) {
-                    tExpReturnType paramItem = evalExpression(param->node, scope, value->node->token->value, strList);
+                    tExpReturnType paramItem = evalExpression(param->node, scope, parentFunction, strList);
                     if (paramItem.errCode != 0) {
                         return paramItem.errCode;
                     }
@@ -709,7 +709,7 @@ long assignmentExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStrin
 
             SyntaxNodes *param = value->node->statements != NULL ? value->node->statements->first : NULL;
             while (param != NULL) {
-                tExpReturnType paramItem = evalExpression(param->node, scope, value->node->token->value, strList);
+                tExpReturnType paramItem = evalExpression(param->node, scope, parentFunction, strList);
                 if (paramItem.errCode != 0) {
                     return paramItem.errCode;
                 }
@@ -794,7 +794,7 @@ int callFunction(SyntaxNode* root, tScope* scope, char* parentFunction, tStringL
 
         SyntaxNodes *param = root->statements != NULL ? root->statements->first : NULL;
         while (param != NULL) {
-            tExpReturnType paramItem = evalExpression(param->node, scope, root->token->value, strList);
+            tExpReturnType paramItem = evalExpression(param->node, scope, parentFunction, strList);
             if (paramItem.type == TEverything) {
                 fprintf(stderr, "You can't use underscore in function \"%s\" parameter!\n", root->token->value);
                 return 3;
@@ -995,6 +995,7 @@ long runFunctionExp(SyntaxNode* root, tScope* scope, tStringLinkedListItem* strL
     else if (getHashItem(table, funcName)->declared == false) {  //function was already called, so now we need to check if params and return values are correct
         tFuncItem* func = getHashItem(table, funcName)->func;
 
+        //TODO something wrong with parameters
         SyntaxNodes *param = root->left->statements != NULL ? root->left->statements->first : NULL;
         int index = 0;
         while (param != NULL) {
