@@ -549,6 +549,11 @@ tExpReturnType assignmentExpSingleIdentifier(SyntaxNode* root, tScope* scope, ch
     tHashItem* item = getIdentifier(currentScope, id);
 
     if (item == NULL) {
+        if (strcmp(id, "_") == 0) {
+            result.type = TEverything;
+            return result;
+        }
+
         tHashItem* func = getIdentifier(currentScope, parentFunction);      //TODO test for recursion error finding bad variables
         if (func->func->params_count > 0) {
             for (int i = 0; i < func->func->params_count; i++) {
@@ -648,7 +653,7 @@ long assignmentExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStrin
                     if (leftSide.errCode != 0) {
                         return leftSide.errCode;
                     }
-                    if (leftSide.type != func->return_vals[i]) {
+                    if (leftSide.type != func->return_vals[i] && leftSide.type != TEverything) {
                         fprintf(stderr, "Incompatible types in assignment of function return values!\n");
                         return 6;
                     }
@@ -889,10 +894,14 @@ long runFunctionExp(SyntaxNode* root, tScope* scope, tStringLinkedListItem* strL
             SyntaxNodes *ret = root->statements != NULL ? root->statements->first : NULL;
             index = 0;
             while (ret != NULL) {
-                if (index >= func->return_count || getDataTypeFromString(ret->node->token->value) != func->return_vals[index]) {
+                if (index >= func->return_count || (getDataTypeFromString(ret->node->token->value) != func->return_vals[index] && func->return_vals[index] != TEverything)) {
                     fprintf(stderr, "Function \"%s\" has been called with different return values!", funcName);
                     return 6;
                 }
+                if (func->return_vals[index] == TEverything) {
+                    func->return_vals[index] = getDataTypeFromString(ret->node->token->value);
+                }
+
                 index++;
                 ret = ret->next;
             }

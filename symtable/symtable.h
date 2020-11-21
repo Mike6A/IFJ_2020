@@ -13,7 +13,7 @@
 #define MAX_HASHTABLE_SIZE 65536
 #define MAX_PARAMS_COUNT 100
 
-typedef enum { TInt, TDouble, TString, TBool, TFunc } TItem;
+typedef enum { TInt, TDouble, TString, TBool, TFunc, TEverything } TItem;
 
 typedef struct t_Func {
     char* params[MAX_PARAMS_COUNT]; /**< function parameters */
