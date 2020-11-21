@@ -718,9 +718,15 @@ SyntaxNode* ParseAssignSyntax(tTokenizer* tokenizer, tToken* FirstID){
             error(2);
             return NULL;
         }
+        if(isError()){
+            destroyNodeList(list);
+            deleteToken(assign);
+            return NULL;
+        }
         prevNode = assignValues->last->node;
         prevNodeFuncType = assignValues->last->node->type == Node_FunctionCallExpression ? true: prevNodeFuncType;
         node = node->next;
+
     }
     return assignExpressionSyntax(list, assign,assignValues);
 }
@@ -918,6 +924,9 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
     if(tokenizer->outputToken.type == tokenType_KW){
 
         tToken *kw = Match(tokenizer, tokenType_KW, true);
+        if(kw == NULL){
+            return NULL;
+        }
         if(strcmp(kw->value, "if") == 0){
             SyntaxNode *condition = ParseConditionExpresionSyntax(tokenizer);
             tToken *openBlockToken = Match(tokenizer, tokenType_LBC, true);
@@ -1353,7 +1362,7 @@ SyntaxNode* getPackage(tTokenizer* tokenizer){
     }
     tToken* idofPk = Match(tokenizer, tokenType_ID, true);
     Match(tokenizer, tokenType_EOL, false);
-    if(pkKW == NULL || strcmp(idofPk->value, "main") != 0){
+    if(pkKW == NULL || (idofPk != NULL && strcmp(idofPk->value, "main") != 0)){
         deleteToken(pkKW);
         deleteToken(idofPk);
         pkKW = NULL;
