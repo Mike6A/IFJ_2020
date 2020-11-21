@@ -57,7 +57,7 @@ void deleteFunctItem(tFuncItem *func){
  */
 void deleteItem(tHashItem* item){
     free(item->id);
-    if (item->value != NULL && strlen(item->value) > 0)
+    if (item->value != NULL)
         free(item->value);
     if (item->func != NULL){
         deleteFunctItem(item->func);
