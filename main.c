@@ -66,10 +66,8 @@ void test_tree(){
     tTokenizer tokenizer;
     initTokenizer(&tokenizer);
     getToken(&tokenizer);
-    SyntaxNode* prog;
-    prog = createNode(NULL, NULL, NULL, NULL, "GlobalScope", Node_Global);
-    prog->left = getPackage(&tokenizer);
-    prog->statements = ParseGlobalBlockExpressions(&tokenizer, 0);
+    SyntaxNode* prog = NULL;
+    prog = getSyntaxGlobal(&tokenizer);
     if(prog != NULL){
         printSyntaxTree(prog, "", true);
     }

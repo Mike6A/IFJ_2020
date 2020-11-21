@@ -1087,96 +1087,7 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
             SyntaxNode *forBody = blockExpressionSyntax(openBlockToken, forStatements, closeBlockToken);
             return forStatementSyntax(kw, definition, condition, assignExpr, forBody);
         }
-        if(strcmp(kw->value, "func") == 0){
-            tToken* functionNameToken = Match(tokenizer, tokenType_ID, true);
-            Match(tokenizer, tokenType_LBN, false);
-            SyntaxNodes* params = NULL;
 
-            int returnParamsCount = 0;
-            while(tokenizer->outputToken.type != tokenType_RBN){
-                if(isError()){
-                    deleteToken(kw);
-                    deleteToken(functionNameToken);
-                    deleteToken(functionNameToken);
-                    return NULL;
-                }
-                tToken* paramID = Match(tokenizer, tokenType_ID, true);
-                tToken* paramType = Match(tokenizer, tokenType_KW, true);
-                if(tokenizer->outputToken.type == tokenType_COMMA){
-                    Match(tokenizer, tokenType_COMMA, false);
-                    /*while (tokenizer->outputToken.type == tokenType_EOL){
-                        getToken(tokenizer);
-                    }
-                     */
-
-                }
-                else if(tokenizer->outputToken.type != tokenType_COMMA && tokenizer->outputToken.type != tokenType_RBN){
-                    deleteToken(kw);
-                    destroyNodeList(params);
-                    deleteToken(functionNameToken);
-                    deleteToken(paramID);
-                    deleteToken(paramType);
-                    fprintf(stderr, "Expected: COMMA or CLOSING BRACKET!\n");
-                    error(2);
-                    return NULL;
-                }
-                SyntaxNode* oneParam = createNode(
-                        createNodeFromToken(paramID, "ParameterIDToken", Node_ParamIdentifierToken),
-                        NULL,
-                        createNodeFromToken(paramType, "ParameterTypeToken", Node_ParamTypeToken),
-                        NULL,
-                        "OneFunctionParameter",
-                        Node_FunctionParameter
-                );
-                if(params == NULL){
-                    params = createNodeList(oneParam);
-                }else{
-                    addToNodeListEnd(params, oneParam);
-                }
-            }
-            Match(tokenizer, tokenType_RBN, false);
-            SyntaxNodes* returnTypes = NULL;
-            if(tokenizer->outputToken.type == tokenType_LBN){
-                Match(tokenizer, tokenType_LBN, false);
-                while (tokenizer->outputToken.type != tokenType_RBN){
-                    if(isError()){
-                        deleteToken(kw);
-                        deleteToken(functionNameToken);
-                        destroyNodeList(returnTypes);
-                        destroyNodeList(params);
-                        return NULL;
-                    }
-                    tToken* returnType = Match(tokenizer, tokenType_KW, true);
-                    if(tokenizer->outputToken.type == tokenType_COMMA){
-                        Match(tokenizer, tokenType_COMMA, false);
-                    }
-                    else if(tokenizer->outputToken.type != tokenType_COMMA && tokenizer->outputToken.type != tokenType_RBN){
-                        deleteToken(kw);
-                        deleteToken(returnType);
-                        destroyNodeList(returnTypes);
-                        destroyNodeList(params);
-                        fprintf(stderr, "Expected: COMMA or CLOSING BRACKET!\n");
-                        error(2);
-                        return NULL;
-                    }
-                    if(returnTypes == NULL){
-                        returnTypes = createNodeList(createNodeFromToken(returnType, "ReturnType", Node_KWTypeToken));
-                    }else{
-                        addToNodeListEnd(returnTypes, createNodeFromToken(returnType, "ReturnType", Node_KWTypeToken));
-                    }
-                    ++returnParamsCount;
-                }
-                Match(tokenizer, tokenType_RBN, false);
-            }
-            tToken* openBlockToken = Match(tokenizer, tokenType_LBC, true);
-            Match(tokenizer, tokenType_EOL, false);
-            functionReturnParams = returnParamsCount;
-            SyntaxNodes* funcStatements = ParseBlockExpressions(tokenizer, 0);
-            tToken *closeBlockToken = Match(tokenizer, tokenType_RBC, true);
-            functionReturnParams = -1;
-            SyntaxNode* funcBody = blockExpressionSyntax(openBlockToken, funcStatements, closeBlockToken);
-            return functStatementSyntax(kw, functionNameToken, params, returnTypes, funcBody);
-        }
         if(strcmp(kw->value, "return") == 0){
             parsingReturn = true;
             SyntaxNodes* returnValues = NULL;
@@ -1224,6 +1135,12 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
         }
         if(strcmp(kw->value, "int") == 0 || strcmp(kw->value, "string") == 0 || strcmp(kw->value, "float64") == 0){
             fprintf(stderr, "Unexpected type KW '%s'\n", kw->value);
+            deleteToken(kw);
+            error(2);
+            return NULL;
+        }
+        if(strcmp(kw->value, "func") == 0){
+            fprintf(stderr, "Unexpected func KW");
             deleteToken(kw);
             error(2);
             return NULL;
@@ -1283,7 +1200,7 @@ SyntaxNodes* ParseGlobalBlockExpressions (tTokenizer* tokenizer, int parentPrior
             destroyNodeList(list);
             return NULL;
         }
-        SyntaxNode* expr = ParseExpression(tokenizer, parentPriority);
+        SyntaxNode* expr = getFunctionNode(tokenizer);
         if(tokenizer->outputToken.type == tokenType_EOL || expr == NULL){
             getToken(tokenizer);
             if(tokenizer->errorCode != 0){
@@ -1470,6 +1387,122 @@ SyntaxNode* getPackage(tTokenizer* tokenizer){
         return NULL;
     }
     return createNode(createNodeFromToken(idofPk, "PackageID", Node_PackageNameToken), NULL, NULL, pkKW, "Package", Node_PackageExpression);
+}
+
+SyntaxNode *getFunctionNode(tTokenizer * tokenizer){
+    while (tokenizer->outputToken.type == tokenType_EOL) {
+        getToken(tokenizer);
+        if (tokenizer->errorCode != 0) {
+            error(tokenizer->errorCode);
+            return NULL;
+        }
+    }
+    tToken *kw = Match(tokenizer, tokenType_KW, true);
+    if(kw == NULL){
+        error(2);
+        return NULL;
+    }
+    if(strcmp(kw->value, "func") == 0){
+        tToken* functionNameToken = Match(tokenizer, tokenType_ID, true);
+        Match(tokenizer, tokenType_LBN, false);
+        SyntaxNodes* params = NULL;
+
+        int returnParamsCount = 0;
+        while(tokenizer->outputToken.type != tokenType_RBN){
+            if(isError()){
+                deleteToken(kw);
+                deleteToken(functionNameToken);
+                deleteToken(functionNameToken);
+                return NULL;
+            }
+            tToken* paramID = Match(tokenizer, tokenType_ID, true);
+            tToken* paramType = Match(tokenizer, tokenType_KW, true);
+            if(tokenizer->outputToken.type == tokenType_COMMA){
+                Match(tokenizer, tokenType_COMMA, false);
+                /*while (tokenizer->outputToken.type == tokenType_EOL){
+                    getToken(tokenizer);
+                }
+                 */
+
+            }
+            else if(tokenizer->outputToken.type != tokenType_COMMA && tokenizer->outputToken.type != tokenType_RBN){
+                deleteToken(kw);
+                destroyNodeList(params);
+                deleteToken(functionNameToken);
+                deleteToken(paramID);
+                deleteToken(paramType);
+                fprintf(stderr, "Expected: COMMA or CLOSING BRACKET!\n");
+                error(2);
+                return NULL;
+            }
+            SyntaxNode* oneParam = createNode(
+                    createNodeFromToken(paramID, "ParameterIDToken", Node_ParamIdentifierToken),
+                    NULL,
+                    createNodeFromToken(paramType, "ParameterTypeToken", Node_ParamTypeToken),
+                    NULL,
+                    "OneFunctionParameter",
+                    Node_FunctionParameter
+            );
+            if(params == NULL){
+                params = createNodeList(oneParam);
+            }else{
+                addToNodeListEnd(params, oneParam);
+            }
+        }
+        Match(tokenizer, tokenType_RBN, false);
+        SyntaxNodes* returnTypes = NULL;
+        if(tokenizer->outputToken.type == tokenType_LBN){
+            Match(tokenizer, tokenType_LBN, false);
+            while (tokenizer->outputToken.type != tokenType_RBN){
+                if(isError()){
+                    deleteToken(kw);
+                    deleteToken(functionNameToken);
+                    destroyNodeList(returnTypes);
+                    destroyNodeList(params);
+                    return NULL;
+                }
+                tToken* returnType = Match(tokenizer, tokenType_KW, true);
+                if(tokenizer->outputToken.type == tokenType_COMMA){
+                    Match(tokenizer, tokenType_COMMA, false);
+                }
+                else if(tokenizer->outputToken.type != tokenType_COMMA && tokenizer->outputToken.type != tokenType_RBN){
+                    deleteToken(kw);
+                    deleteToken(returnType);
+                    destroyNodeList(returnTypes);
+                    destroyNodeList(params);
+                    fprintf(stderr, "Expected: COMMA or CLOSING BRACKET!\n");
+                    error(2);
+                    return NULL;
+                }
+                if(returnTypes == NULL){
+                    returnTypes = createNodeList(createNodeFromToken(returnType, "ReturnType", Node_KWTypeToken));
+                }else{
+                    addToNodeListEnd(returnTypes, createNodeFromToken(returnType, "ReturnType", Node_KWTypeToken));
+                }
+                ++returnParamsCount;
+            }
+            Match(tokenizer, tokenType_RBN, false);
+        }
+        tToken* openBlockToken = Match(tokenizer, tokenType_LBC, true);
+        Match(tokenizer, tokenType_EOL, false);
+        //functionReturnParams = returnParamsCount;
+        SyntaxNodes* funcStatements = ParseBlockExpressions(tokenizer, 0);
+        tToken *closeBlockToken = Match(tokenizer, tokenType_RBC, true);
+        //functionReturnParams = -1;
+        SyntaxNode* funcBody = blockExpressionSyntax(openBlockToken, funcStatements, closeBlockToken);
+        return functStatementSyntax(kw, functionNameToken, params, returnTypes, funcBody);
+    }
+    fprintf(stderr,"Expected func keyword! Given: %s\n", kw->value);
+    deleteToken(kw);
+    error(2);
+    return NULL;
+}
+
+SyntaxNode* getSyntaxGlobal(tTokenizer* tokenizer){
+    SyntaxNode *prog = createNode(NULL, NULL, NULL, NULL, "GlobalScope", Node_Global);
+    prog->left = getPackage(tokenizer);
+    prog->statements = ParseGlobalBlockExpressions(tokenizer, 0);
+    return prog;
 }
 void printSyntaxTree(SyntaxNode* node, char* indent, bool last) {
     if (node == NULL)

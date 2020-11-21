@@ -133,8 +133,9 @@ void initSyntaxNode(SyntaxNode *root);
 void printSyntaxTree(SyntaxNode* node, char* indent, bool last);
 
 SyntaxNode* getPackage(tTokenizer* tokenizer);
-
+SyntaxNode *getFunctionNode(tTokenizer * tokenizer);
 SyntaxNode* ParseExpression(tTokenizer* tokenizer, int priority);
+SyntaxNode * getSyntaxGlobal(tTokenizer*tokenizer);
 SyntaxNodes* ParseGlobalBlockExpressions (tTokenizer* tokenizer, int parentPriority);
 SyntaxNodes* ParseBlockExpressions(tTokenizer* tokenizer, int priority);
 long eval(tTokenizer* tokenizer, SyntaxNode * root, tScope* scope);
