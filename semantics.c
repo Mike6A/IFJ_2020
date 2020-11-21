@@ -99,6 +99,9 @@ tExpReturnType identifierExp(SyntaxNode* root, tScope* scope, char* parentFuncti
     }
 
     tHashItem* item = getIdentifier(currentScope, id);
+    if (item != NULL && item->func != NULL) {
+        item = NULL;
+    }
 
     if (item == NULL) {
         tHashItem* func = getIdentifier(scope->topLocal, parentFunction);      //TODO test for recursion error finding bad variables
