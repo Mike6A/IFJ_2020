@@ -931,7 +931,8 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
                                 expr->type == Node_NumberDoubleExpression ||
                                 expr->type == Node_NumberDoubleToken ||
                                 expr->type == Node_StringExpression ||
-                                expr->type == Node_StringToken
+                                expr->type == Node_StringToken ||
+                                expr->type == Node_FunctionCallExpression
                                     ) {
                                 if (assignValues == NULL) {
                                     assignValues = createNodeList(expr);
@@ -962,7 +963,8 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
                                     expr->type == Node_NumberDoubleExpression ||
                                     expr->type == Node_NumberDoubleToken ||
                                     expr->type == Node_StringExpression ||
-                                    expr->type == Node_StringToken
+                                    expr->type == Node_StringToken ||
+                                    expr->type == Node_FunctionCallExpression
                                         ) {
                                     assignValues = createNodeList(expr);
                                 }else {
