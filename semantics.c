@@ -10,6 +10,7 @@
 #define MAX_DOUBLE_ACCURACY 0.000000001
 
 long blockExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLinkedListItem* strList);
+bool foundReturn;
 
 /**
  * Parses string to TData type of data type
@@ -507,12 +508,19 @@ long returnExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLin
             retCount++;
             retVal = retVal->next;
         }
+
+        if (retCount != func->func->return_count) {
+            fprintf(stderr, "Return from function \"%s\" has less parameters than defined!\n", parentFunction);
+            returnCode = 6;
+        }
     }
     else {
         fprintf(stderr, "Return of function \"%s\" is defined, but function not...something went wrong...\n", parentFunction);
         returnCode = 6;
         return returnCode;
     }
+
+    foundReturn = true;
 
     //TODO codegen: return variables + destroy scope
     return returnCode;
@@ -961,7 +969,6 @@ long blockExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLink
     return 0;
 }
 
-
 /**
  * Function to check functions in code
  * @param root Pointer to the node
@@ -971,7 +978,6 @@ long blockExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLink
 long runFunctionExp(SyntaxNode* root, tScope* scope, tStringLinkedListItem* strList){
     char* funcName = root->left->left->token->value;
     tHashTable* table = scope->global->table;
-
     //definition first
     if (getHashItem(table, funcName) == NULL) {
         addFuncToHT(table, funcName, true);
@@ -1049,9 +1055,16 @@ long runFunctionExp(SyntaxNode* root, tScope* scope, tStringLinkedListItem* strL
         return 3;
     }
 
+    foundReturn = false;
+    long errCode = blockExp(root->right, scope, funcName, strList);   //run things in the body of the function | also return it's errCode
+
+    if (getHashItem(scope->global->table, funcName)->func->return_count > 0 && foundReturn == false) {
+        fprintf(stderr, "Missing return statement!\n");
+        return 6;
+    }
 
     //TODO codegen: function head + scope + parameters
-    return blockExp(root->right, scope, funcName, strList);   //run things in the body of the function | also return it's errCode
+    return errCode;
 }
 
 
