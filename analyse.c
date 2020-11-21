@@ -509,14 +509,32 @@ SyntaxNode* ParseDeclarationSyntax(tTokenizer* tokenizer, tToken* id){
     }
     tToken * declare = Match(tokenizer, tokenType_DECL, true);
     SyntaxNode *expr = ParseExpression(tokenizer, 0);
-    if(expr == NULL){
+    if( expr == NULL){
         fprintf(stderr, "Expected expression after declaration!\n");
         deleteToken(id);
         deleteToken(declare);
         error(2);
         return NULL;
     }
-    return declExpressionSyntax(id, declare, expr);
+    if (expr->type == Node_IdentifierToken ||
+        expr->type == Node_ParenthezedExpression ||
+        expr->type == Node_BinaryExpression ||
+        expr->type == Node_IdentifierExpression ||
+        expr->type == Node_UnaryExpression ||
+        expr->type == Node_NumberIntToken ||
+        expr->type == Node_NumberIntExpression ||
+        expr->type == Node_NumberDoubleExpression ||
+        expr->type == Node_NumberDoubleToken ||
+        expr->type == Node_StringExpression ||
+        expr->type == Node_StringToken
+            ) {
+        return declExpressionSyntax(id, declare, expr);
+    }
+    fprintf(stderr, "Expected expression after declaration!\n");
+    deleteToken(id);
+    deleteToken(declare);
+    error(2);
+    return NULL;
 }
 SyntaxNode* ParseFunctionCallingSyntax(tTokenizer* tokenizer, tToken* id){
     if(isError()){
@@ -646,15 +664,71 @@ SyntaxNode* ParseAssignSyntax(tTokenizer* tokenizer, tToken* FirstID){
         if( (prevNode != NULL && !prevNodeFuncType) || tokenizer->outputToken.type == tokenType_COMMA){
             Match(tokenizer, tokenType_COMMA, false);
             if(assignValues == NULL){
-                assignValues = createNodeList(ParseExpression(tokenizer, 0));
+                SyntaxNode *expr = ParseExpression(tokenizer, 0);
+                if( expr == NULL ||
+                    expr->type == Node_AssignmentExpression ||
+                    expr->type == Node_DeclareExpression ||
+                    expr->type == Node_ForExpression ||
+                    expr->type == Node_IFExpression
+                        ){
+                    deleteSyntaxTree(expr);
+                    destroyNodeList(list);
+                    destroyNodeList(assignValues);
+                    deleteToken(assign);
+                    error(2);
+                    return NULL;
+                }
+                assignValues = createNodeList(expr);
             }else{
-                addToNodeListEnd(assignValues, ParseExpression(tokenizer, 0));
+                SyntaxNode *expr = ParseExpression(tokenizer, 0);
+                if( expr == NULL ||
+                    expr->type == Node_AssignmentExpression ||
+                    expr->type == Node_DeclareExpression ||
+                    expr->type == Node_ForExpression ||
+                    expr->type == Node_IFExpression
+                        ){
+                    deleteSyntaxTree(expr);
+                    destroyNodeList(list);
+                    destroyNodeList(assignValues);
+                    deleteToken(assign);
+                    error(2);
+                    return NULL;
+                }
+                addToNodeListEnd(assignValues, expr);
             }
         }else if (prevNode == NULL){
             if(assignValues == NULL){
-                assignValues = createNodeList(ParseExpression(tokenizer, 0));
+                SyntaxNode *expr = ParseExpression(tokenizer, 0);
+                if( expr == NULL ||
+                    expr->type == Node_AssignmentExpression ||
+                    expr->type == Node_DeclareExpression ||
+                    expr->type == Node_ForExpression ||
+                    expr->type == Node_IFExpression
+                        ){
+                    deleteSyntaxTree(expr);
+                    destroyNodeList(list);
+                    destroyNodeList(assignValues);
+                    deleteToken(assign);
+                    error(2);
+                    return NULL;
+                }
+                assignValues = createNodeList(expr);
             }else{
-                addToNodeListEnd(assignValues, ParseExpression(tokenizer, 0));
+                SyntaxNode *expr = ParseExpression(tokenizer, 0);
+                if( expr == NULL ||
+                    expr->type == Node_AssignmentExpression ||
+                    expr->type == Node_DeclareExpression ||
+                    expr->type == Node_ForExpression ||
+                    expr->type == Node_IFExpression
+                        ){
+                    deleteSyntaxTree(expr);
+                    destroyNodeList(list);
+                    destroyNodeList(assignValues);
+                    deleteToken(assign);
+                    error(2);
+                    return NULL;
+                }
+                addToNodeListEnd(assignValues, expr);
             }
         }else if(prevNodeFuncType || node->next == NULL){
             break;
@@ -826,7 +900,28 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
                         if (assignValues == NULL) {
                             SyntaxNode *expr = ParseExpression(tokenizer, 0);
                             if (expr != NULL) {
-                                assignValues = createNodeList(expr);
+                                if (expr->type == Node_IdentifierToken ||
+                                    expr->type == Node_ParenthezedExpression ||
+                                    expr->type == Node_BinaryExpression ||
+                                    expr->type == Node_IdentifierExpression ||
+                                    expr->type == Node_UnaryExpression ||
+                                    expr->type == Node_NumberIntToken ||
+                                    expr->type == Node_NumberIntExpression ||
+                                    expr->type == Node_NumberDoubleExpression ||
+                                    expr->type == Node_NumberDoubleToken ||
+                                    expr->type == Node_StringExpression ||
+                                    expr->type == Node_StringToken
+                                        ) {
+                                    assignValues = createNodeList(expr);
+                                }else {
+                                    deleteSyntaxTree(expr);
+                                    destroyNodeList(list);
+                                    destroyNodeList(assignValues);
+                                    deleteToken(assign);
+                                    fprintf(stderr, "Assignment went wrong!\n");
+                                    error(2);
+                                    return NULL;
+                                }
                             } else {
                                 fprintf(stderr, "Expected expr, given EOL!\n");
                                 destroyNodeList(list);
