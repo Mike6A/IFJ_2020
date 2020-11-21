@@ -93,7 +93,7 @@ tExpReturnType identifierExp(SyntaxNode* root, tScope* scope, char* parentFuncti
     tHashItem* item = getIdentifier(currentScope, id);
 
     if (item == NULL) {
-        tHashItem* func = getIdentifier(currentScope, parentFunction);      //TODO test for recursion error finding bad variables
+        tHashItem* func = getIdentifier(scope->global, parentFunction);      //TODO test for recursion error finding bad variables
         if (func->func->params_count > 0) {
             for (int i = 0; i < func->func->params_count; i++) {
                 if (strcmp(func->func->params[i], id) == 0)   //trying to find identifier in func params
@@ -469,7 +469,7 @@ tExpReturnType evalExpression(SyntaxNode* root, tScope* scope, char* parentFunct
  */
 long returnExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLinkedListItem* strList) {
     int returnCode = 0;
-    tHashItem* func = getIdentifier(scope->topLocal, parentFunction);
+    tHashItem* func = getIdentifier(scope->global, parentFunction);
     if (func != NULL) {     //function is declared (if not, there's something wrong)
         int retCount = 0;
         SyntaxNodes *retVal = root->statements != NULL ? root->statements->first : NULL;
@@ -513,13 +513,14 @@ long declareExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLi
     tScopeItem *currentScope = scope->topLocal;
     char* id = root->left->token->value;
 
-    tHashItem *item = getIdentifier(currentScope, id);
+    //tHashItem *item = getIdentifier(currentScope, id);
+    tHashItem *item = getHashItem(currentScope->table, id);
     if (item != NULL) {
         fprintf(stderr, "Variable %s is already declared!\n", id);
         return 3;
     }
 
-    tHashItem *parentFunc = getIdentifier(currentScope, parentFunction);
+    tHashItem *parentFunc = getIdentifier(scope->global, parentFunction);
     if (parentFunc->func->params_count > 0) {
         for (int i = 0; i < parentFunc->func->params_count; i++) {
             if (strcmp(parentFunc->func->params[i], id) == 0)   //trying to declare identifier that has same name as parameter in function
@@ -554,7 +555,7 @@ tExpReturnType assignmentExpSingleIdentifier(SyntaxNode* root, tScope* scope, ch
             return result;
         }
 
-        tHashItem* func = getIdentifier(currentScope, parentFunction);      //TODO test for recursion error finding bad variables
+        tHashItem* func = getIdentifier(scope->global, parentFunction);      //TODO test for recursion error finding bad variables
         if (func->func->params_count > 0) {
             for (int i = 0; i < func->func->params_count; i++) {
                 if (strcmp(func->func->params[i], id) == 0)   //trying to find identifier in func params
@@ -767,6 +768,18 @@ int callFunction(SyntaxNode* root, tScope* scope, char* parentFunction, tStringL
     return result;
 }
 
+int ifExpression(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLinkedListItem* strList) {
+    tExpReturnType condition = evalExpression(root->left, scope, parentFunction, strList);
+    if (condition.type != TBool) {
+        fprintf(stderr, "Bad expression in if condition!\n");
+        return 5;
+    }
+
+
+
+    return 0;
+}
+
 /**
  * Main switch to redirect code to other functions
  * @param root Pointer to the node
@@ -781,7 +794,8 @@ long statementMainSwitch(SyntaxNode* root, tScope* scope, char* parentFunction, 
         case Node_AssignmentExpression:         //DONE
             return assignmentExp(root, scope, parentFunction, strList);
         case Node_IFExpression:
-            break;
+            //break;
+            return ifExpression(root, scope, parentFunction, strList);
         case Node_ForExpression:
             break;
         case Node_FunctionCallExpression:       //DONE
@@ -846,7 +860,7 @@ long blockExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLink
  */
 long runFunctionExp(SyntaxNode* root, tScope* scope, tStringLinkedListItem* strList){
     char* funcName = root->left->left->token->value;
-    tHashTable* table = scope->topLocal->table;
+    tHashTable* table = scope->global->table;
 
     //definition first
     if (getHashItem(table, funcName) == NULL) {
