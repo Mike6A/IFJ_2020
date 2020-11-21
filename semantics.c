@@ -797,6 +797,68 @@ int ifExpression(SyntaxNode* root, tScope* scope, char* parentFunction, tStringL
     return 0;
 }
 
+int forExpression(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLinkedListItem* strList) {
+    int result = 0;
+    createScope(scope);
+    //TODO codegen: create scope
+
+    //------- declaration part -------- -> optional
+    if (root->left->left != NULL) {
+        if (root->left->left->type == Node_DeclareExpression) {
+            result = declareExp(root->left->left, scope, parentFunction, strList);
+        }
+    }
+    if (result != 0) {
+        removeLastLocalScope(scope);
+        return result;
+    }
+
+    //------- condition part --------- -> obligatory
+    tExpReturnType condition = evalExpression(root->left->right, scope, parentFunction, strList);
+    if (condition.errCode != 0) {
+       result = condition.errCode;
+    }
+    if (result != 0) {
+        removeLastLocalScope(scope);
+        return result;
+    }
+
+    if (condition.type != TBool) {
+        fprintf(stderr, "Bad expression in for condition!\n");
+        result = 5;
+    }
+    if (result != 0) {
+        removeLastLocalScope(scope);
+        return result;
+    }
+
+    //------- assignment part ------ -> optional
+    if (root->left->statements != NULL) {
+        if (root->left->statements->first->node->type != Node_AssignmentExpression) {
+            fprintf(stderr, "Bad assignment in for expression!\n");
+            removeLastLocalScope(scope);
+            return 7;   //TODO idk if 7
+        }
+
+        result = assignmentExp(root->left->statements->first->node, scope, parentFunction, strList);
+        if (result != 0) {
+            removeLastLocalScope(scope);
+            return result;
+        }
+    }
+
+    //------- block part ------
+    result = blockExp(root->right, scope, parentFunction, strList);    //block with things to loop in for
+    if (result != 0) {
+        removeLastLocalScope(scope);
+        return result;
+    }
+
+    //TODO codegen: destroy scope
+    removeLastLocalScope(scope);
+    return result;
+}
+
 /**
  * Main switch to redirect code to other functions
  * @param root Pointer to the node
@@ -810,11 +872,10 @@ long statementMainSwitch(SyntaxNode* root, tScope* scope, char* parentFunction, 
             return declareExp(root, scope, parentFunction, strList);
         case Node_AssignmentExpression:         //DONE
             return assignmentExp(root, scope, parentFunction, strList);
-        case Node_IFExpression:
-            //break;
+        case Node_IFExpression:                 //DONE
             return ifExpression(root, scope, parentFunction, strList);
-        case Node_ForExpression:
-            break;
+        case Node_ForExpression:                //DONE
+            return forExpression(root, scope, parentFunction, strList);
         case Node_FunctionCallExpression:       //DONE
             return callFunction(root, scope, parentFunction, strList);
         case Node_ReturnExpression:             //DONE
@@ -850,6 +911,7 @@ long statementMainSwitch(SyntaxNode* root, tScope* scope, char* parentFunction, 
  */
 long blockExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLinkedListItem* strList) {
     createScope(scope);
+    //TODO codegen: create scope
 
     SyntaxNodes *statement = root->statements != NULL ? root->statements->first : NULL;
     while (statement != NULL) {
