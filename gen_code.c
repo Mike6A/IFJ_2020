@@ -376,8 +376,8 @@ int main()
     general_func_call(function_name);
 
     general_func_prefix(function_name);
-    //func_param_LF_declar(function_name, parameter_counter);
-   // func_ret_declar(function_name, return_counter);
+    func_param_LF_declar(function_name, parameter_counter);
+    func_ret_declar(function_name, return_counter);
     general_func_suffix(function_name);
 
     main_suffix();
