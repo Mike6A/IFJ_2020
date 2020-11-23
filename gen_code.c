@@ -282,6 +282,32 @@ void general_func_suffix(char *func_name)
 
 }
 
+void func_args_TF_declar(char *func_name, int param_count)
+{
+
+    //have to create before args pass(for non args func too)
+    printf("CREATEFRAME\n");
+    
+    if(param_count > 0)
+    {
+
+        printf("# CREATE VARS FOR %s's ARGS\n",func_name);
+        for(int i = 0; i<param_count; i++)
+        {
+            
+            printf("DEFVAR TF@arg_%d\n",i);
+            printf("MOVE TF@arg_%d ",i);
+            declared_vars_default_init(type);
+
+        }
+
+        printf("# ALL VARS FOR ARGS HAS BEEN CREATED\n");
+
+    } else
+        printf("# FUNC %s IS WITHOUT ARGS\n",func_name);
+      
+}
+
 ///---------GENERATE INIT & VALUES FOR VARIABLES-----------------
 
 
@@ -298,7 +324,7 @@ int main()
     program_start();
     main_prefix();
 
-   // func_args_TF_declar(function_name, parameter_counter);
+    func_args_TF_declar(function_name, parameter_counter);
     general_func_call(function_name);
 
     general_func_prefix(function_name);
