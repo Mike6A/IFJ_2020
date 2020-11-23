@@ -331,6 +331,31 @@ void func_param_LF_declar(char *func_name, int param_count)
     
 }
 
+void func_ret_declar(char *func_name, int ret_count)
+{
+
+
+    //only after general_func_prefix
+    if(ret_count > 0)
+    {
+
+        printf("# CREATE VARS FOR %s's RETURNS\n",func_name);
+        for(int i = 0; i<ret_count; i++)
+        {
+            
+            printf("DEFVAR TF@%s_ret_%d\n",func_name, i);
+            printf("MOVE TF@%s_ret_%d ",func_name,i);
+            declared_vars_default_init(type);
+
+        }
+
+        printf("# ALL VARS FOR RETURNS HAS BEEN CREATED\n");
+
+    } else
+        printf("# FUNC %s IS WITHOUT RETURNS\n",func_name);
+    
+}
+
 ///---------GENERATE INIT & VALUES FOR VARIABLES-----------------
 
 
