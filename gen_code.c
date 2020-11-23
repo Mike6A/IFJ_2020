@@ -7,6 +7,7 @@
  */
 
 #include <stdio.h>
+#include "gen_code.h"
 
 ///---------BUILT-IN FUNCTIONS-----------------
 
@@ -119,11 +120,15 @@ void bif_chr()
 void bif_int2float()
 {
 
-    printf("# func int2float(i int) (float64)\n");
+    printf("# func int2float(i int) (float64 int)\n");
     printf("LABEL _func_int2float\n");
     printf("PUSHFRAME\n");
     printf("DEFVAR LF@final_float\n");
     printf("INT2FLOAT LF@final_float LF@arg_0\n");
+    printf("DEFVAR LF@int2float_ret_1\n");
+    printf("DEFVAR LF@int2float_ret_2\n");
+    printf("MOVE LF@int2float_ret_1 LF@final_float\n");
+    printf("MOVE Lf@int2float_ret_2 int@0\n");
     printf("POPFRAME\n");
     printf("RETURN\n");
 
@@ -132,11 +137,15 @@ void bif_int2float()
 void bif_float2int()
 {
 
-    printf("# func float2int(f float64) (int)\n");
+    printf("# func float2int(f float64) (int int)\n");
     printf("LABEL _func_float2int\n");
     printf("PUSHFRAME\n");
     printf("DEFVAR LF@final_int\n");
     printf("FLOAT2INT LF@final_int LF@arg_0\n");
+    printf("DEFVAR LF@float2int_ret_1\n");
+    printf("DEFVAR LF@float2int_ret_2\n");
+    printf("MOVE LF@float2int_ret_1 LF@final_int\n");
+    printf("MOVE LF@float2int_ret_2 int@0\n");
     printf("POPFRAME\n");
     printf("RETURN\n");
 
@@ -164,10 +173,9 @@ void bif_inputs()
     printf("DEFVAR LF@input_type\n");
     printf("READ LF@input string\n");
     printf("TYPE LF@input_type LF@input\n");
-    printf("JUMPIFNEQ _func_error LF@input_type string@string\n");
-    printf("WRITE LF@input\n");
-    printf("WRITE string@\010\n");
-    printf("LABEL _func_error\n");
+    printf("JUMPIFNEQ _func_ret LF@input_type string@string\n");
+
+    printf("LABEL _func_ret\n");
     printf("POPFRAME\n");
     printf("RETURN\n");
 
@@ -183,10 +191,10 @@ void bif_inputi()
     printf("DEFVAR LF@input_type\n");
     printf("READ LF@input int\n");
     printf("TYPE LF@input_type LF@input\n");
-    printf("JUMPIFNEQ _func_error LF@input_type string@int\n");
+    printf("JUMPIFNEQ _func_ret LF@input_type string@int\n");
     printf("WRITE LF@input\n");
     printf("WRITE string@\010\n");
-    printf("LABEL _func_error\n");
+    printf("LABEL _func_ret\n");
     printf("POPFRAME\n");
     printf("RETURN\n");
 
@@ -202,10 +210,10 @@ void bif_inputf()
     printf("DEFVAR LF@input_type\n");
     printf("READ LF@input float\n");
     printf("TYPE LF@input_type LF@input\n");
-    printf("JUMPIFNEQ _func_error LF@input_type string@float\n");
+    printf("JUMPIFNEQ _func_ret LF@input_type string@float\n");
     printf("WRITE LF@input\n");
     printf("WRITE string@\010\n");
-    printf("LABEL _func_error\n");
+    printf("LABEL _func_ret\n");
     printf("POPFRAME\n");
     printf("RETURN\n");
 
@@ -227,23 +235,32 @@ void main_prefix()
 
     printf("# MAIN FUNCTION\n");
     printf("LABEL _main\n");
-    printf("CREATEFRAME");
+    printf("CREATEFRAME\n");
+    printf("PUSHFRAME\n");
 
 }
 
 void main_suffix()
 {
 
+    printf("# END OF MAIN FUNCTION\n");
     printf("POPFRAME\n");
     printf("CLEARS\n");
 
 }
 
-void program_exit(int err_code)
+void program_exit(int err_code) //TODO USING
 {
 
     printf("EXIT int@%d\n",err_code);
     printf("# END OF GEN_CODE\n");
+
+}
+
+void general_func_call(char *func_name)
+{
+
+    printf("CALL _%s\n",func_name);
 
 }
 
@@ -252,7 +269,7 @@ void general_func_prefix(char *func_name)
 
     printf("# START OF THE FUNCTION %s\n",func_name);
     printf("LABEL _%s\n",func_name);
-    printf("PUSHFRAME");
+    printf("PUSHFRAME\n");
 
 }
 
@@ -265,17 +282,30 @@ void general_func_suffix(char *func_name)
 
 }
 
+///---------GENERATE INIT & VALUES FOR VARIABLES-----------------
+
+
 
 int main()
 {
 
-    char *function_name = "TEST";
-    int error_code = 0;
+    char *function_name = "TEST"; //TODO find way
+    int parameter_counter = 2;
+    int return_counter = 3;
+    int error_code = 0; //TODO find waY
+    type = TInt;
 
     program_start();
     main_prefix();
+
+   // func_args_TF_declar(function_name, parameter_counter);
+    general_func_call(function_name);
+
     general_func_prefix(function_name);
+    //func_param_LF_declar(function_name, parameter_counter);
+   // func_ret_declar(function_name, return_counter);
     general_func_suffix(function_name);
+
     main_suffix();
     program_exit(error_code);
 
