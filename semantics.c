@@ -11,6 +11,7 @@
 
 long blockExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLinkedListItem* strList);
 bool foundReturn;
+bool disableAssignment;
 
 /**
  * Parses string to TData type of data type
@@ -600,16 +601,23 @@ tExpReturnType assignmentExpSingleIdentifier(SyntaxNode* root, tScope* scope, ch
     }
 
     result.type = item->type;
-    result.constant = item->declared;
-    if (result.constant) {
-        result.value = item->value;
+
+    if (disableAssignment == false) {
+        result.constant = item->declared;
+        if (result.constant) {
+            result.value = item->value;
+            item->declared = true;
+        }
+    }
+    else {
+        item->declared = false;
     }
     //TODO codegen: you'll need this variable
     return result;
 }
 
 long assignmentExpSingle(SyntaxNode* dest, SyntaxNode* value, tScope* scope, char* parentFunction, tStringLinkedListItem* strList) {
-    tExpReturnType leftSide = assignmentExpSingleIdentifier(dest, scope, parentFunction);       //TODO not gut
+    tExpReturnType leftSide = assignmentExpSingleIdentifier(dest, scope, parentFunction);
     if (leftSide.errCode != 0) {
         return leftSide.errCode;
     }
@@ -685,8 +693,9 @@ long assignmentExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStrin
                         fprintf(stderr, "Not using all return values from function \"%s\"!\n", value->node->token->value);
                         return 6;
                     }
-
+                    disableAssignment = true;
                     tExpReturnType leftSide = assignmentExpSingleIdentifier(destination->node, scope, parentFunction);
+                    disableAssignment = false;
                     if (leftSide.errCode != 0) {
                         return leftSide.errCode;
                     }
@@ -721,7 +730,9 @@ long assignmentExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStrin
             }
 
             while (destination != NULL) {
+                disableAssignment = true;
                 tExpReturnType paramItem = assignmentExpSingleIdentifier(destination->node, scope, parentFunction);
+                disableAssignment = false;
                 if (paramItem.errCode != 0) {
                     return paramItem.errCode;
                 }
@@ -826,6 +837,7 @@ int ifExpression(SyntaxNode* root, tScope* scope, char* parentFunction, tStringL
     }
 
     //TODO assignment of constants in if/else is broken, cuz compiler doesn't know which path to choose...so always false
+    disableAssignment = true;
     int result = blockExp(root->statements->first->node, scope, parentFunction, strList);    //true
     if (result != 0) {
         return result;
@@ -835,6 +847,7 @@ int ifExpression(SyntaxNode* root, tScope* scope, char* parentFunction, tStringL
     if (result != 0) {
         return result;
     }
+    disableAssignment = false;
 
     return 0;
 }
@@ -1142,6 +1155,7 @@ long runSemanticAnalyze(SyntaxNode* root){
     if(root == NULL){
         return 99;
     }
+    disableAssignment = false;
 
     tStringLinkedListItem* strList = malloc(sizeof(tStringLinkedListItem));
     createList(strList);
