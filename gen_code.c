@@ -308,6 +308,29 @@ void func_args_TF_declar(char *func_name, int param_count)
       
 }
 
+void func_param_LF_declar(char *func_name, int param_count)
+{
+    
+    if(param_count > 0)
+    {
+
+        printf("# CREATE VARS FOR %s's PARAMS\n",func_name);
+        for(int i = 0; i<param_count; i++)
+        {
+            
+            printf("DEFVAR LF@param_%d\n",i);
+            printf("MOVE LF@param_%d ",i);
+            declared_vars_default_init(type);
+
+        }
+
+        printf("# ALL VARS FOR PARAMS HAS BEEN CREATED\n");
+
+    } else
+        printf("# FUNC %s IS WITHOUT PARAMS\n",func_name);
+    
+}
+
 ///---------GENERATE INIT & VALUES FOR VARIABLES-----------------
 
 
