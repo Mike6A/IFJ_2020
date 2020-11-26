@@ -69,9 +69,9 @@ void test_tree(){
     getToken(&tokenizer);
     SyntaxNode* prog = NULL;
     prog = getSyntaxGlobal(&tokenizer);
-    if(prog != NULL){
+ /*   if(prog != NULL){
         printSyntaxTree(prog, "", true);
-    }
+    }*/
     if(isError()){
         deleteSyntaxTree(prog);
         freeToken(&tokenizer);
