@@ -839,18 +839,15 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
         return NULL;
     }
     if(tokenizer->outputToken.type == tokenType_LBN){
-        tToken *left = Match(tokenizer, tokenType_LBN, false);
+        Match(tokenizer, tokenType_LBN, false);
         while (tokenizer->outputToken.type == tokenType_EOL) {
             getToken(tokenizer);
             if(tokenizer->errorCode != 0){
-                if(left != NULL){
-                    deleteToken(left);
-                }
                 error(tokenizer->errorCode);
             }
         }
         SyntaxNode *expression = ParseExpression(tokenizer, 0);
-        tToken *right = Match(tokenizer, tokenType_RBN, false);
+        Match(tokenizer, tokenType_RBN, false);
         return expression;
     }
 
