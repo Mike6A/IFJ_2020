@@ -53,9 +53,6 @@ void test_tokenizer(){
 void test_hashtable(){
     tHashTable table;
     initHashTable(&table, 10);
-    addDataToHT(&table, "myVar", "25", true);
-    addDataToHT(&table, "mysecondVar", "10", true);
-    addDataToHT(&table, "myVar1", "25", true);
 
     tHashItem* item = getHashItem(&table, "mysecondVar");
     printf("%s, %s\n", item->id, item->value);
@@ -70,10 +67,8 @@ void test_tree(){
     tTokenizer tokenizer;
     initTokenizer(&tokenizer);
     getToken(&tokenizer);
-    SyntaxNode* prog;
-    prog = createNode(NULL, NULL, NULL, NULL, "GlobalScope", Node_Global);
-    prog->left = getPackage(&tokenizer);
-    prog->statements = ParseGlobalBlockExpressions(&tokenizer, 0);
+    SyntaxNode* prog = NULL;
+    prog = getSyntaxGlobal(&tokenizer);
     if(prog != NULL){
         printSyntaxTree(prog, "", true);
     }

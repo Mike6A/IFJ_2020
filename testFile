@@ -1,7 +1,13 @@
-if hello else 		   good varW123 25/3.5 8.2e+2 4e-2+7e5
-/* this
-is 
-a 
-block
-comment*/ "this is a string" var "nwl \n" "h" "another" "hex \xFF" "nothex \xTR" //this is a comment 
-<= < newLine
+package main
+
+func foo(retaz string, cislo int)(int, float64) {
+    return 2, 5.1
+}
+
+func main()() {
+    a := 4
+    b := 5.8
+    c := "ss"
+    a, b = foo(c, a)
+    foo(c, a)
+}
