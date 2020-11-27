@@ -635,7 +635,7 @@ long assignmentExpSingle(SyntaxNode* dest, SyntaxNode* value, tScope* scope, cha
 
     tHashItem* item = getIdentifier(scope->topLocal, dest->left->token->value); //if item is null -> function param
     if (item != NULL) {
-        item->value = malloc(sizeof(char) * (strlen(rightSide.value) + 1));     //need to copy string or it will destroy everything (bad pointer)
+        item->value = realloc(item->value, sizeof(char) * (strlen(rightSide.value) + 1));     //need to copy string or it will destroy everything (bad pointer)
         if (item->value == NULL)
             return 99;
         strcpy(item->value, rightSide.value);
