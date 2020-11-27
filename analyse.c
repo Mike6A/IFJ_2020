@@ -584,6 +584,7 @@ SyntaxNode* ParseDeclarationSyntax(tTokenizer* tokenizer, tToken* id){
     }
     fprintf(stderr, "Expected expression after declaration!\n");
     deleteToken(id);
+    deleteSyntaxTree(expr);
     deleteToken(declare);
     error(2);
     return NULL;
@@ -844,6 +845,7 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
             getToken(tokenizer);
             if(tokenizer->errorCode != 0){
                 error(tokenizer->errorCode);
+                return NULL;
             }
         }
         SyntaxNode *expression = ParseExpression(tokenizer, 0);
@@ -1064,6 +1066,7 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
                     fprintf(stderr, "Expected: %s \t got: %s\n", getEnumString2(tokenType_DECL),
                             getEnumString2(tokenizer->outputToken.type));
                     error(2);
+                    return NULL;
                 }
                 tToken *assign = CopyToken(&tokenizer->outputToken);
                 getToken(tokenizer);
@@ -1412,7 +1415,6 @@ SyntaxNode *getFunctionNode(tTokenizer * tokenizer){
             if(isError()){
                 deleteToken(kw);
                 deleteToken(functionNameToken);
-                deleteToken(functionNameToken);
                 return NULL;
             }
             tToken* paramID = Match(tokenizer, tokenType_ID, true);
@@ -1468,6 +1470,7 @@ SyntaxNode *getFunctionNode(tTokenizer * tokenizer){
                 else if(tokenizer->outputToken.type != tokenType_COMMA && tokenizer->outputToken.type != tokenType_RBN){
                     deleteToken(kw);
                     deleteToken(returnType);
+                    deleteToken(functionNameToken);
                     destroyNodeList(returnTypes);
                     destroyNodeList(params);
                     fprintf(stderr, "Expected: COMMA or CLOSING BRACKET!\n");
