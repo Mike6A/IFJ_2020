@@ -19,59 +19,6 @@ bool isError(){
 int getError(){
     return ERRORCODE;
 }
-
-//@TODO Proper NAMING AND SEPARATE FILES!!!
-void initScope(tScope* scope){
-    scope->topLocal = NULL;
-    scope->global = NULL;
-}
-
-int createScope(tScope *scope){
-    tHashTable* table = (tHashTable*) malloc(sizeof(tHashTable));
-    if(table == NULL) {
-        //free(table);
-        error(99);
-        return 99;
-    }
-    initHashTable(table, MAX_HASHTABLE_SIZE);
-
-    if(scope->topLocal == NULL){
-        tScopeItem* newScope = (tScopeItem *)malloc(sizeof(tScopeItem));
-        if(newScope == NULL){
-            destructHashTable(table);
-            free(table);
-            error(99);
-            return 99;
-        }
-        newScope->next = NULL;
-        scope->topLocal = newScope;
-        scope->topLocal->table = table;
-        scope->global = newScope;
-    }else{
-        tScopeItem* newScope = (tScopeItem *)malloc(sizeof(tScopeItem));
-        if(newScope == NULL) {
-            destructHashTable(table);
-            free(table);
-            error(99);
-            return 99;
-        }
-        newScope->next = scope->topLocal;
-        newScope->table = table;
-        scope->topLocal = newScope;
-    }
-    return 0;
-}
-
-int removeLastLocalScope(tScope* scope){
-    tScopeItem *tmp = scope->topLocal;
-    scope->topLocal = tmp->next;
-    destructHashTable(tmp->table);
-    free(tmp->table);
-    free(tmp);
-    return 0;
-}
-
-
 char* getEnumString2(TokenType type){
     switch (type)
     {
@@ -544,14 +491,7 @@ SyntaxNode* ParseConditionExpresionSyntax(tTokenizer* tokenizer){
     }
     SyntaxNode *expr = ParseExpression(tokenizer, 0);
     if(expr!= NULL && (expr->type == Node_BooleanExpression || (expr->type == Node_ParenthezedExpression && expr->statements != NULL && expr->statements->node != NULL && expr->statements->node->type == Node_BooleanExpression)))
-        return expr;\
-        /*
-    if(expr!= NULL && expr->type == Node_ParenthezedExpression && expr->statements != NULL && expr->statements->node != NULL)
-        fprintf(stderr, "Expected: %s \t Given: %s\n", enumTypeOfNode[Node_BooleanExpression] ,enumTypeOfNode[expr->statements->node->type]);
-    else{
-        fprintf(stderr, "Expected: %s \t Given: %s\n", enumTypeOfNode[Node_BooleanExpression] ,expr != NULL ? enumTypeOfNode[expr->type] : "EOL");
-    }
-    */
+        return expr;
     deleteSyntaxTree(expr);
     error(2);
     return NULL;
@@ -812,7 +752,7 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
         return NULL;
     }
     // S => (exp)
-    static int functionReturnParams = -1;
+    //static int functionReturnParams = -1;
     static bool parsingReturn = false;
     if(tokenizer->outputToken.type == tokenType_EOF){
         //fprintf(stderr, "Unexpected EOF!\n");
@@ -1066,7 +1006,7 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
                     deleteToken(kw);
                     deleteToken(id);
                     //fprintf(stderr, "Expected: %s \t got: %s\n", getEnumString2(tokenType_DECL),
-                            getEnumString2(tokenizer->outputToken.type));
+                    //        getEnumString2(tokenizer->outputToken.type));
                     error(2);
                     return NULL;
                 }

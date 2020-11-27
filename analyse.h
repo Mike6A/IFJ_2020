@@ -50,51 +50,6 @@ enum typeOfNode{
     Node_FunctionParameter,
     Node_FunctionCallParameters,
 };
-static char *enumTypeOfNode[] = {
-        "Node_Global",
-
-        "Node_NumberIntExpression",
-        "Node_NumberDoubleExpression",
-        "Node_StringExpression",
-        "Node_IdentifierExpression",
-        "Node_ParenthezedExpression",
-        "Node_BinaryExpression",
-        "Node_UnaryExpression",
-        "Node_DeclareExpression",
-        "Node_AssignmentExpression",
-        "Node_AssignmentToExpression",
-        "Node_AssignmentValuesExpression",
-        "Node_BlockExpression",
-        "Node_IFExpression",
-        "Node_ElseExpression",
-        "Node_ForExpression",
-        "Node_ForInitExpressions",
-        "Node_FunctionExpression",
-        "Node_FunctionInitExpression",
-        "Node_FunctionCallExpression",
-        "Node_ReturnExpression",
-        "Node_BooleanExpression",
-        "Node_PackageExpression",
-        //TOKENST
-        "Node_NumberIntToken",
-        "Node_NumberDoubleToken",
-        "Node_StringToken",
-        "Node_OpenParenthesisToken",
-        "Node_CloseParenthesisToken",
-        "Node_IdentifierToken",
-        "Node_OpenBlockStatementToken",
-        "Node_CloseBlockStatementToken",
-        "Node_KWTypeToken",
-        "Node_ParamIdentifierToken",
-        "Node_ParamTypeToken",
-        "Node_AssignmentToken",
-        "Node_OperatorToken",
-        "Node_PackageNameToken",
-
-
-        "Node_FunctionParameter",
-        "Node_FunctionCallParameters",
-};
 //@TODO MAKE SEPARATE FILES FOR STRUCTURES !!!!
 //@TODO AND PROPER NAMING !!!!
 struct t_syntaxTree;
@@ -115,18 +70,6 @@ typedef struct t_syntaxTree {
     char* name;
 }SyntaxNode;
 
-typedef struct scopeItem{
-    tHashTable* table;
-    struct scopeItem* next;
-} tScopeItem;
-typedef struct scope{
-    tScopeItem* topLocal;
-    tScopeItem* global;
-}tScope;
-void initScope(tScope* scope);
-int createScope(tScope *scope);
-int removeLastLocalScope(tScope *scope);
-
 SyntaxNode* createNode(SyntaxNode* left, SyntaxNodes* statements, SyntaxNode* right, tToken* token, const char* name, int type);
 SyntaxNode* CopyNode(SyntaxNode* node);
 void initSyntaxNode(SyntaxNode *root);
@@ -138,7 +81,6 @@ SyntaxNode* ParseExpression(tTokenizer* tokenizer, int priority);
 SyntaxNode * getSyntaxGlobal(tTokenizer*tokenizer);
 SyntaxNodes* ParseGlobalBlockExpressions (tTokenizer* tokenizer, int parentPriority);
 SyntaxNodes* ParseBlockExpressions(tTokenizer* tokenizer, int priority);
-long eval(tTokenizer* tokenizer, SyntaxNode * root, tScope* scope);
 
 void deleteToken(tToken* token);
 void deleteSyntaxTree(SyntaxNode* node);
