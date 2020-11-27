@@ -69,14 +69,14 @@ void test_tree(){
     getToken(&tokenizer);
     SyntaxNode* prog = NULL;
     prog = getSyntaxGlobal(&tokenizer);
-    if(prog != NULL){
+   /* if(prog != NULL){
         printSyntaxTree(prog, "", true);
-    }
+    }*/
     if(isError()){
         deleteSyntaxTree(prog);
         freeToken(&tokenizer);
         destructBuilder(&tokenizer.sb);
-        fprintf(stderr, "%d",getError());
+        //fprintf(stderr, "%d",getError());
         exit(getError());
     }
 
