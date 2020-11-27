@@ -270,7 +270,7 @@ tToken* Match(tTokenizer* tokenizer, int type, bool copy){
         }
 
     }else{
-        fprintf(stderr,"Expected: %s \t--- Given: %s\n", getEnumString2(type), getEnumString2(tokenizer->outputToken.type));
+        //fprintf(stderr,"Expected: %s \t--- Given: %s\n", getEnumString2(type), getEnumString2(tokenizer->outputToken.type));
         error(2);
         return NULL;
     }
@@ -544,12 +544,14 @@ SyntaxNode* ParseConditionExpresionSyntax(tTokenizer* tokenizer){
     }
     SyntaxNode *expr = ParseExpression(tokenizer, 0);
     if(expr!= NULL && (expr->type == Node_BooleanExpression || (expr->type == Node_ParenthezedExpression && expr->statements != NULL && expr->statements->node != NULL && expr->statements->node->type == Node_BooleanExpression)))
-        return expr;
+        return expr;\
+        /*
     if(expr!= NULL && expr->type == Node_ParenthezedExpression && expr->statements != NULL && expr->statements->node != NULL)
         fprintf(stderr, "Expected: %s \t Given: %s\n", enumTypeOfNode[Node_BooleanExpression] ,enumTypeOfNode[expr->statements->node->type]);
     else{
         fprintf(stderr, "Expected: %s \t Given: %s\n", enumTypeOfNode[Node_BooleanExpression] ,expr != NULL ? enumTypeOfNode[expr->type] : "EOL");
     }
+    */
     deleteSyntaxTree(expr);
     error(2);
     return NULL;
@@ -562,7 +564,7 @@ SyntaxNode* ParseDeclarationSyntax(tTokenizer* tokenizer, tToken* id){
     tToken * declare = Match(tokenizer, tokenType_DECL, true);
     SyntaxNode *expr = ParseExpression(tokenizer, 0);
     if( expr == NULL){
-        fprintf(stderr, "Expected expression after declaration!\n");
+        //fprintf(stderr, "Expected expression after declaration!\n");
         deleteToken(id);
         deleteToken(declare);
         error(2);
@@ -582,7 +584,7 @@ SyntaxNode* ParseDeclarationSyntax(tTokenizer* tokenizer, tToken* id){
             ) {
         return declExpressionSyntax(id, declare, expr);
     }
-    fprintf(stderr, "Expected expression after declaration!\n");
+    //fprintf(stderr, "Expected expression after declaration!\n");
     deleteToken(id);
     deleteSyntaxTree(expr);
     deleteToken(declare);
@@ -625,7 +627,7 @@ SyntaxNode* ParseFunctionCallingSyntax(tTokenizer* tokenizer, tToken* id){
                     deleteToken(openBracket);
                     destroyNodeList(params);
                     deleteToken(id);
-                    fprintf(stderr, "Something went wrong!\n");
+                    //fprintf(stderr, "Something went wrong!\n");
                     error(2);
                     return NULL;
                 }
@@ -636,7 +638,7 @@ SyntaxNode* ParseFunctionCallingSyntax(tTokenizer* tokenizer, tToken* id){
                         deleteToken(openBracket);
                         destroyNodeList(params);
                         deleteToken(id);
-                        fprintf(stderr, "Something went wrong!\n");
+                        //fprintf(stderr, "Something went wrong!\n");
                         error(2);
                         return NULL;
                     }
@@ -789,7 +791,7 @@ SyntaxNode* ParseAssignSyntax(tTokenizer* tokenizer, tToken* FirstID){
             deleteToken(assign);
             destroyNodeList(list);
             destroyNodeList(assignValues);
-            fprintf(stderr, "Assignment went wrong!\n");
+            //fprintf(stderr, "Assignment went wrong!\n");
             error(2);
             return NULL;
         }
@@ -813,7 +815,7 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
     static int functionReturnParams = -1;
     static bool parsingReturn = false;
     if(tokenizer->outputToken.type == tokenType_EOF){
-        fprintf(stderr, "Unexpected EOF!\n");
+        //fprintf(stderr, "Unexpected EOF!\n");
         error(2);
         return NULL;
     }
@@ -825,17 +827,17 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
 
         return blockExpressionSyntax(left, statements, right);
          */
-        fprintf(stderr, "Unexpected start of the BLOCK!\n");
+        //fprintf(stderr, "Unexpected start of the BLOCK!\n");
         error(2);
         return NULL;
     }
     if(tokenizer->outputToken.type == tokenType_RBC){
-        fprintf(stderr, "Unexpected end of the BLOCK!\n");
+        //fprintf(stderr, "Unexpected end of the BLOCK!\n");
         error(2);
         return NULL;
     }
     if(tokenizer->outputToken.type == tokenType_COMMA){
-        fprintf(stderr, "Unexpected comma!\n");
+        //fprintf(stderr, "Unexpected comma!\n");
         error(2);
         return NULL;
     }
@@ -860,7 +862,7 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
             if ((tokenizer->outputToken.type == tokenType_ASSIGN || tokenizer->outputToken.type == tokenType_DECL) &&
                 parsingReturn) {
                 deleteToken(identifier);
-                fprintf(stderr, "Expected comma or expression, not Assignment or Declaration!\n");
+                //fprintf(stderr, "Expected comma or expression, not Assignment or Declaration!\n");
                 error(2);
                 return NULL;
             }
@@ -943,7 +945,7 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
                                 destroyNodeList(list);
                                 destroyNodeList(assignValues);
                                 deleteToken(assign);
-                                fprintf(stderr, "Assignment went wrong!\n");
+                                //fprintf(stderr, "Assignment went wrong!\n");
                                 error(2);
                                 return NULL;
                             }
@@ -971,12 +973,12 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
                                     destroyNodeList(list);
                                     destroyNodeList(assignValues);
                                     deleteToken(assign);
-                                    fprintf(stderr, "Assignment went wrong!\n");
+                                    //fprintf(stderr, "Assignment went wrong!\n");
                                     error(2);
                                     return NULL;
                                 }
                             } else {
-                                fprintf(stderr, "Expected expr, given EOL!\n");
+                                //fprintf(stderr, "Expected expr, given EOL!\n");
                                 destroyNodeList(list);
                                 destroyNodeList(assignValues);
                                 deleteSyntaxTree(expr);
@@ -990,7 +992,7 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
                     } else if (prevNodeFuncType || node->next == NULL) {
                         break;
                     } else {
-                        fprintf(stderr, "Assignment went wrong!\n");
+                        //fprintf(stderr, "Assignment went wrong!\n");
                         destroyNodeList(list);
                         destroyNodeList(assignValues);
                         deleteToken(assign);
@@ -1009,7 +1011,7 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
         if(tokenizer->outputToken.type == tokenType_LBN){
             if(isSpace){
                 deleteToken(identifier);
-                fprintf(stderr, "Function call should not have ' ' after identifier!\n");
+                //fprintf(stderr, "Function call should not have ' ' after identifier!\n");
                 error(2);
                 return NULL;
             }
@@ -1037,7 +1039,7 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
                 deleteSyntaxTree(condition);
                 deleteSyntaxTree(thenStatement);
                 deleteToken(elsekw);
-                fprintf(stderr, "ELSE required!\n");
+                //fprintf(stderr, "ELSE required!\n");
                 error(2);
                 return NULL;
             }
@@ -1063,7 +1065,7 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
                 if (tokenizer->outputToken.type != tokenType_DECL) {
                     deleteToken(kw);
                     deleteToken(id);
-                    fprintf(stderr, "Expected: %s \t got: %s\n", getEnumString2(tokenType_DECL),
+                    //fprintf(stderr, "Expected: %s \t got: %s\n", getEnumString2(tokenType_DECL),
                             getEnumString2(tokenizer->outputToken.type));
                     error(2);
                     return NULL;
@@ -1101,7 +1103,7 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
                 if(expr == NULL){
                     deleteToken(kw);
                     destroyNodeList(returnValues);
-                    fprintf(stderr, "return expect %d expressions. \t Given: %d\n", functionReturnParams, params-1);
+                    //fprintf(stderr, "return expect %d expressions. \t Given: %d\n", functionReturnParams, params-1);
                     error(2);
                     return NULL;
                 }
@@ -1114,7 +1116,7 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
             if(tokenizer->outputToken.type == tokenType_COMMA){
                 deleteToken(kw);
                 destroyNodeList(returnValues);
-                fprintf(stderr,"Too many return values!\n");
+                //fprintf(stderr,"Too many return values!\n");
                 error(2);
                 return NULL;
             }
@@ -1123,24 +1125,24 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
         }
         if(strcmp(kw->value, "package") == 0){
             deleteToken(kw);
-            fprintf(stderr, "Unexpected 'package'\n");
+            //fprintf(stderr, "Unexpected 'package'\n");
             error(2);
             return NULL;
         }
         if(strcmp(kw->value, "else") == 0){
             deleteToken(kw);
-            fprintf(stderr, "Unexpected 'else'\n");
+            //fprintf(stderr, "Unexpected 'else'\n");
             error(2);
             return NULL;
         }
         if(strcmp(kw->value, "int") == 0 || strcmp(kw->value, "string") == 0 || strcmp(kw->value, "float64") == 0){
-            fprintf(stderr, "Unexpected type KW '%s'\n", kw->value);
+            //(stderr, "Unexpected type KW '%s'\n", kw->value);
             deleteToken(kw);
             error(2);
             return NULL;
         }
         if(strcmp(kw->value, "func") == 0){
-            fprintf(stderr, "Unexpected func KW");
+            //fprintf(stderr, "Unexpected func KW");
             deleteToken(kw);
             error(2);
             return NULL;
@@ -1177,14 +1179,14 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
         tokenizer->outputToken.type == tokenType_EQ ||
         tokenizer->outputToken.type == tokenType_LE)
     {
-        fprintf(stderr,"Unexpected comparison token!\n");
+        //fprintf(stderr,"Unexpected comparison token!\n");
         error(2);
         return NULL;
     }
     if( tokenizer->outputToken.type == tokenType_ASSIGN ||
         tokenizer->outputToken.type == tokenType_DECL
             ) {
-        fprintf(stderr,"Expected EOL or continue expression. Not Declaration or Assignment!\n");
+        //fprintf(stderr,"Expected EOL or continue expression. Not Declaration or Assignment!\n");
         error(2);
         return NULL;
     }
@@ -1255,12 +1257,12 @@ SyntaxNode* ParseExpression(tTokenizer* tokenizer, int parentPriority){
     if (tokenizer->outputToken.type == tokenType_EOL)
         return NULL;
     if(tokenizer->errorCode != 0){
-        fprintf(stderr, "tokenizer ERRORCODE!!\n");
+        //fprintf(stderr, "tokenizer ERRORCODE!!\n");
         error(tokenizer->errorCode);
         return NULL;
     }
     if(tokenizer->outputToken.type == tokenType_SCOMMA){
-        fprintf(stderr, "Unexpected ';'\n");
+        //fprintf(stderr, "Unexpected ';'\n");
         error(2);
         return NULL;
     }
@@ -1298,7 +1300,7 @@ SyntaxNode* ParseExpression(tTokenizer* tokenizer, int parentPriority){
         if(priority == 0 || priority <= parentPriority) {
             if(priority == 0){
                 deleteSyntaxTree(left);
-                fprintf(stderr, "Unexpedted token!!! --- \t%s\n", getEnumString2(tokenizer->outputToken.type));
+                //fprintf(stderr, "Unexpedted token!!! --- \t%s\n", getEnumString2(tokenizer->outputToken.type));
                 error(2);
                 return NULL;
             }
@@ -1321,7 +1323,7 @@ SyntaxNode* ParseExpression(tTokenizer* tokenizer, int parentPriority){
         if(right == NULL){
             deleteToken(operator);
             deleteSyntaxTree(left);
-            fprintf(stderr, "Unexpected statement!\n");
+            //fprintf(stderr, "Unexpected statement!\n");
             error(2);
             return NULL;
         }
@@ -1331,7 +1333,7 @@ SyntaxNode* ParseExpression(tTokenizer* tokenizer, int parentPriority){
             deleteToken(operator);
             deleteSyntaxTree(left);
             deleteSyntaxTree(right);
-            fprintf(stderr, "Unexpected Declare or Assign Expression\n");
+            //fprintf(stderr, "Unexpected Declare or Assign Expression\n");
             error(2);
             return NULL;
         }
@@ -1371,7 +1373,7 @@ SyntaxNode* getPackage(tTokenizer* tokenizer){
     if(pkKW == NULL || strcmp(pkKW->value, "package") != 0){
         deleteToken(pkKW);
         pkKW = NULL;
-        fprintf(stderr, "Expected 'package'. Given: %s\n", pkKW != NULL ? pkKW->value: "");
+        //fprintf(stderr, "Expected 'package'. Given: %s\n", pkKW != NULL ? pkKW->value: "");
         error(2);
         return NULL;
     }
@@ -1382,7 +1384,7 @@ SyntaxNode* getPackage(tTokenizer* tokenizer){
         deleteToken(idofPk);
         pkKW = NULL;
         idofPk = NULL;
-        fprintf(stderr, "Expected 'main'. Given: %s\n", idofPk!=NULL ? idofPk->value: "");
+        //fprintf(stderr, "Expected 'main'. Given: %s\n", idofPk!=NULL ? idofPk->value: "");
         error(2);
         return NULL;
     }
@@ -1433,7 +1435,7 @@ SyntaxNode *getFunctionNode(tTokenizer * tokenizer){
                 deleteToken(functionNameToken);
                 deleteToken(paramID);
                 deleteToken(paramType);
-                fprintf(stderr, "Expected: COMMA or CLOSING BRACKET!\n");
+                //fprintf(stderr, "Expected: COMMA or CLOSING BRACKET!\n");
                 error(2);
                 return NULL;
             }
@@ -1473,7 +1475,7 @@ SyntaxNode *getFunctionNode(tTokenizer * tokenizer){
                     deleteToken(functionNameToken);
                     destroyNodeList(returnTypes);
                     destroyNodeList(params);
-                    fprintf(stderr, "Expected: COMMA or CLOSING BRACKET!\n");
+                    //fprintf(stderr, "Expected: COMMA or CLOSING BRACKET!\n");
                     error(2);
                     return NULL;
                 }
@@ -1495,7 +1497,7 @@ SyntaxNode *getFunctionNode(tTokenizer * tokenizer){
         SyntaxNode* funcBody = blockExpressionSyntax(openBlockToken, funcStatements, closeBlockToken);
         return functStatementSyntax(kw, functionNameToken, params, returnTypes, funcBody);
     }
-    fprintf(stderr,"Expected func keyword! Given: %s\n", kw->value);
+    //fprintf(stderr,"Expected func keyword! Given: %s\n", kw->value);
     deleteToken(kw);
     error(2);
     return NULL;
