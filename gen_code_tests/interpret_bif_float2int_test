@@ -1,0 +1,24 @@
+.IFJcode20
+JUMP _main
+# func float2int(f float64) (int int)
+LABEL _float2int
+PUSHFRAME
+DEFVAR LF@float2int_ret_0
+MOVE LF@float2int_ret_0 int@0
+FLOAT2INT LF@float2int_ret_0 LF@arg_0
+POPFRAME
+RETURN
+
+LABEL _main
+CREATEFRAME
+PUSHFRAME
+DEFVAR LF@final_int
+MOVE LF@final_int int@0
+CREATEFRAME
+DEFVAR TF@arg_0
+MOVE TF@arg_0 float@0x1.2666666666666p+0
+CALL _float2int
+MOVE LF@final_int TF@float2int_ret_0
+WRITE LF@final_int
+WRITE string@\010
+
