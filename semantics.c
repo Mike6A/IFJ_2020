@@ -69,14 +69,21 @@ char* appendString(char* str1, char* str2, tStringLinkedListItem* strList) {
  * @param name Name of identifier
  * @return tHashItem* if found, otherwise NULL
  */
-tHashItem* getIdentifier(tScopeItem* scope, char* name){
+tHashItem* getIdentifier(tScopeItem* scope, char* name, int* scopeLevel) {
     tHashItem *item = NULL;
     do {
         item = getHashItem(scope->table, name);
         if (item == NULL){
             scope = scope->next;
+            if (scopeLevel != NULL) {
+                *scopeLevel = scope->scopeLevel;
+            }
         }
     } while(item == NULL && scope != NULL);
+
+    if (item == NULL && scopeLevel != NULL) {
+        *scopeLevel = -1;
+    }
 
     return item;
 }
@@ -99,13 +106,13 @@ tExpReturnType identifierExp(SyntaxNode* root, tScope* scope, char* parentFuncti
         return result;
     }
 
-    tHashItem* item = getIdentifier(currentScope, id);
+    tHashItem* item = getIdentifier(currentScope, id, NULL);
     if (item != NULL && item->func != NULL) {
         item = NULL;
     }
 
     if (item == NULL) {
-        tHashItem* func = getIdentifier(scope->topLocal, parentFunction);      //TODO test for recursion error finding bad variables
+        tHashItem* func = getIdentifier(scope->topLocal, parentFunction, NULL);      //TODO test for recursion error finding bad variables
         //tHashItem* func = getIdentifier(scope->global, parentFunction);      //TODO test for recursion error finding bad variables
         if (func->func->params_count > 0) {
             for (int i = 0; i < func->func->params_count; i++) {
@@ -488,7 +495,7 @@ tExpReturnType evalExpression(SyntaxNode* root, tScope* scope, char* parentFunct
  */
 long returnExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLinkedListItem* strList) {
     int returnCode = 0;
-    tHashItem* func = getIdentifier(scope->topLocal, parentFunction);
+    tHashItem* func = getIdentifier(scope->topLocal, parentFunction, NULL);
     //tHashItem* func = getIdentifier(scope->global, parentFunction);
     if (func != NULL) {     //function is declared (if not, there's something wrong)
         int retCount = 0;
@@ -547,7 +554,7 @@ long declareExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLi
         return 3;
     }
 
-    tHashItem *parentFunc = getIdentifier(scope->topLocal, parentFunction);
+    tHashItem *parentFunc = getIdentifier(scope->topLocal, parentFunction, NULL);
     //tHashItem *parentFunc = getIdentifier(scope->global, parentFunction);
     if (parentFunc->func->params_count > 0) {
         for (int i = 0; i < parentFunc->func->params_count; i++) {
@@ -575,7 +582,7 @@ tExpReturnType assignmentExpSingleIdentifier(SyntaxNode* root, tScope* scope, ch
     result.constant = false;
     tScopeItem *currentScope = scope->topLocal;
     char* id = root->left->token->value;
-    tHashItem* item = getIdentifier(currentScope, id);
+    tHashItem* item = getIdentifier(currentScope, id, NULL);
 
     if (item == NULL) {
         if (strcmp(id, "_") == 0) {
@@ -583,7 +590,7 @@ tExpReturnType assignmentExpSingleIdentifier(SyntaxNode* root, tScope* scope, ch
             return result;
         }
 
-        tHashItem* func = getIdentifier(scope->topLocal, parentFunction);      //TODO test for recursion error finding bad variables
+        tHashItem* func = getIdentifier(scope->topLocal, parentFunction, NULL);      //TODO test for recursion error finding bad variables
         //tHashItem* func = getIdentifier(scope->global, parentFunction);      //TODO test for recursion error finding bad variables
         if (func->func->params_count > 0) {
             for (int i = 0; i < func->func->params_count; i++) {
@@ -633,7 +640,7 @@ long assignmentExpSingle(SyntaxNode* dest, SyntaxNode* value, tScope* scope, cha
 
     //TODO codegen: leftSide = variable | rightSide = value
 
-    tHashItem* item = getIdentifier(scope->topLocal, dest->left->token->value); //if item is null -> function param
+    tHashItem* item = getIdentifier(scope->topLocal, dest->left->token->value, NULL); //if item is null -> function param
     if (item != NULL) {
         item->value = realloc(item->value, sizeof(char) * (strlen(rightSide.value) + 1));     //need to copy string or it will destroy everything (bad pointer)
         if (item->value == NULL)
@@ -650,7 +657,7 @@ long assignmentExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStrin
     int returnCode = 0;
 
     if (value->node->type == Node_FunctionCallExpression) { //values from return from function
-        tHashItem* tItem = getIdentifier(scope->topLocal, value->node->token->value);
+        tHashItem* tItem = getIdentifier(scope->topLocal, value->node->token->value, NULL);
         //tHashItem* tItem = getIdentifier(scope->global, value->node->token->value);
         if (tItem != NULL) {
             tFuncItem* func = tItem->func;
@@ -764,7 +771,7 @@ long assignmentExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStrin
 //call function WIP
 int callFunction(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLinkedListItem* strList) {
     int result = 0;
-    tHashItem* tItem = getIdentifier(scope->topLocal, root->token->value);
+    tHashItem* tItem = getIdentifier(scope->topLocal, root->token->value, NULL);
     //tHashItem* tItem = getIdentifier(scope->global, root->token->value);
     if (tItem != NULL) {
         tFuncItem* func = tItem->func;
