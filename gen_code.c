@@ -686,9 +686,10 @@ void if_suffix(char *func_name, int deep_level, int deep_index)
     
 }
 
-///----------------BEFORE/AFTER EVERY NEW SCOPE--------------------------
+///----------------BEFORE/AFTER FOR OR IF/ELSE SCOPE--------------------------
 
 //ASK: Problem s rovnakym nazvom premennej(kazdej premennej index a deep??)
+//only after for and if/else scopes
 void all_vars_to_new_scope(int deep_level, int deep_index, int vars_total)
 {
 
@@ -705,7 +706,22 @@ void all_vars_to_new_scope(int deep_level, int deep_index, int vars_total)
 
 }
 
+//only after for and if/else scopes
 void all_vars_after_new_scope(int deep_level, int deep_index, int vars_total)
+{
+
+    printf("# TRANSFER VARS REAL VALUES\n");
+    for(int i=0; i<vars_total; i++)
+    {
+    
+        printf("MOVE LF@%s TF@%s\n");
+
+    }
+    printf("# TRANSFER VARS's VALUES END\n");
+
+}
+
+void all_vars_after_new_scope_but_im_dumbass(int deep_level, int deep_index, int vars_total)
 {
 
     printf("# TRANSFER VARS REAL VALUES\n");

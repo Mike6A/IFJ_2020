@@ -84,7 +84,7 @@ void for_args_TF_declar(char *func_name, TItem type);
 void for_prefix(char *func_name, int deep_level, int deep_index);
 void for_suffix(char *func_name, int deep_level, int deep_index);
 
-///----------------BEFORE/AFTER EVERY NEW SCOPE--------------------------
+///----------------BEFORE/AFTER FOR OR IF/ELSE SCOPE--------------------------
 void all_vars_to_new_scope(int deep_level, int deep_index, int vars_total);
 void all_vars_after_new_scope(int deep_level, int deep_index, int vars_total);
 
