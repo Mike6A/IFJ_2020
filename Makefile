@@ -7,7 +7,4 @@ OBJECTS= $(SOURCES:%.c=%.o)
 all: $(PROJ)
 
 $(PROJ): $(SOURCES)
-	$(CC) $^ -o $@ $(CFLAGS) 
-
-
-
+	$(CC) $^ -o $@ $(CFLAGS)

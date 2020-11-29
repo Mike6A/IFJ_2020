@@ -68,6 +68,7 @@ int createScope(tScope *scope) {
     if (scope->topLocal == NULL) {
         tScopeItem* newScope = (tScopeItem*) malloc(sizeof(tScopeItem));
         newScope->next = NULL;
+        newScope->scopeLevel = 0;
         scope->topLocal = newScope;
         scope->topLocal->table = table;
         scope->global = newScope;
@@ -78,6 +79,15 @@ int createScope(tScope *scope) {
             free(table);
             return 99;
         }
+
+        int scopeLevel = 0;
+        tScopeItem* tmp = scope->topLocal;
+        while (tmp != NULL) {
+            tmp = tmp->next;
+            scopeLevel++;
+        }
+        newScope->scopeLevel = scopeLevel;
+
         newScope->next = scope->topLocal;
         newScope->table = table;
         scope->topLocal = newScope;
