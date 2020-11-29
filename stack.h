@@ -11,6 +11,7 @@
 
 typedef struct scopeItem{
     tHashTable* table;
+    int scopeLevel;
     struct scopeItem* next;
 } tScopeItem;
 

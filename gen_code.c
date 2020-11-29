@@ -534,97 +534,146 @@ void vars_final_counter(SyntaxNode *root, tHashItem *item)
 
 */
 
-char* GenParseExpr(SyntaxNode* root, char* assignTo, char* right, char* left){
-   
+
+
+struct genExpr GenParseExpr(SyntaxNode* root, char* assignTo, char* left, char* right, char* type){
+
+    static bool current_unary = true;//true == plus, false == minus
+    static bool unary_before = true;//true == plus, false == minus
+    struct genExpr rightTemp = {.value = right, .type = type, .sign = false};
+    struct genExpr leftTemp = {.value = left, .type = type, .sign = false};
+
     if(root->type == Node_NumberIntExpression || root->type == Node_NumberDoubleExpression || root->type == Node_StringExpression || root->type == Node_IdentifierExpression) {
-       
-        
-        return root->right->token->value;
+
+        struct genExpr test;
+        test.value = root->right->token->value;
+        test.type = root->type == Node_IdentifierExpression ? "LF" : type;
+        if(!current_unary) {
+            current_unary = true;
+            unary_before = true;
+            test.sign = true;
+            return test;
+        }else {
+            test.sign = false;
+            return test;
+        }
     }
-    else if(root->type == Node_BinaryExpression){
-        right = GenParseExpr(root->right, right,right, left);
-        left = GenParseExpr(root->left, left,right, left);
+    else if(root->type == Node_BinaryExpression) {
+        bool changeSign = false;
+        if (!current_unary) {
+            changeSign = true;
+            current_unary = true;
+            unary_before = true;
+        }
+        leftTemp = GenParseExpr(root->left, leftTemp.value, leftTemp.value, rightTemp.value, type);
+        rightTemp = GenParseExpr(root->right, rightTemp.value, leftTemp.value, rightTemp.value, type);
+
         switch (root->token->type) {
             case tokenType_PLUS:
-                printf("ADD LF@%s %s %s\n",assignTo, left, right);
+                printf("ADD LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.type, leftTemp.sign ? "-" : "", leftTemp.value,
+                       rightTemp.type, rightTemp.sign ? "-" : "", rightTemp.value);
                 break;
             case tokenType_MINUS:
-                printf("SUB LF@%s %s %s\n",assignTo, left, right);
+                printf("SUB LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.type, leftTemp.sign ? "-" : "", leftTemp.value,
+                       rightTemp.type, rightTemp.sign ? "-" : "", rightTemp.value);
                 break;
             case tokenType_MUL:
-                printf("MUL LF@%s %s %s\n",assignTo, left, right);
+                printf("MUL LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.type, leftTemp.sign ? "-" : "", leftTemp.value,
+                       rightTemp.type, rightTemp.sign ? "-" : "", rightTemp.value);
                 break;
             case tokenType_DIV:
-                if(root->right->token->value == 0)
-                {
-                    //ASK: EXITNUT ABO CO DO PICE 
-                    printf("DPRINT %s","divide by zero\n");
-                    printf("EXIT int@5\n");
-
+                //ASK: EXITNUT ABO CO DO PICE
+                printf("\n"); // IF rightTemp.value != 0 then jump on LABEL
+                printf("DPRINT %s", "divide by zero\n");
+                printf("EXIT int@5\n");
+                printf("\n"); // LABEL IF
+                if (strcmp(type, "int") == 0) {
+                    printf("IDIV LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.type, leftTemp.sign ? "-" : "", leftTemp.value,
+                           rightTemp.type, rightTemp.sign ? "-" : "", rightTemp.value);
+                } else if (strcmp(type, "float") == 0) {
+                    printf("DIV LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.type, leftTemp.sign ? "-" : "", leftTemp.value,
+                           rightTemp.type, rightTemp.sign ? "-" : "", rightTemp.value);
                 }
-                printf("DIV LF@%s %s %s\n",assignTo, left, right);
-
                 break;
         }
-        return assignTo;
-    }else if(root->type == Node_UnaryExpression){
-
-            bool current_unary;//true == plus, false == minus
-            bool unary_before;//true == plus, false == minus
-            if(current_unary != unary_before) 
-                current_unary = false;
-            else 
-                current_unary = true;
-
-            right = GenParseExpr(root->right, right,right, left);
-            switch (root->token->type) {
-
-                case tokenType_PLUS:
-
-                    break;
-
-                case tokenType_MINUS:
-                    
-                    break;
-
+        if(changeSign){
+            if (strcmp(type, "int") == 0) {
+                printf("MUL LF@%s %s@%s %s@%s\n", assignTo, "LF", assignTo, "int", "-1");
+            }else if (strcmp(type, "float") == 0) {
+                printf("MUL LF@%s %s@%s %s@%s\n", assignTo, "LF", assignTo, "float", "-1.0");
             }
-        //@TODO;
-    }
+            changeSign = false;
+        }
+        struct genExpr done = {.value = assignTo, .type = type, .sign = false};
 
+        return done;
+    }else if(root->type == Node_UnaryExpression){
+        current_unary = root->token->type == tokenType_PLUS;
+        if(current_unary != unary_before)
+            current_unary = false;
+        else
+            current_unary = true;
+        unary_before = current_unary;
+        return GenParseExpr(root->right, assignTo,left, right, type);
+    }
 }
+
 
 void GENASIGN(SyntaxNode* root, tHashItem* item){ //TEST!!!!!!!!
     static int c = 0;
     printf("DEFVAR %s\n", item->id);
-    char* temp1[15];
+    char temp1[15];
     sprintf(temp1, "__LEFT__%d", c);
 
     printf("DEFVAR LF@%s\n", temp1);
-    char* temp2[15];
+    char temp2[15];
     sprintf(temp2, "__RIGHT__%d", c++);
     printf("DEFVAR LF@%s\n", temp2);
 
-    char* tmp = GenParseExpr(root, item->id, temp1, temp2);
-    //printf("MOVE %s %s\n", item->id, tmp);
+    struct genExpr tmp = GenParseExpr(root, item->id, temp1, temp2, get_var_type(item->type));
+    printf("MOVE LF@%s LF@%s\n", item->id, tmp.value);
 }
 
-void vars_default_declar_init(SyntaxNode *root, tHashItem *item, char* assignTo, char* right, char* left, TItem type) 
+void vars_default_declar_init(SyntaxNode *root, tHashItem *item)
 {
 
     printf("# DECLARE AND DEFAULT_INIT VAR %s\n",item->id);
+    static int c = 0;
+    char temp1[15];
+    sprintf(temp1, "__LEFT__%d", c);
+
+    printf("DEFVAR LF@%s\n", temp1);
+    char temp2[15];
+    sprintf(temp2, "__RIGHT__%d", c++);
+    printf("DEFVAR LF@%s\n", temp2);
+
     printf("DEFVAR LF@%s\n",item->id);
-    printf("MOVE LF@%s %s@%s\n",item->id,get_var_type(type),
-    GenParseExpr(root,assignTo,right,left));
-    
+    struct genExpr tmp = GenParseExpr(root, item->id, temp1, temp2, get_var_type(item->type));
+    printf("MOVE LF@%s %s@%s\n",item->id,tmp.type, tmp.value);
+    //GenParseExpr(root,assignTo,right,left));
+
 }
 
 // only use after vars_default_declar_init!!
-void vars_set_new_value(SyntaxNode *root, tHashItem *item, char* assignTo, char* right, char* left,TItem type)
+void vars_set_new_value(SyntaxNode *root, tHashItem *item)
 {
+    //@TODO
+    static int c = 0;
+    char temp1[15];
+    sprintf(temp1, "__LEFT__%d", c);
+
+    printf("DEFVAR LF@%s\n", temp1);
+    char temp2[15];
+    sprintf(temp2, "__RIGHT__%d", c++);
+    printf("DEFVAR LF@%s\n", temp2);
+
+    printf("DEFVAR LF@%s\n",item->id);
+
 
     printf("# RE-SET VALUE FOR VAR %s\n",item->id);
-    printf("MOVE LF@%s %s@%s\n",item->id,get_var_type(type),
-    GenParseExpr(root,assignTo,right,left));
+    struct genExpr tmp = GenParseExpr(root, item->id, temp1, temp2, get_var_type(item->type));
+    printf("MOVE LF@%s %s@%s\n",item->id,tmp.type, tmp.value);
+    //GenParseExpr(root,assignTo,right,left));
 
 }
 
@@ -685,7 +734,7 @@ void if_suffix(char *func_name, int deep_level, int deep_index)
 }
 
 ///----------------BEFORE/AFTER FOR OR IF/ELSE SCOPE--------------------------
-
+/*
 //ASK: Problem s rovnakym nazvom premennej(kazdej premennej index a deep??)
 //only after for and if/else scopes
 void all_vars_to_new_scope(int deep_level, int deep_index, int vars_total)
@@ -829,3 +878,4 @@ void for_suffix(char *func_name, int deep_level, int deep_index)
    // main_suffix();
     //program_exit(error_code);
 
+*/
