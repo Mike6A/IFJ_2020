@@ -6,10 +6,6 @@
 
 #include "semantics.h"
 #include "gen_code.h"
-<<<<<<< HEAD
-
-=======
->>>>>>> 88f778b558e77ed47799e624320531a5744c27a4
 
 #define MAX_NUM2STRING_DIGITS 75
 #define MAX_DOUBLE_ACCURACY 0.000000001
