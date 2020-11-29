@@ -5,6 +5,7 @@
  */
 
 #include "semantics.h"
+#include "gen_code.h"
 
 #define MAX_NUM2STRING_DIGITS 75
 #define MAX_DOUBLE_ACCURACY 0.000000001
@@ -569,6 +570,7 @@ long declareExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLi
     tExpReturnType result = evalExpression(root->right, scope, parentFunction, strList);
     if (result.errCode == 0) {
         addVarToHT(currentScope->table, id, result.type, result.value, result.constant);
+        vars_default_declar_init(root->right, getIdentifier(currentScope, id, NULL));
         //TODO codegen: declare variable in current scope | name: id, value: result.value, constant: result.constant
     }
 
@@ -647,6 +649,7 @@ long assignmentExpSingle(SyntaxNode* dest, SyntaxNode* value, tScope* scope, cha
             return 99;
         strcpy(item->value, rightSide.value);
     }
+    vars_set_new_value(value, item);
     return 0;
 }
 
