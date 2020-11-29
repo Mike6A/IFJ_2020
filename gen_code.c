@@ -660,8 +660,6 @@ void new_label_for(char *func_name, int deep_level, int deep_index)
 
 //void expr_in_if(expr)
 
-
-
 void if_prefix(char *func_name, int deep_level, int deep_index)
 {
 
@@ -721,7 +719,7 @@ void all_vars_after_new_scope(int deep_level, int deep_index, int vars_total)
 
 }
 
-void all_vars_after_new_scope_but_im_dumbass(int deep_level, int deep_index, int vars_total)
+/*void all_vars_after_new_scope_but_im_dumbass(int deep_level, int deep_index, int vars_total)
 {
 
     printf("# TRANSFER VARS REAL VALUES\n");
@@ -758,7 +756,7 @@ void all_vars_after_new_scope_but_im_dumbass(int deep_level, int deep_index, int
     }
     printf("# TRANSFER VARS's VALUES END\n");
 
-}
+}*/
 
 ///--------------------FOR FUNCTIONS-------------------------------
 

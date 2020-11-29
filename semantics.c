@@ -5,6 +5,8 @@
  */
 
 #include "semantics.h"
+#include "gen_code.h"
+
 
 #define MAX_NUM2STRING_DIGITS 75
 #define MAX_DOUBLE_ACCURACY 0.000000001
@@ -273,13 +275,17 @@ tExpReturnType evalExpression(SyntaxNode* root, tScope* scope, char* parentFunct
             long left = parseStringToInt(leftSide.value);
             result.constant = true;
             if (tokenType == tokenType_PLUS) {
+                
                 result.value = parseIntToString(left + right, strList);
+               // printf("DEFVAR LF@temp\n");
+               // printf("ADD LF@temp int@%d int@%d\n",left, right);
             }
             else if (tokenType == tokenType_MINUS) {
                 result.value = parseIntToString(left - right, strList);
             }
             else if (tokenType == tokenType_MUL) {
                 result.value = parseIntToString(left * right, strList);
+               // printf("%d %d\n",left, right);
             }
             else if (tokenType == tokenType_DIV) {
                 result.value = parseIntToString(left / right, strList);
@@ -562,6 +568,7 @@ long declareExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLi
     tExpReturnType result = evalExpression(root->right, scope, parentFunction, strList);
     if (result.errCode == 0) {
         addVarToHT(currentScope->table, id, result.type, result.value, result.constant);
+        //vars_final_counter(root->right,getHashItem(currentScope->table, id));
         //TODO codegen: declare variable in current scope | name: id, value: result.value, constant: result.constant
     }
 
