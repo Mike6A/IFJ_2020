@@ -24,6 +24,12 @@ typedef struct t_SN_Stack {
     int top;
 } tSN_Stack;
 
+struct genExpr {
+    char* value;
+    char* type;
+    bool sign;
+};
+
 void init_SN_Stack(tSN_Stack* list);
 int add_SN_StackItem(tSN_Stack* list, SyntaxNode* node);
 int destroy_SN_Stack(tSN_Stack* list);
@@ -63,10 +69,10 @@ void func_ret_get_value(char *func_name, tFuncItem *func);
 void general_terminal_val(tToken token);
 void declared_vars_default_init(TItem type);
 char* get_var_type(TItem type);
-char* GenParseExpr(SyntaxNode* root, char* assignTo, char* right, char* left);
+struct genExpr GenParseExpr(SyntaxNode* root, char* assignTo, char* right, char* left, char* type);
 void GENASIGN(SyntaxNode* root, tHashItem* item);
-void vars_default_declar_init(SyntaxNode *root, tHashItem *item, char* assignTo, char* right, char* left, TItem type);
-void vars_set_new_value(SyntaxNode *root, tHashItem *item, char* assignTo, char* right, char* left,TItem type);
+void vars_default_declar_init(SyntaxNode *root, tHashItem *item);
+void vars_set_new_value(SyntaxNode *root, tHashItem *item);
 
 ///---------STACK FUNCTIONS----------------------
 void stack_concat_string(char *str3, char *str2, char *str1);
