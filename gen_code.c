@@ -580,8 +580,6 @@ void vars_final_counter(SyntaxNode *root, tHashItem *item)
 
 */
 
-
-
 struct genExpr GenParseExpr(SyntaxNode* root, char* assignTo, char* left, char* right, char* type){
 
     static bool current_unary = true;//true == plus, false == minus
@@ -744,6 +742,13 @@ void new_label_if(char *func_name, tScopeItem *item, int deep_index)
 
 }
 
+void new_label_else(char *func_name, tScopeItem *item, int deep_index)
+{
+
+    printf("LABEL _%s_%d_%d_else\n", func_name, item->scopeLevel, deep_index);
+
+}
+
 void new_label_for(char *func_name, tScopeItem *item, int deep_index)
 {
 
@@ -751,33 +756,34 @@ void new_label_for(char *func_name, tScopeItem *item, int deep_index)
 
 }
 
+void new_label_for_in(char *func_name, tScopeItem *item, int deep_index)
+{
+
+    printf("LABEL _%s_%d_%d_for_in\n", func_name, item->scopeLevel, deep_index);
+
+}
+
 ///------------IF/ELSE FUNCTIONS------------------------
 
-//void expr_in_if(expr)
+//vod expr_in_if(expr)
 
 void if_prefix(char *func_name, tScopeItem *item, int deep_index)
 {
 
-    printf("JUMPIFEQ _%s_%d_%d LF@if_bool_result bool@false\n",func_name, item->scopeLevel, deep_index);
+    printf("JUMPIFEQ _%s_%d_%d_if LF@if_bool_result bool@false\n",func_name, item->scopeLevel, deep_index);
 
 }
 
 void if_else(char *func_name, tScopeItem *item, int deep_index)
 {
     
-    printf("JUMP _%s_%d_%d\n",func_name, item->scopeLevel, ++deep_index);
+    printf("JUMP _%s_%d_%d_else\n",func_name, item->scopeLevel, ++deep_index);
     printf("# ELSE PART\n");
-    new_label(func_name,item->scopeLevel,deep_index);
+    new_label_else(func_name,item->scopeLevel,deep_index);
 
 }
 
-void if_suffix(char *func_name, tScopeItem *item, int deep_index)
-{
-
-    printf("# FI\n");
-    new_label(func_name,item->scopeLevel,deep_index);
-    
-}
+/*
 
 ///----------------BEFORE/AFTER FOR OR IF/ELSE SCOPE--------------------------
 
@@ -814,6 +820,8 @@ void all_vars_after_new_scope(tScopeItem *item, int deep_index, int vars_total)
 
 }
 
+*/
+
 ///--------------------FOR FUNCTIONS-------------------------------
 
 void for_args_TF_declar(char *func_name, TItem type)
@@ -831,7 +839,7 @@ void for_args_TF_declar(char *func_name, TItem type)
     declared_vars_default_init(type);
 
     printf("DEFVAR TF@incr\n");
-    printf("MOVE TF@incr ");
+    printf("MOVE TF@ass ");
     declared_vars_default_init(type);
       
 }
@@ -840,9 +848,9 @@ void for_prefix(char *func_name, tScopeItem *item, int deep_index)
 {
 
     printf("# START FOR IN %s\n", func_name);
-    new_label(func_name,item->scopeLevel,deep_index);
-    printf("PUSHFRAME\n");
     new_label_for(func_name,item->scopeLevel,deep_index);
+    printf("PUSHFRAME\n");
+    new_label_for_in(func_name,item->scopeLevel,deep_index);
     //nasleduje telo foru
 }
 
@@ -850,9 +858,9 @@ void for_suffix(char *func_name, tScopeItem *item, int deep_index)
 {
 
     //koniec tela foru,...cond
-    printf("JUMPIFNEQ ");
-    new_label_for(func_name,item->scopeLevel,deep_index);
-    printf(" LF@i LF@cond\n");
+    //printf(""); TODO: SUB||ADD||MUL||DIV assignment
+    printf("JUMPIFNEQ _%s_%d_%d_for_in ",func_name,item->scopeLevel,deep_index);
+    printf("LF@i LF@cond\n");
     printf("POPFRAME\n");
     printf("# END FOR LOOP\n");
 

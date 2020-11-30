@@ -78,13 +78,14 @@ void vars_set_new_value(SyntaxNode *root, tHashItem *item);
 ///---------STACK FUNCTIONS----------------------
 void stack_concat_string(char *str3, char *str2, char *str1);
 ///------------LABEL GENERATORS------------------------
-void new_label(char *func_name, tScopeItem *item, int deep_index);
 void new_label_for(char *func_name, tScopeItem *item, int deep_index);
+void new_label_for_in(char *func_name, tScopeItem *item, int deep_index);
+void new_label_if(char *func_name, tScopeItem *item, int deep_index);
+void new_label_else(char *func_name, tScopeItem *item, int deep_index);
 
 ///------------IF/ELSE FUNCTIONS------------------------
 void if_prefix(char *func_name, tScopeItem *item, int deep_index);
 void if_else(char *func_name, tScopeItem *item, int deep_index);
-void if_suffix(char *func_name, tScopeItem *item, int deep_index);
 
 ///--------------------FOR FUNCTIONS-------------------------------
 void for_args_TF_declar(char *func_name, TItem type);
