@@ -4,6 +4,7 @@
  * @brief Implementation of code generator
  *
  * @author Michal Mikota (xmikot01@stud.fit.vutbr.cz)
+ * @author Dávid Oravec (xorave06@stud.fit.vutbr.cz) implemented expressions
  */
 
 #include "gen_code.h"
@@ -51,7 +52,6 @@ SyntaxNode* Pop_SN_Stack(tSN_Stack* list) {
 
 void bif_lenght()
 {
-
     printf("# func len(s string) (int)\n");
     printf("LABEL _len\n");
     printf("PUSHFRAME\n");
@@ -65,7 +65,6 @@ void bif_lenght()
 
 void bif_substr()
 {
-
     printf("# func substr(s string,i int,n int) (string, int)\n");
     printf("LABEL _substr\n");
     printf("PUSHFRAME\n");
@@ -80,41 +79,39 @@ void bif_substr()
     printf("MOVE LF@substr_len LF@str_len\n");
     printf("MOVE LF@in_string bool@true\n");
     printf("LT LF@in_string LF@arg_1 int@1\n");
-    printf("JUMPIFEQ _func_error LF@in_string bool@true\n");
+    printf("JUMPIFEQ _func_error_substr LF@in_string bool@true\n");
     printf("GT LF@in_string LF@arg_1 LF@str_len\n");
-    printf("JUMPIFEQ _func_error LF@in_string bool@true\n");
+    printf("JUMPIFEQ _func_error_substr LF@in_string bool@true\n");
     printf("LT LF@in_string LF@arg_2 int@0\n");
-    printf("JUMPIFEQ _func_error LF@in_string bool@true\n");
+    printf("JUMPIFEQ _func_error_substr LF@in_string bool@true\n");
     printf("SUB LF@substr_len LF@substr_len LF@arg_1\n");
     printf("GT LF@in_string LF@arg_2 LF@substr_len\n");
-    printf("JUMPIFNEQ _func_continue LF@in_string bool@true\n");
+    printf("JUMPIFNEQ _func_continue_substr LF@in_string bool@true\n");
     printf("ADD LF@substr_len LF@substr_len int@1\n");
     printf("MOVE LF@arg_2 LF@substr_len\n");
-    printf("LABEL _func_continue\n");
+    printf("LABEL _func_continue_substr\n");
     printf("DEFVAR LF@index\n");
     printf("MOVE LF@index LF@arg_1\n");
     printf("SUB LF@index LF@index int@1\n");
     printf("DEFVAR LF@char_on_index\n");
     printf("DEFVAR LF@loop_counter\n");
     printf("MOVE LF@loop_counter int@0\n"); 
-    printf("LABEL _func_loop\n");
+    printf("LABEL _func_loop_substr\n");
     printf("GETCHAR LF@char_on_index LF@arg_0 LF@index\n");
     printf("CONCAT LF@substr_ret_0 LF@substr_ret_0 LF@char_on_index\n");
     printf("ADD LF@index LF@index int@1\n");
     printf("ADD LF@loop_counter LF@loop_counter int@1\n");
-    printf("JUMPIFNEQ _func_loop LF@loop_counter LF@arg_2\n");
-    printf("JUMP _func_end\n");
-    printf("LABEL _func_error\n");
+    printf("JUMPIFNEQ _func_loop_substr LF@loop_counter LF@arg_2\n");
+    printf("JUMP _func_end_substr\n");
+    printf("LABEL _func_error_substr\n");
     printf("MOVE LF@substr_ret_1 int@1\n");
-    printf("LABEL _func_end\n");
+    printf("LABEL _func_end_substr\n");
     printf("POPFRAME\n");
     printf("RETURN\n");
-
 }
 
 void bif_ord()
 {
-
     printf("# func ord(s string,i int) (int, int)\n");
     printf("LABEL _ord\n");
     printf("PUSHFRAME\n");
@@ -125,17 +122,17 @@ void bif_ord()
     printf("DEFVAR LF@in_string\n");
     printf("MOVE LF@in_string bool@true\n");
     printf("LT LF@in_string LF@arg_1 int@0\n");
-    printf("JUMPIFEQ _func_error LF@in_string bool@true\n");
+    printf("JUMPIFEQ _func_error_ord LF@in_string bool@true\n");
     printf("DEFVAR LF@max_int_value\n");
     printf("STRLEN LF@max_int_value LF@arg_0\n");
     printf("SUB LF@max_int_value LF@max_int_value int@1\n");
     printf("GT LF@in_string LF@arg_1 LF@max_int_value\n");
-    printf("JUMPIFEQ _func_error LF@in_string bool@true\n" );
+    printf("JUMPIFEQ _func_error_ord LF@in_string bool@true\n" );
     printf("STRI2INT LF@ord_ret_0 LF@arg_0 LF@arg_1\n" );
-    printf("JUMP _func_end\n");
-    printf("LABEL _func_error\n");
+    printf("JUMP _func_end_ord\n");
+    printf("LABEL _func_error_ord\n");
     printf("MOVE LF@ord_ret_1 int@1\n");
-    printf("LABEL _func_end\n");
+    printf("LABEL _func_end_ord\n");
     printf("POPFRAME\n");
     printf("RETURN\n");
 
@@ -143,7 +140,6 @@ void bif_ord()
 
 void bif_chr()
 {
-
     printf("# func chr(i int) (string, int)\n");
     printf("LABEL _chr\n");
     printf("PUSHFRAME\n");
@@ -154,24 +150,22 @@ void bif_chr()
     printf("DEFVAR LF@in_string\n");
     printf("MOVE LF@in_string bool@true\n");
     printf("LT LF@in_string LF@arg_0 int@0\n");
-    printf("JUMPIFEQ _func_error LF@in_string bool@true\n");
+    printf("JUMPIFEQ _func_error_chr LF@in_string bool@true\n");
     printf("GT LF@in_string LF@arg_0 int@255\n");
-    printf("JUMPIFEQ _func_error LF@in_string bool@true\n");
+    printf("JUMPIFEQ _func_error_chr LF@in_string bool@true\n");
     printf("INT2CHAR LF@chr_ret_0 LF@arg_0\n");
-    printf("JUMP _func_end\n");
-    printf("LABEL _func_error\n");
+    printf("JUMP _func_end_chr\n");
+    printf("LABEL _func_error_chr\n");
     printf("MOVE LF@chr_ret_1 int@1\n");
-    printf("LABEL _func_end\n");
+    printf("LABEL _func_end_chr\n");
     printf("POPFRAME\n");
     printf("RETURN\n");
-
 }
 
 ///build-in functions for data type conversion
 
 void bif_int2float()
 {
-
     printf("# func int2float(i int) (float64 int)\n");
     printf("LABEL _int2float\n");
     printf("PUSHFRAME\n");
@@ -180,12 +174,10 @@ void bif_int2float()
     printf("INT2FLOAT LF@int2float_ret_0 LF@arg_0\n");
     printf("POPFRAME\n");
     printf("RETURN\n");
-
 }
 
 void bif_float2int()
 {
-
     printf("# func float2int(f float64) (int int)\n");
     printf("LABEL _float2int\n");
     printf("PUSHFRAME\n");
@@ -194,14 +186,13 @@ void bif_float2int()
     printf("FLOAT2INT LF@float2int_ret_0 LF@arg_0\n");
     printf("POPFRAME\n");
     printf("RETURN\n");
-
 }
 
 ///built-in function + parameters for value output
 
 void bif_print_input(SyntaxNodes* my_statement)
 {
-
+    //@TODO CO TO SAKRA JE !!!
     int i=0;
     SyntaxNodes* current_statement = my_statement->first;
 
@@ -230,25 +221,69 @@ void bif_print(SyntaxNodes* my_statement)
 
     int i=0;
     SyntaxNodes* current_statement = my_statement->first;
-
+/*
     printf("# func print (term1,term2,...,term𝑛)\n");
     printf("LABEL _print\n");
     printf("PUSHFRAME\n");
-
-    while(current_statement->next != NULL)
+*/
+    static int c = 0;
+    while(current_statement != NULL)
     {
-        if(strcmp(current_statement->node->token->value,"\n") == 0)
-            printf("WRITE string@\010\n");
-        else
-            printf("WRITE LF@arg_%d\n",i);
+        if(current_statement->node != NULL) {
+            switch (current_statement->node->type) {
+                case Node_NumberIntExpression:
+                    printf("WRITE int@%s\n", current_statement->node->right->token->value);
+                    break;
+                case Node_NumberDoubleExpression:
+                    printf("WRITE float@%s\n", current_statement->node->right->token->value);
+                    break;
+                case Node_StringExpression:
+                    //@TODO HEX, escape chars!
+                    if (strcmp(current_statement->node->right->token->value, "\n") == 0)
+                        printf("WRITE string@\010\n");
+                    else
+                        printf("WRITE string@%s\n", current_statement->node->right->token->value);
+                    break;
+                case Node_IdentifierExpression:
+                    printf("WRITE LF@%s\n", current_statement->node->right->token->value);
+                    break;
+                case Node_UnaryExpression:
 
+                    printf("DEFVAR LF@%s\n", "tmpWriteExprUnary");
+                    char temp1[15];
+                    sprintf(temp1, "__WLEFT__%d", c);
 
+                    printf("DEFVAR LF@%s\n", temp1);
+                    char temp2[15];
+                    sprintf(temp2, "__WRIGHT__%d", c++);
+                    printf("DEFVAR LF@%s\n", temp2);
+                    char *type = "int"; //@TODO
+                    struct genExpr unary = GenParseExpr(current_statement->node, "tmpWriteExprUnary", temp1, temp2,
+                                                        type);
+                    printf("WRITE %s@%s%s\n", unary.constant ? unary.type : "LF" , unary.sign ? "-" : "", unary.value);
+                    break;
+                case Node_BinaryExpression:
+                    printf("DEFVAR LF@%s\n", "tmpWriteExprBin");
+                    char temp3[15];
+                    sprintf(temp3, "__WLEFT__%d", c);
+
+                    printf("DEFVAR LF@%s\n", temp3);
+                    char temp4[15];
+                    sprintf(temp4, "__WRIGHT__%d", c++);
+                    printf("DEFVAR LF@%s\n", temp4);
+                    char *typeBin = "int"; //@TODO
+                    struct genExpr binary = GenParseExpr(current_statement->node, "tmpWriteExprBin", temp3, temp4, typeBin);
+                    printf("WRITE %s@%s%s\n", binary.constant ? binary.type : "LF", binary.sign ? "-" : "", binary.value);
+                    break;
+            }
+        }
         current_statement = current_statement->next;
 
-    }    
-
+    }
+/*
     printf("POPFRAME\n");
     printf("RETURN\n");
+    */
     
 }
 
@@ -256,7 +291,6 @@ void bif_print(SyntaxNodes* my_statement)
 
 void bif_inputs()
 {
-
     printf("# func inputs() (string,int)\n");
     printf("LABEL _inputs\n");
     printf("PUSHFRAME\n");
@@ -266,19 +300,17 @@ void bif_inputs()
     printf("DEFVAR LF@input_type\n");
     printf("READ LF@inputs_ret_0 string\n");
     printf("TYPE LF@input_type LF@inputs_ret_0\n");
-    printf("JUMPIFNEQ _func_err LF@input_type string@string\n");
-    printf("JUMP _func_end\n");
-    printf("LABEL _func_err\n");
+    printf("JUMPIFNEQ _func_err_inputs LF@input_type string@string\n");
+    printf("JUMP _func_end_inputs\n");
+    printf("LABEL _func_err_inputs\n");
     printf("MOVE LF@inputs_ret_1 int@1\n");
-    printf("LABEL _func_end\n");
+    printf("LABEL _func_end_inputs\n");
     printf("POPFRAME\n");
     printf("RETURN\n");
-
 }
 
 void bif_inputi()
 {
-
     printf("# func inputi() (int,int)\n");
     printf("LABEL _inputi\n");
     printf("PUSHFRAME\n");
@@ -288,19 +320,17 @@ void bif_inputi()
     printf("DEFVAR LF@input_type\n");
     printf("READ LF@inputi_ret_0 int\n");
     printf("TYPE LF@input_type LF@inputi_ret_0\n");
-    printf("JUMPIFNEQ _func_err LF@input_type string@int\n");
-    printf("JUMP _func_end\n");
-    printf("LABEL _func_err\n");
+    printf("JUMPIFNEQ _func_err_inputi LF@input_type string@int\n");
+    printf("JUMP _func_end_inputi\n");
+    printf("LABEL _func_err_inputi\n");
     printf("MOVE LF@inputi_ret_1 int@1\n");
-    printf("LABEL _func_end\n");
+    printf("LABEL _func_end_inputi\n");
     printf("POPFRAME\n");
     printf("RETURN\n");
-
 }
 
 void bif_inputf()
 {
-
     printf("# func inputf() (float64,int)\n");
     printf("LABEL _inputf\n");
     printf("PUSHFRAME\n");
@@ -310,14 +340,13 @@ void bif_inputf()
     printf("DEFVAR LF@input_type\n");
     printf("READ LF@inputf_ret_0 float\n");
     printf("TYPE LF@input_type LF@inputf_ret_0\n");
-    printf("JUMPIFNEQ _func_err LF@input_type string@float\n");
-    printf("JUMP _func_end\n");
-    printf("LABEL _func_err\n");
+    printf("JUMPIFNEQ _func_err_inputf LF@input_type string@float\n");
+    printf("JUMP _func_end_inputf\n");
+    printf("LABEL _func_err_inputf\n");
     printf("MOVE LF@inputf_ret_1 int@1\n");
-    printf("LABEL _func_end\n");
+    printf("LABEL _func_end_inputf\n");
     printf("POPFRAME\n");
     printf("RETURN\n");
-
 }
 
 ///---------GENERATE PREFIX & SUFFIX FOR ALL FUNCTIONS-----------------
@@ -584,14 +613,15 @@ struct genExpr GenParseExpr(SyntaxNode* root, char* assignTo, char* left, char* 
 
     static bool current_unary = true;//true == plus, false == minus
     static bool unary_before = true;//true == plus, false == minus
-    struct genExpr rightTemp = {.value = right, .type = type, .sign = false};
-    struct genExpr leftTemp = {.value = left, .type = type, .sign = false};
+    struct genExpr rightTemp = {.value = right, .type = type, .sign = false, .constant = false};
+    struct genExpr leftTemp = {.value = left, .type = type, .sign = false, .constant = false};
 
     if(root->type == Node_NumberIntExpression || root->type == Node_NumberDoubleExpression || root->type == Node_StringExpression || root->type == Node_IdentifierExpression) {
 
         struct genExpr test;
         test.value = root->right->token->value;
         test.type = root->type == Node_IdentifierExpression ? "LF" : type;
+        test.constant = true;
         if(!current_unary) {
             current_unary = true;
             unary_before = true;
@@ -614,29 +644,30 @@ struct genExpr GenParseExpr(SyntaxNode* root, char* assignTo, char* left, char* 
 
         switch (root->token->type) {
             case tokenType_PLUS:
-                printf("ADD LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.type, leftTemp.sign ? "-" : "", leftTemp.value,
-                       rightTemp.type, rightTemp.sign ? "-" : "", rightTemp.value);
+                printf("ADD LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type: "LF", leftTemp.sign ? "-" : "", leftTemp.value,
+                       rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "", rightTemp.value);
                 break;
             case tokenType_MINUS:
-                printf("SUB LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.type, leftTemp.sign ? "-" : "", leftTemp.value,
-                       rightTemp.type, rightTemp.sign ? "-" : "", rightTemp.value);
+                printf("SUB LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type: "LF", leftTemp.sign ? "-" : "", leftTemp.value,
+                       rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "", rightTemp.value);
                 break;
             case tokenType_MUL:
-                printf("MUL LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.type, leftTemp.sign ? "-" : "", leftTemp.value,
-                       rightTemp.type, rightTemp.sign ? "-" : "", rightTemp.value);
+                printf("MUL LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type: "LF", leftTemp.sign ? "-" : "", leftTemp.value,
+                       rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "", rightTemp.value);
                 break;
             case tokenType_DIV:
                 //ASK: EXITNUT ABO CO DO PICE
-                printf("\n"); // IF rightTemp.value != 0 then jump on LABEL
-                printf("DPRINT %s", "divide by zero\n");
-                printf("EXIT int@5\n");
-                printf("\n"); // LABEL IF
+                //@TODO
+                //printf("\n"); // IF rightTemp.value != 0 then jump on LABEL
+                //printf("DPRINT %s", "divide by zero\n");
+               // printf("EXIT int@5\n");
+                //printf("\n"); // LABEL IF
                 if (strcmp(type, "int") == 0) {
-                    printf("IDIV LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.type, leftTemp.sign ? "-" : "", leftTemp.value,
-                           rightTemp.type, rightTemp.sign ? "-" : "", rightTemp.value);
+                    printf("IDIV LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type: "LF", leftTemp.sign ? "-" : "", leftTemp.value,
+                           rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "", rightTemp.value);
                 } else if (strcmp(type, "float") == 0) {
-                    printf("DIV LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.type, leftTemp.sign ? "-" : "", leftTemp.value,
-                           rightTemp.type, rightTemp.sign ? "-" : "", rightTemp.value);
+                    printf("DIV LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type: "LF", leftTemp.sign ? "-" : "", leftTemp.value,
+                           rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "", rightTemp.value);
                 }
                 break;
         }
@@ -684,16 +715,16 @@ void vars_default_declar_init(SyntaxNode *root, tHashItem *item)
     printf("# DECLARE AND DEFAULT_INIT VAR %s\n",item->id);
     static int c = 0;
     char temp1[15];
-    sprintf(temp1, "__LEFT__%d", c);
+    sprintf(temp1, "__DLEFT__%d", c);
 
     printf("DEFVAR LF@%s\n", temp1);
     char temp2[15];
-    sprintf(temp2, "__RIGHT__%d", c++);
+    sprintf(temp2, "__DRIGHT__%d", c++);
     printf("DEFVAR LF@%s\n", temp2);
 
     printf("DEFVAR LF@%s\n",item->id);
     struct genExpr tmp = GenParseExpr(root, item->id, temp1, temp2, get_var_type(item->type));
-    printf("MOVE LF@%s %s@%s%s\n",item->id,tmp.type,tmp.sign?"-":"", tmp.value);
+    printf("MOVE LF@%s %s@%s%s\n",item->id, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"", tmp.value);
     //GenParseExpr(root,assignTo,right,left));
 
 }
@@ -704,19 +735,19 @@ void vars_set_new_value(SyntaxNode *root, tHashItem *item)
     //@TODO
     static int c = 0;
     char temp1[15];
-    sprintf(temp1, "__LEFT__%d", c);
+    sprintf(temp1, "__ALEFT__%d", c);
 
     printf("DEFVAR LF@%s\n", temp1);
     char temp2[15];
-    sprintf(temp2, "__RIGHT__%d", c++);
+    sprintf(temp2, "__ARIGHT__%d", c++);
     printf("DEFVAR LF@%s\n", temp2);
 
-    printf("DEFVAR LF@%s\n",item->id);
+    //printf("DEFVAR LF@%s\n",item->id);
 
 
     printf("# RE-SET VALUE FOR VAR %s\n",item->id);
     struct genExpr tmp = GenParseExpr(root, item->id, temp1, temp2, get_var_type(item->type));
-    printf("MOVE LF@%s %s@%s%s\n",item->id,tmp.type, tmp.sign?"-":"", tmp.value);
+    printf("MOVE LF@%s %s@%s%s\n",item->id,tmp.constant ? tmp.type: "LF", tmp.sign?"-":"", tmp.value);
     //GenParseExpr(root,assignTo,right,left));
 
 }

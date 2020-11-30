@@ -28,6 +28,7 @@ struct genExpr {
     char* value;
     char* type;
     bool sign;
+    bool constant;
 };
 
 void init_SN_Stack(tSN_Stack* list);

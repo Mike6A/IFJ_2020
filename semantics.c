@@ -724,6 +724,8 @@ long assignmentExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStrin
                     //fprintf(stderr, "Function \"%s\" does only return %d values!\n", value->node->token->value, func->return_count);
                     return 6;
                 }
+                func_args_TF_declar(value->node->token->value, func);
+                general_func_call(value->node->token->value);
             }
             else {  //shouldn't happen, cuz only functions are defined in global scope
                 //fprintf(stderr, "\"%s\" is already defined as a variable, function needs another name!", value->node->token->value);
@@ -785,6 +787,7 @@ int callFunction(SyntaxNode* root, tScope* scope, char* parentFunction, tStringL
         //function is already defined
         if (func != NULL) {
             if (strcmp("print", root->token->value) == 0) {   //print can have more parameters
+                bif_print(root->statements);
                 return 0;
             }
             int index = 0;      //check function parameters
@@ -811,11 +814,14 @@ int callFunction(SyntaxNode* root, tScope* scope, char* parentFunction, tStringL
                 //fprintf(stderr, "Function \"%s\" has been called with different parameters!", root->token->value);
                 return 6;
             }
+            func_args_TF_declar(root->token->value, func);
+            general_func_call(root->token->value);
         }
         else {  //shouldn't happen, cuz only functions are defined in global scope
             //fprintf(stderr, "\"%s\" is already defined as a variable, function needs another name!", root->token->value);
             return 3;
         }
+
     }   //function is not defined
     else {
         addFuncToHT(scope->global->table, root->token->value, false);
@@ -1087,14 +1093,22 @@ long runFunctionExp(SyntaxNode* root, tScope* scope, tStringLinkedListItem* strL
     }
 
     foundReturn = false;
+    //TODO codegen: function head + scope + parameters
+    if(strcmp(funcName, "main") == 0)
+        main_prefix();
+    else
+        general_func_prefix(funcName); // GENERATE FUNCTION NAME
     long errCode = blockExp(root->right, scope, funcName, strList);   //run things in the body of the function | also return it's errCode
 
     if (getHashItem(scope->global->table, funcName)->func->return_count > 0 && foundReturn == false) {
         //fprintf(stderr, "Missing return statement!\n");
         return 6;
     }
+    if(strcmp(funcName, "main") == 0)
+        main_suffix();
+    else
+        general_func_suffix(funcName); // GENERATE CODE END OF FUNCTION
 
-    //TODO codegen: function head + scope + parameters
     return errCode;
 }
 
@@ -1157,6 +1171,16 @@ long addInbuiltFunctions(tScope* scope) {
     addParamToFunc(table, "chr", "i", TInt);
     addReturnTypeToFunc(table, "chr", TString);
     addReturnTypeToFunc(table, "chr", TInt);
+
+    bif_inputi();
+    bif_inputs();
+    bif_inputf();
+    bif_chr();
+    bif_ord();
+    bif_substr();
+    bif_lenght();
+    bif_int2float();
+    bif_float2int();
     return 0;
 }
 
@@ -1178,6 +1202,7 @@ long runSemanticAnalyze(SyntaxNode* root){
     initScope(&scope);
     createScope(&scope);
 
+    program_start(); // GENCODE!
     addInbuiltFunctions(&scope);    //loads inbuilt functions
 
     if (root->type == Node_Global){
