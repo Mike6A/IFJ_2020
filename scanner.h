@@ -17,7 +17,8 @@ typedef enum { tokenType_ID, tokenType_KW, tokenType_INT, tokenType_DOUBLE, toke
                tokenType_GE, tokenType_EQ, tokenType_NEQ, tokenType_DECL, 
                tokenType_NONE, tokenType_EOF, tokenType_PLUS, tokenType_MINUS, tokenType_MUL, tokenType_DIV, tokenType_LESS, tokenType_GREATER, 
                tokenType_LBN, tokenType_RBN, tokenType_LBC, tokenType_RBC,
-               tokenType_COMMA, tokenType_SCOMMA, tokenType_ASSIGN, tokenType_EOL} TokenType;
+               tokenType_COMMA, tokenType_SCOMMA, tokenType_ASSIGN, tokenType_EOL,
+               tokenType_ASSMUL, tokenType_ASSPLUS, tokenType_ASSMINUS, tokenType_ASSDIV} TokenType;
 
 
 /**

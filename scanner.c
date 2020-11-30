@@ -217,15 +217,30 @@ void getToken(tTokenizer* tokenizer) {
     switch (tokenizer->actualChar) {
         case '+':
             tokenizer->outputToken.value = "+";
-            tokenizer->outputToken.type = tokenType_PLUS;
+            if (state_SecondEq(tokenizer) == 1)
+                tokenizer->outputToken.type = tokenType_PLUS;
+            else {
+                tokenizer->outputToken.value = "+=";
+                tokenizer->outputToken.type = tokenType_ASSPLUS;
+            }
             return;
         case '-':
             tokenizer->outputToken.value = "-";
-            tokenizer->outputToken.type = tokenType_MINUS;
+            if (state_SecondEq(tokenizer) == 1)
+                tokenizer->outputToken.type = tokenType_MINUS;
+            else {
+                tokenizer->outputToken.value = "-=";
+                tokenizer->outputToken.type = tokenType_ASSMINUS;
+            }
             return;
         case '*':
             tokenizer->outputToken.value = "*";
-            tokenizer->outputToken.type = tokenType_MUL;
+            if (state_SecondEq(tokenizer) == 1)
+                tokenizer->outputToken.type = tokenType_MUL;
+            else {
+                tokenizer->outputToken.value = "*=";
+                tokenizer->outputToken.type = tokenType_ASSMUL;
+            }
             return;
         case '<':
             tokenizer->outputToken.value = "<";
@@ -575,6 +590,11 @@ int state_OneLineComment(tTokenizer* tokenizer){
             return 2;
         }
         return 3;
+    } else if (tokenizer->actualChar == '=') {  //is assign and mul /=
+        tokenizer->outputToken.value = "/=";
+        tokenizer->outputToken.type = tokenType_ASSDIV;
+        tokenizer->processed = true;
+        return 1;
     } else { //is divede operator
         tokenizer->outputToken.value = "/";
         tokenizer->outputToken.type = tokenType_DIV;
