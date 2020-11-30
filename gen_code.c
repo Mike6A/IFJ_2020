@@ -197,13 +197,59 @@ void bif_float2int()
 
 }
 
-///built-in function for value output
+///built-in function + parameters for value output
 
-void bif_print()
+void bif_print_input(SyntaxNodes* my_statement)
 {
 
-    printf("# func print (term1,term2,...,term𝑛)\n");
+    int i=0;
+    SyntaxNodes* current_statement = my_statement->first;
 
+    //have to create before args pass(for non args func too)
+    printf("CREATEFRAME\n");
+
+        printf("# CREATE VARS FOR PRINT\n");
+
+        while(current_statement->next != NULL)
+        {
+
+            printf("DEFVAR TF@arg_%d\n",i);
+            printf("MOVE TF@arg_%d %s@%s\n",i, get_var_type(current_statement->node->token->type),
+            current_statement->node->token->value);
+
+            current_statement = current_statement->next;
+
+        }
+
+        printf("# ALL VARS FOR PRINT HAS BEEN CREATED\n");
+      
+}
+
+void bif_print(SyntaxNodes* my_statement)
+{
+
+    int i=0;
+    SyntaxNodes* current_statement = my_statement->first;
+
+    printf("# func print (term1,term2,...,term𝑛)\n");
+    printf("LABEL _print\n");
+    printf("PUSHFRAME\n");
+
+    while(current_statement->next != NULL)
+    {
+        if(strcmp(current_statement->node->token->value,"\n") == 0)
+            printf("WRITE string@\010\n");
+        else
+            printf("WRITE LF@arg_%d\n",i);
+
+
+        current_statement = current_statement->next;
+
+    }    
+
+    printf("POPFRAME\n");
+    printf("RETURN\n");
+    
 }
 
 ///built-in functions for read literates and print terms
@@ -649,7 +695,7 @@ void vars_default_declar_init(SyntaxNode *root, tHashItem *item)
 
     printf("DEFVAR LF@%s\n",item->id);
     struct genExpr tmp = GenParseExpr(root, item->id, temp1, temp2, get_var_type(item->type));
-    printf("MOVE LF@%s %s@%s\n",item->id,tmp.type, tmp.value);
+    printf("MOVE LF@%s %s@%s%s\n",item->id,tmp.type,tmp.sign?"-":"", tmp.value);
     //GenParseExpr(root,assignTo,right,left));
 
 }
@@ -672,7 +718,7 @@ void vars_set_new_value(SyntaxNode *root, tHashItem *item)
 
     printf("# RE-SET VALUE FOR VAR %s\n",item->id);
     struct genExpr tmp = GenParseExpr(root, item->id, temp1, temp2, get_var_type(item->type));
-    printf("MOVE LF@%s %s@%s\n",item->id,tmp.type, tmp.value);
+    printf("MOVE LF@%s %s@%s%s\n",item->id,tmp.type, tmp.sign?"-":"", tmp.value);
     //GenParseExpr(root,assignTo,right,left));
 
 }
@@ -768,7 +814,8 @@ void all_vars_after_new_scope(int deep_level, int deep_index, int vars_total)
 
 }
 
-/*void all_vars_after_new_scope_but_im_dumbass(int deep_level, int deep_index, int vars_total)
+/*
+void all_vars_after_new_scope_but_im_dumbass(int deep_level, int deep_index, int vars_total)
 {
 
     printf("# TRANSFER VARS REAL VALUES\n");
@@ -878,4 +925,3 @@ void for_suffix(char *func_name, int deep_level, int deep_index)
    // main_suffix();
     //program_exit(error_code);
 
-*/
