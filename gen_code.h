@@ -78,22 +78,22 @@ void vars_set_new_value(SyntaxNode *root, tHashItem *item);
 ///---------STACK FUNCTIONS----------------------
 void stack_concat_string(char *str3, char *str2, char *str1);
 ///------------LABEL GENERATORS------------------------
-void new_label(char *func_name, int deep_level, int deep_index);
-void new_label_for(char *func_name, int deep_level, int deep_index);
+void new_label(char *func_name, tScopeItem *item, int deep_index);
+void new_label_for(char *func_name, tScopeItem *item, int deep_index);
 
 ///------------IF/ELSE FUNCTIONS------------------------
-void if_prefix(char *func_name, int deep_level, int deep_index);
-void if_else(char *func_name, int deep_level, int deep_index);
-void if_suffix(char *func_name, int deep_level, int deep_index);
+void if_prefix(char *func_name, tScopeItem *item, int deep_index);
+void if_else(char *func_name, tScopeItem *item, int deep_index);
+void if_suffix(char *func_name, tScopeItem *item, int deep_index);
 
 ///--------------------FOR FUNCTIONS-------------------------------
 void for_args_TF_declar(char *func_name, TItem type);
-void for_prefix(char *func_name, int deep_level, int deep_index);
-void for_suffix(char *func_name, int deep_level, int deep_index);
+void for_prefix(char *func_name, tScopeItem *item, int deep_index);
+void for_suffix(char *func_name, tScopeItem *item, int deep_index);
 
 ///----------------BEFORE/AFTER FOR OR IF/ELSE SCOPE--------------------------
-void all_vars_to_new_scope(int deep_level, int deep_index, int vars_total);
-void all_vars_after_new_scope(int deep_level, int deep_index, int vars_total);
+void all_vars_to_new_scope(tScopeItem *item, int deep_index, int vars_total);
+void all_vars_after_new_scope(tScopeItem *item, int deep_index, int vars_total);
 
 #endif
 

@@ -737,17 +737,17 @@ void stack_concat_string(char *str3, char *str2, char *str1)
 
 ///------------LABEL GENERATORS------------------------
 
-void new_label(char *func_name, int deep_level, int deep_index)
+void new_label_if(char *func_name, tScopeItem *item, int deep_index)
 {
 
-    printf("LABEL _%s_%d_%d\n", func_name, deep_level, deep_index);
+    printf("LABEL _%s_%d_%d_if\n", func_name, item->scopeLevel, deep_index);
 
 }
 
-void new_label_for(char *func_name, int deep_level, int deep_index)
+void new_label_for(char *func_name, tScopeItem *item, int deep_index)
 {
 
-     printf("LABEL _%s_%d_%d_for", func_name, deep_level, deep_index);
+    printf("LABEL _%s_%d_%d_for\n", func_name, item->scopeLevel, deep_index);
 
 }
 
@@ -755,35 +755,35 @@ void new_label_for(char *func_name, int deep_level, int deep_index)
 
 //void expr_in_if(expr)
 
-void if_prefix(char *func_name, int deep_level, int deep_index)
+void if_prefix(char *func_name, tScopeItem *item, int deep_index)
 {
 
-    printf("JUMPIFEQ _%s_%d_%d LF@if_bool_result bool@false\n",func_name, deep_level, deep_index);
+    printf("JUMPIFEQ _%s_%d_%d LF@if_bool_result bool@false\n",func_name, item->scopeLevel, deep_index);
 
 }
 
-void if_else(char *func_name, int deep_level, int deep_index)
+void if_else(char *func_name, tScopeItem *item, int deep_index)
 {
     
-    printf("JUMP _%s_%d_%d\n",func_name, deep_level, ++deep_index);
+    printf("JUMP _%s_%d_%d\n",func_name, item->scopeLevel, ++deep_index);
     printf("# ELSE PART\n");
-    new_label(func_name,deep_level,deep_index);
+    new_label(func_name,item->scopeLevel,deep_index);
 
 }
 
-void if_suffix(char *func_name, int deep_level, int deep_index)
+void if_suffix(char *func_name, tScopeItem *item, int deep_index)
 {
 
     printf("# FI\n");
-    new_label(func_name,deep_level,deep_index);
+    new_label(func_name,item->scopeLevel,deep_index);
     
 }
 
 ///----------------BEFORE/AFTER FOR OR IF/ELSE SCOPE--------------------------
-/*
+
 //ASK: Problem s rovnakym nazvom premennej(kazdej premennej index a deep??)
 //only after for and if/else scopes
-void all_vars_to_new_scope(int deep_level, int deep_index, int vars_total)
+void all_vars_to_new_scope(tScopeItem *item, int deep_index, int vars_total)
 {
 
     printf("# TRANSFER VARS TO NEW SCOPE\n");
@@ -800,7 +800,7 @@ void all_vars_to_new_scope(int deep_level, int deep_index, int vars_total)
 }
 
 //only after for and if/else scopes
-void all_vars_after_new_scope(int deep_level, int deep_index, int vars_total)
+void all_vars_after_new_scope(tScopeItem *item, int deep_index, int vars_total)
 {
 
     printf("# TRANSFER VARS REAL VALUES\n");
@@ -813,46 +813,6 @@ void all_vars_after_new_scope(int deep_level, int deep_index, int vars_total)
     printf("# TRANSFER VARS's VALUES END\n");
 
 }
-
-/*
-void all_vars_after_new_scope_but_im_dumbass(int deep_level, int deep_index, int vars_total)
-{
-
-    printf("# TRANSFER VARS REAL VALUES\n");
-    for(int i=0; i<vars_total; i++)
-    {
-       
-       printf("JUMPIFEQ _no_change_%d TF@%s LF@%s\n",i,
-       vars_total[i]->name,vars_total[i]->name);
-
-       printf("DEFVAR LF@cond\n");
-       printf("MOVE LF@cond bool@false\n");
-       printf("GT LF@cond TF@%s LF@%s\n",
-       vars_total[i]->name,vars_total[i]->name);
-       printf("JUMPIFNEQ _less_%d LF@cond bool@true\n",i);
-       //var on TF is greater than on LF
-       //add change to LF
-       printf("DEFVAR LF@temp_%d\n",i);
-       printf("SUB LF@temp TF@%s LF@%s\n",
-       vars_total[i]->name,vars_total[i]->name);
-       printf("ADD LF@%s LF@%s LF@temp\n",
-       vars_total[i]->name,vars_total[i]->name); //value updated
-       printf("JUMP _no_change\n");
-       //var on TF is less than on LF
-       //add change to LF
-       printf("LABEL _less_%d\n",i);
-       printf("DEFVAR LF@temp_%d\n",i);
-       printf("SUB LF@temp LF@%s TF@%s\n",
-       vars_total[i]->name,vars_total[i]->name);
-       printf("ADD LF@%s LF@%s LF@temp\n",
-       vars_total[i]->name,vars_total[i]->name); //value updated
-
-       printf("LABEL _no_change_%d\n",i);//actual var not changed
-
-    }
-    printf("# TRANSFER VARS's VALUES END\n");
-
-}*/
 
 ///--------------------FOR FUNCTIONS-------------------------------
 
@@ -876,52 +836,24 @@ void for_args_TF_declar(char *func_name, TItem type)
       
 }
 
-void for_prefix(char *func_name, int deep_level, int deep_index)
+void for_prefix(char *func_name, tScopeItem *item, int deep_index)
 {
 
     printf("# START FOR IN %s\n", func_name);
-    new_label(func_name,deep_level,deep_index);
+    new_label(func_name,item->scopeLevel,deep_index);
     printf("PUSHFRAME\n");
-    new_label_for(func_name,deep_level,deep_index);
+    new_label_for(func_name,item->scopeLevel,deep_index);
     //nasleduje telo foru
 }
 
-void for_suffix(char *func_name, int deep_level, int deep_index)
+void for_suffix(char *func_name, tScopeItem *item, int deep_index)
 {
 
     //koniec tela foru,...cond
     printf("JUMPIFNEQ ");
-    new_label_for(func_name,deep_level,deep_index);
+    new_label_for(func_name,item->scopeLevel,deep_index);
     printf(" LF@i LF@cond\n");
     printf("POPFRAME\n");
     printf("# END FOR LOOP\n");
 
 }
-
-///-------------FUNC TESTING-----------------------
-
-
-    //char *variable_name = "var2"; //TODO find way
-
-    //general_terminal_val(token);
-    //declared_vars_default_init(type);
-
-    //program_start();
-    //main_prefix();
-
-   // default_push(token);
-   // vars_default_declar_init(variable_name);
-
-
-    //func_args_TF_declar(function_name, parameter_counter);
-
-   // general_func_call(function_name);
-
-   // general_func_prefix(function_name);
-   // func_ret_declar(function_name, return_counter);
-    //func_ret_init(function_name, return_counter);
-    //general_func_suffix(function_name);
-
-   // main_suffix();
-    //program_exit(error_code);
-
