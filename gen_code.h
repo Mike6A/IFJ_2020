@@ -87,7 +87,7 @@ void stack_concat_string(char *str3, char *str2, char *str1);
 ///------------LABEL GENERATORS------------------------
 void new_label_for(char *func_name, tScopeItem *item, int deep_index);
 void new_label_for_in(char *func_name, tScopeItem *item, int deep_index);
-void new_label_if(char *func_name, tScopeItem *item, int deep_index);
+void new_label_if(char *func_name,tScopeItem *item, int deep_index);
 void new_label_else(char *func_name, tScopeItem *item, int deep_index);
 
 ///------------IF/ELSE FUNCTIONS------------------------

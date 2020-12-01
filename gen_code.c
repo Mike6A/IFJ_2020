@@ -248,7 +248,6 @@ void bif_print(SyntaxNodes* my_statement)
     static int c = 0;
     static int ord = 0;
     static char hex_arr[3];
-    static int hex = 0;
     
     while(current_statement != NULL)
     {
@@ -260,9 +259,8 @@ void bif_print(SyntaxNodes* my_statement)
                 case Node_NumberDoubleExpression:
                     printf("WRITE float@%s\n", current_statement->node->right->token->value);
                     break;
-                case Node_StringExpression:
-                    //@TODO HEX, escape chars!
-                    for(int i=0; i< strlen(current_statement->node->right->token->value);i++)
+                case Node_StringExpression:     
+                    for(int i=1; i< strlen(current_statement->node->right->token->value)-1;i++)
                     {
 
                         ord = current_statement->node->right->token->value[i];
@@ -276,6 +274,7 @@ void bif_print(SyntaxNodes* my_statement)
                             
                             switch(current_statement->node->right->token->value[i+1])
                             {
+                                
                                 case 'n': 
                                         printf("WRITE string@\\010\n");
                                         break;
@@ -296,7 +295,7 @@ void bif_print(SyntaxNodes* my_statement)
                                         hex_arr[1] = current_statement->node->right->token->value[i+3];
                                         hex_arr[2] = '\0';
                                         ord = hex_to_dec(&hex_arr);
-                                        printf("WRITE string@\"%c\"\n",ord);
+                                        printf("WRITE string@%c\n",ord);
                                         i+=2;
                                             
                             }
@@ -304,7 +303,7 @@ void bif_print(SyntaxNodes* my_statement)
                         }
                         else
                         {
-                            printf("WRITE string@\"%c\"\n",current_statement->node->right->token->value[i]);
+                            printf("WRITE string@%c\n",current_statement->node->right->token->value[i]);
                         }
                            
                     }
