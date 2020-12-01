@@ -190,7 +190,7 @@ void bif_float2int()
 
 ///built-in function + parameters for value output
 
-void bif_print_input(SyntaxNodes* my_statement)
+/*void bif_print_input(SyntaxNodes* my_statement)
 {
     //@TODO CO TO SAKRA JE !!!
     int i=0;
@@ -214,7 +214,7 @@ void bif_print_input(SyntaxNodes* my_statement)
 
         printf("# ALL VARS FOR PRINT HAS BEEN CREATED\n");
       
-}
+}*/
 
 void bif_print(SyntaxNodes* my_statement)
 {
@@ -467,7 +467,7 @@ void declared_vars_default_init(TItem type)
                 printf("int@0\n");
                 break;
 
-        case TDouble: //ASK: why not TFloat
+        case TDouble: 
                 printf("float@0.0\n");
                 break;
 
@@ -695,12 +695,12 @@ struct genExpr GenParseExpr(SyntaxNode* root, char* assignTo, char* left, char* 
                        rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "", rightTemp.value);
                 break;
             case tokenType_DIV:
-                //ASK: EXITNUT ABO CO DO PICE
-                //@TODO
                 //printf("\n"); // IF rightTemp.value != 0 then jump on LABEL
-                //printf("DPRINT %s", "divide by zero\n");
-               // printf("EXIT int@5\n");
-                //printf("\n"); // LABEL IF
+                if((strcmp(rightTemp.value,"0") == 0)||(strcmp(rightTemp.value,"0.0") == 0))
+                {
+                    printf("DPRINT %s", "divide by zero\n");
+                    printf("EXIT int@9\n");
+                }
                 if (strcmp(type, "int") == 0) {
                     printf("IDIV LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type: "LF", leftTemp.sign ? "-" : "", leftTemp.value,
                            rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "", rightTemp.value);
