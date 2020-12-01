@@ -625,6 +625,69 @@ SyntaxNode* ParseFunctionCallingSyntax(tTokenizer* tokenizer, tToken* id){
     //tToken* EOL = Match(tokenizer, tokenType_EOL, false);
     return functionCallExpressionSyntax(id, params);
 }
+
+SyntaxNode * ParseUnaryAssignSyntax(tTokenizer* tokenizer, tToken* leftID){
+    if(isError()){
+        deleteToken(leftID);
+        return NULL;
+    }
+    tToken* unaryAssignToken = CopyToken(&tokenizer->outputToken);
+    getToken(tokenizer);
+    if(tokenizer->errorCode > 0){
+        error(2);
+        deleteToken(leftID);
+        deleteToken(unaryAssignToken);
+        return NULL;
+    }
+    SyntaxNode * expr = ParseExpression(tokenizer, 0);
+    if( expr->type == Node_StringExpression ||
+        expr->type == Node_NumberDoubleExpression ||
+        expr->type == Node_NumberIntExpression ||
+        expr->type == Node_BinaryExpression ||
+        expr->type == Node_UnaryExpression
+        ){
+        SyntaxNode* idNode = createNodeFromToken(leftID,"Identifier",Node_IdentifierToken);
+        SyntaxNodes* assignTo = createNodeList(createNode(idNode, NULL, NULL, NULL, "IdentifierAssignmentONE", Node_AssignmentExpression));
+        SyntaxNodes* assignValues;
+        tToken operator;
+
+        switch (unaryAssignToken->type) {
+            case tokenType_ASSPLUS:
+                operator.value = "+";
+                operator.type = tokenType_PLUS;
+                break;
+            case tokenType_ASSMINUS:
+                operator.value = "-";
+                operator.type = tokenType_MINUS;
+                break;
+            case tokenType_ASSMUL:
+                operator.value = "*";
+                operator.type = tokenType_MUL;
+                break;
+            case tokenType_ASSDIV:
+                operator.value = "/";
+                operator.type = tokenType_DIV;
+                break;
+
+            default:
+                error(2);
+                destroyNodeList(assignTo);
+                deleteSyntaxTree(expr);
+                deleteToken(unaryAssignToken);
+                return NULL;
+        }
+
+        assignValues = createNodeList(binaryExpressionSyntax(identifierExpressionSyntax(leftID), CopyToken(&operator), expr));
+        return assignExpressionSyntax(assignTo, unaryAssignToken, assignValues);
+    }
+    error(2);
+    deleteSyntaxTree(expr);
+    deleteToken(leftID);
+    deleteToken(unaryAssignToken);
+    return NULL;
+
+
+}
 SyntaxNode* ParseAssignSyntax(tTokenizer* tokenizer, tToken* FirstID){
     if(isError()){
         return NULL;
@@ -808,6 +871,12 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
             }
             if (tokenizer->outputToken.type == tokenType_DECL && !parsingReturn) {
                 return ParseDeclarationSyntax(tokenizer, identifier);
+            }
+            if ((   tokenizer->outputToken.type == tokenType_ASSPLUS ||
+                    tokenizer->outputToken.type == tokenType_ASSMINUS ||
+                    tokenizer->outputToken.type == tokenType_ASSMUL ||
+                    tokenizer->outputToken.type == tokenType_ASSDIV) && !parsingReturn) {
+                return ParseUnaryAssignSyntax(tokenizer, identifier);
             }
             if ((tokenizer->outputToken.type == tokenType_ASSIGN || tokenizer->outputToken.type == tokenType_COMMA) &&
                 !parsingReturn) {
