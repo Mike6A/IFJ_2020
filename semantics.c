@@ -702,6 +702,9 @@ long assignmentExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStrin
                 if (destination->node == NULL) {    //nobody wants return values from this function. Poor function
                     return 0;
                 }
+                func_args_TF_declar(value->node->token->value, func, value->node->statements);
+                general_func_call(value->node->token->value);
+                func_ret_to_LF(value->node->token->value, func, destination);
                 for (int i = 0; i < func->return_count; i++) {
                     if (destination == NULL) {
                         //fprintf(stderr, "Not using all return values from function \"%s\"!\n", value->node->token->value);
@@ -724,8 +727,8 @@ long assignmentExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStrin
                     //fprintf(stderr, "Function \"%s\" does only return %d values!\n", value->node->token->value, func->return_count);
                     return 6;
                 }
-                func_args_TF_declar(value->node->token->value, func);
-                general_func_call(value->node->token->value);
+
+
             }
             else {  //shouldn't happen, cuz only functions are defined in global scope
                 //fprintf(stderr, "\"%s\" is already defined as a variable, function needs another name!", value->node->token->value);
@@ -814,7 +817,7 @@ int callFunction(SyntaxNode* root, tScope* scope, char* parentFunction, tStringL
                 //fprintf(stderr, "Function \"%s\" has been called with different parameters!", root->token->value);
                 return 6;
             }
-            func_args_TF_declar(root->token->value, func);
+            func_args_TF_declar(root->token->value, func, root->statements->first);
             general_func_call(root->token->value);
         }
         else {  //shouldn't happen, cuz only functions are defined in global scope
