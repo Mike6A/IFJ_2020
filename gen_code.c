@@ -182,7 +182,7 @@ void bif_float2int()
     printf("LABEL _float2int\n");
     printf("PUSHFRAME\n");
     printf("DEFVAR LF@float2int_ret_0\n");
-    printf("MOVE LF@int2float_ret_0 int@0\n");
+    printf("MOVE LF@float2int_ret_0 int@0\n");
     printf("FLOAT2INT LF@float2int_ret_0 LF@arg_0\n");
     printf("POPFRAME\n");
     printf("RETURN\n");
@@ -601,19 +601,31 @@ void func_ret_before_declar(char *func_name, tFuncItem *func)
 
 }
 
-void func_args_TF_declar(char *func_name, tFuncItem *func)
+void func_args_TF_declar(char *func_name, tFuncItem *func, SyntaxNodes* paramValues)
 {
-
+    SyntaxNodes * currentParam = paramValues;
     //have to create before args pass(for non args func too)
     printf("CREATEFRAME\n");
 
         printf("# CREATE VARS FOR %s's ARGS\n",func_name);
         for(int i = 0; i < func->params_count ; i++)
         {
-            
+            char paramId[64];
+            sprintf(paramId, "%s__P__%d",func_name, i);
+
+            printf("DEFVAR LF@%s\n",paramId);
+            char temp1[64];
+            sprintf(temp1, "%s__LEFT__%d",func_name, i);
+
+            printf("DEFVAR LF@%s\n", temp1);
+            char temp2[64];
+            sprintf(temp2, "%s__RIGHT__%d",func_name, i);
+            printf("DEFVAR LF@%s\n", temp2);
+            struct genExpr param = GenParseExpr(currentParam->node, paramId, temp1, temp2, get_var_type(func->paramsTypes[i]));
             printf("DEFVAR TF@arg_%d\n",i);
-            printf("MOVE TF@arg_%d ",i);
-            declared_vars_default_init(func->paramsTypes[i]);
+            printf("MOVE TF@arg_%d %s@%s%s\n",i, param.constant? param.type : "LF", param.sign ? "-":"", param.value );
+            //declared_vars_default_init(func->paramsTypes[i]);
+            currentParam = currentParam->next;
 
         }
 
@@ -621,14 +633,16 @@ void func_args_TF_declar(char *func_name, tFuncItem *func)
       
 }
 
-void func_ret_to_LF(char *func_name, tFuncItem *func)
+void func_ret_to_LF(char *func_name, tFuncItem *func, SyntaxNodes* dest)
 {
-
+    SyntaxNodes* currentDest = dest;
+    //printf(">>>>>>>>>>>>>%s\n",currentDest->node->name);
     for(int i = 0; i<func->return_count; i++)
     {
-            
-        printf("MOVE LF@%s_ret_%d TF@%s_ret_%d\n",func_name,i);
-
+        if(strcmp(currentDest->node->left->token->value, "_") != 0){
+            printf("MOVE LF@%s TF@%s_ret_%d\n",currentDest->node->left->token->value, func_name,i);
+        }
+        currentDest = currentDest->next;
     }
 
 }
@@ -718,6 +732,7 @@ void vars_final_counter(SyntaxNode *root, tHashItem *item)
 
 */
 
+
 struct genExpr GenParseExpr(SyntaxNode* root, char* assignTo, char* left, char* right, char* type){
 
     static bool current_unary = true;//true == plus, false == minus
@@ -730,6 +745,12 @@ struct genExpr GenParseExpr(SyntaxNode* root, char* assignTo, char* left, char* 
         struct genExpr test;
         test.value = root->right->token->value;
         test.type = root->type == Node_IdentifierExpression ? "LF" : type;
+        if(strcmp(test.type, "float") == 0){
+            double f = atof(test.value);
+            //char newVal[30];
+            sprintf(test.value, "%a", f); // @TODO DANGER!!!!!!
+            //test.value = newVal;
+        }
         test.constant = true;
         if(!current_unary) {
             current_unary = true;
@@ -753,8 +774,15 @@ struct genExpr GenParseExpr(SyntaxNode* root, char* assignTo, char* left, char* 
 
         switch (root->token->type) {
             case tokenType_PLUS:
-                printf("ADD LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type: "LF", leftTemp.sign ? "-" : "", leftTemp.value,
-                       rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "", rightTemp.value);
+                if(strcmp(type, "string") == 0){
+                    printf("CONCAT LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type : "LF",
+                           leftTemp.sign ? "-" : "", leftTemp.value,
+                           rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "", rightTemp.value);
+                }else {
+                    printf("ADD LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type : "LF",
+                           leftTemp.sign ? "-" : "", leftTemp.value,
+                           rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "", rightTemp.value);
+                }
                 break;
             case tokenType_MINUS:
                 printf("SUB LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type: "LF", leftTemp.sign ? "-" : "", leftTemp.value,
