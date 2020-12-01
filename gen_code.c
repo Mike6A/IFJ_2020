@@ -512,6 +512,24 @@ char* get_var_type(TItem type)
     }
 
 }
+//before func_args_TF_declar
+void func_ret_before_declar(char *func_name, tFuncItem *func)
+{
+
+    printf("# CREATE VARS FOR %s's RETURNS\n",func_name);
+
+    for(int i = 0; i<func->return_count; i++)
+    {
+            
+        printf("DEFVAR LF@%s_ret_%d\n",func_name, i);
+        printf("MOVE LF@%s_ret_%d ",func_name,i);
+        declared_vars_default_init(func->return_vals[i]);
+
+    }
+
+    printf("# ALL VARS FOR %s's RETURNS HAS BEEN DECLARED\n");
+
+}
 
 void func_args_TF_declar(char *func_name, tFuncItem *func)
 {
@@ -531,6 +549,18 @@ void func_args_TF_declar(char *func_name, tFuncItem *func)
 
         printf("# ALL VARS FOR ARGS HAS BEEN CREATED\n");
       
+}
+
+void func_ret_to_LF(char *func_name, tFuncItem *func)
+{
+
+    for(int i = 0; i<func->return_count; i++)
+    {
+            
+        printf("MOVE LF@%s_ret_%d TF@%s_ret_%d\n",func_name,i);
+
+    }
+
 }
 
 void func_ret_declar(char *func_name, tFuncItem *func)

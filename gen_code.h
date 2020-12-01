@@ -66,6 +66,8 @@ void general_func_suffix(char *func_name);
 void func_args_TF_declar(char *func_name, tFuncItem *func);
 void func_ret_declar(char *func_name, tFuncItem *func);
 void func_ret_get_value(char *func_name, tFuncItem *func);
+void func_ret_to_LF(char *func_name,tFuncItem *func);
+void func_ret_before_declar(char *func_name, tFuncItem *func);
 
 ///-----------VARS & EXPRESSIONS FUNCTIONS------------------
 void general_terminal_val(tToken token);
