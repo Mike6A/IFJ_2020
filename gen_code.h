@@ -77,6 +77,7 @@ struct genExpr GenParseExpr(SyntaxNode* root, char* assignTo, char* right, char*
 void GENASIGN(SyntaxNode* root, tHashItem* item);
 void vars_default_declar_init(SyntaxNode *root, tHashItem *item);
 void vars_set_new_value(SyntaxNode *root, tHashItem *item);
+void var_assign_to_func_value(char *func_name, tHashItem *item);
 
 ///---------STACK FUNCTIONS----------------------
 void stack_concat_string(char *str3, char *str2, char *str1);

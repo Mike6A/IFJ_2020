@@ -563,6 +563,15 @@ void func_ret_to_LF(char *func_name, tFuncItem *func)
 
 }
 
+//current var have to be declared before func
+//use only after selected func
+void var_assign_to_func_value(char *func_name, tHashItem *item)
+{
+
+    printf("MOVE LF@%s TF@%s_ret_0\n",item->id, func_name);
+
+}
+
 void func_ret_declar(char *func_name, tFuncItem *func)
 {
 
