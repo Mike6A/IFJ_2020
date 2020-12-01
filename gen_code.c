@@ -221,12 +221,9 @@ void bif_print(SyntaxNodes* my_statement)
 
     int i=0;
     SyntaxNodes* current_statement = my_statement->first;
-/*
-    printf("# func print (term1,term2,...,term𝑛)\n");
-    printf("LABEL _print\n");
-    printf("PUSHFRAME\n");
-*/
     static int c = 0;
+    static int ord = 0;
+    
     while(current_statement != NULL)
     {
         if(current_statement->node != NULL) {
@@ -239,10 +236,49 @@ void bif_print(SyntaxNodes* my_statement)
                     break;
                 case Node_StringExpression:
                     //@TODO HEX, escape chars!
-                    if (strcmp(current_statement->node->right->token->value, "\n") == 0)
+                    for(int i=0; i< strlen(current_statement->node->right->token->value);i++)
+                    {
+
+                        ord = current_statement->node->right->token->value[i];
+                        if((ord>=0 && ord<=32)||(ord == 35))
+                        {
+                            printf("WRITE string@\\%d%d\n",0,ord);
+                        }
+                            
+                        else if(ord == 92)
+                        {
+                            switch(current_statement->node->right->token->value[i+1])
+                            {
+                                case 'n': 
+                                        printf("WRITE string@\\010\n");
+                                        break;
+
+                                case 't':
+                                        printf("WRITE string@\\009\n");
+                                        break;
+
+                                case '"':
+                                        printf("WRITE string@\\034\n");
+                                        break;
+                                case '\\':
+                                        printf("WRITE string@\\092\n");
+                                        break;
+                                
+                            }
+                            ++i;
+                        }
+                        else
+                        {
+                            printf("WRITE string@\"%c\"\n",current_statement->node->right->token->value[i]);
+                        }
+                           
+                    }
+
+                    /*if(strcmp(current_statement->node->right->token->value, "\n") == 0)
                         printf("WRITE string@\010\n");
                     else
                         printf("WRITE string@%s\n", current_statement->node->right->token->value);
+                        */
                     break;
                 case Node_IdentifierExpression:
                     printf("WRITE LF@%s\n", current_statement->node->right->token->value);
