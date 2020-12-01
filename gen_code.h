@@ -39,6 +39,9 @@ SyntaxNode* Pop_SN_Stack(tSN_Stack* list);
 
 //function in gen_code.c
 
+///------------SPECIAL CONVERTING FUNCS----------
+int hex_to_dec(char hex[]);
+
 ///------------BUILT-IN FUNCTIONS---------------
 void bif_lenght();
 void bif_substr();

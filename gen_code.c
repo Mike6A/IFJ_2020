@@ -216,6 +216,30 @@ void bif_float2int()
       
 }*/
 
+int hex_to_dec(char hex[]) 
+{    
+    int len = strlen(hex); 
+    int base = 1; 
+    int dec_val = 0; 
+    for (int i=len-1; i>=0; i--) 
+    {    
+        
+        if (hex[i]>='0' && hex[i]<='9') 
+        { 
+            dec_val += (hex[i] - 48)*base; 
+                  
+            base = base * 16; 
+        } else if (hex[i]>='A' && hex[i]<='F') 
+        { 
+            dec_val += (hex[i] - 55)*base; 
+          
+            base = base*16; 
+        } 
+    } 
+      
+    return dec_val; 
+} 
+
 void bif_print(SyntaxNodes* my_statement)
 {
 
@@ -223,6 +247,8 @@ void bif_print(SyntaxNodes* my_statement)
     SyntaxNodes* current_statement = my_statement->first;
     static int c = 0;
     static int ord = 0;
+    static char hex_arr[3];
+    static int hex = 0;
     
     while(current_statement != NULL)
     {
@@ -247,6 +273,7 @@ void bif_print(SyntaxNodes* my_statement)
                             
                         else if(ord == 92)
                         {
+                            
                             switch(current_statement->node->right->token->value[i+1])
                             {
                                 case 'n': 
@@ -263,7 +290,15 @@ void bif_print(SyntaxNodes* my_statement)
                                 case '\\':
                                         printf("WRITE string@\\092\n");
                                         break;
-                                
+                                //hex
+                                case 'x':
+                                        hex_arr[0] = current_statement->node->right->token->value[i+2];
+                                        hex_arr[1] = current_statement->node->right->token->value[i+3];
+                                        hex_arr[2] = '\0';
+                                        ord = hex_to_dec(&hex_arr);
+                                        printf("WRITE string@\"%c\"\n",ord);
+                                        i+=2;
+                                            
                             }
                             ++i;
                         }
