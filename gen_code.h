@@ -67,10 +67,10 @@ void general_func_call(char *func_name);
 void general_func_prefix(char *func_name);
 void general_func_suffix(char *func_name);
 void func_args_TF_declar(char *func_name, tFuncItem *func, SyntaxNodes* paramValues);
+void no_built_in_func_args_TF_declar(char *func_name, tFuncItem *func, SyntaxNodes* paramValues);
 void func_ret_declar(char *func_name, tFuncItem *func);
-void func_ret_get_value(char *func_name, tFuncItem *func);
+void func_ret_get_value(char *func_name, tFuncItem *func,SyntaxNodes* retValues);
 void func_ret_to_LF(char *func_name,tFuncItem *func, SyntaxNodes* dest);
-void func_ret_before_declar(char *func_name, tFuncItem *func);
 
 ///-----------VARS & EXPRESSIONS FUNCTIONS------------------
 void general_terminal_val(tToken token);

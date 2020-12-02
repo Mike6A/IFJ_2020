@@ -583,23 +583,37 @@ char* get_var_type(TItem type)
     }
 
 }
-//before func_args_TF_declar
-void func_ret_before_declar(char *func_name, tFuncItem *func)
+
+void no_built_in_func_args_TF_declar(char *func_name, tFuncItem *func, SyntaxNodes* paramValues)
 {
+    SyntaxNodes * currentParam = paramValues;
+    //have to create before args pass(for non args func too)
+    printf("CREATEFRAME\n");
 
-    printf("# CREATE VARS FOR %s's RETURNS\n",func_name);
+        printf("# CREATE VARS FOR %s's ARGS\n",func_name);
+        for(int i = 0; i < func->params_count ; i++)
+        {
+            char paramId[64];
+            sprintf(paramId, "%s__P__%d",func_name, i);
 
-    for(int i = 0; i<func->return_count; i++)
-    {
-            
-        printf("DEFVAR LF@%s_ret_%d\n",func_name, i);
-        printf("MOVE LF@%s_ret_%d ",func_name,i);
-        declared_vars_default_init(func->return_vals[i]);
+            printf("DEFVAR LF@%s\n",paramId);
+            char temp1[64];
+            sprintf(temp1, "%s__LEFT__%d",func_name, i);
 
-    }
+            printf("DEFVAR LF@%s\n", temp1);
+            char temp2[64];
+            sprintf(temp2, "%s__RIGHT__%d",func_name, i);
+            printf("DEFVAR LF@%s\n", temp2);
+            struct genExpr param = GenParseExpr(currentParam->node, paramId, temp1, temp2, get_var_type(func->paramsTypes[i]));
+            printf("DEFVAR TF@%s\n",func->params[i]);
+            printf("MOVE TF@%s %s@%s%s\n",func->params[i], param.constant? param.type : "LF", param.sign ? "-":"", param.value );
+            //declared_vars_default_init(func->paramsTypes[i]);
+            currentParam = currentParam->next;
 
-    printf("# ALL VARS FOR %s's RETURNS HAS BEEN DECLARED\n");
+        }
 
+        printf("# ALL VARS FOR ARGS HAS BEEN CREATED\n");
+      
 }
 
 void func_args_TF_declar(char *func_name, tFuncItem *func, SyntaxNodes* paramValues)
@@ -674,17 +688,30 @@ void func_ret_declar(char *func_name, tFuncItem *func)
     
 }
 
-void func_ret_get_value(char *func_name, tFuncItem *func)
+void func_ret_get_value(char *func_name, tFuncItem *func, SyntaxNodes* retValues)
 {
 
+    SyntaxNodes * currentRet = retValues;
     //only after func_ret_declar
 
         printf("# MOVE VALUES FOR %s's RETURNS\n",func_name);
         for(int i = 0; i<func->return_count; i++)
         {
             
-            printf("MOVE LF@%s_ret_%d ",func_name,i);
-            declared_vars_default_init(func->return_vals[i]);
+            char retId[64];
+            sprintf(retId, "%s__P__%d",func_name, i);
+
+            printf("DEFVAR LF@%s\n",retId);
+            char temp1[64];
+            sprintf(temp1, "%s__LEFT__%d",func_name, i);
+
+            printf("DEFVAR LF@%s\n", temp1);
+            char temp2[64];
+            sprintf(temp2, "%s__RIGHT__%d",func_name, i);
+            printf("DEFVAR LF@%s\n", temp2);
+            struct genExpr param = GenParseExpr(currentRet->node, retId, temp1, temp2, get_var_type(func->return_vals[i]));
+
+            printf("MOVE LF@%s_ret_%d %s@%s%s\n",func_name,i, param.constant? param.type : "LF", param.sign ? "-":"", param.value );
 
         }
 
