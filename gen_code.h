@@ -96,7 +96,7 @@ void if_prefix(char *func_name, tScopeItem *item, int deep_index);
 void if_else(char *func_name, tScopeItem *item, int deep_index);
 
 ///--------------------FOR FUNCTIONS-------------------------------
-void for_args_TF_declar(char *func_name, TItem type);
+void for_args_TF_declar(char *func_name, TItem type, SyntaxNode* forInit);
 void for_prefix(char *func_name, tScopeItem *item, int deep_index);
 void for_suffix(char *func_name, tScopeItem *item, int deep_index);
 
