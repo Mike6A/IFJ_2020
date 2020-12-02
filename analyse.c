@@ -528,6 +528,8 @@ SyntaxNode* ParseDeclarationSyntax(tTokenizer* tokenizer, tToken* id){
     deleteToken(id);
     deleteSyntaxTree(expr);
     deleteToken(declare);
+    if(expr->type == Node_BooleanExpression)
+        error(5);
     error(2);
     return NULL;
 }
@@ -886,6 +888,8 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
                                 destroyNodeList(assignValues);
                                 deleteToken(assign);
                                 //fprintf(stderr, "Assignment went wrong!\n");
+                                if(expr->type == Node_BooleanExpression)
+                                    error(5);
                                 error(2);
                                 return NULL;
                             }
@@ -914,6 +918,8 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
                                     destroyNodeList(assignValues);
                                     deleteToken(assign);
                                     //fprintf(stderr, "Assignment went wrong!\n");
+                                    if(expr->type == Node_BooleanExpression)
+                                        error(5);
                                     error(2);
                                     return NULL;
                                 }
