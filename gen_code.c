@@ -72,13 +72,14 @@ void bif_substr()
     printf("MOVE LF@substr_ret_0 string@\n");
     printf("DEFVAR LF@substr_ret_1\n");
     printf("MOVE LF@substr_ret_1 int@0\n");
+    printf("ADD LF@arg_1 LF@arg_1 int@1\n");
     printf("DEFVAR LF@in_string\n");
     printf("DEFVAR LF@str_len\n");
     printf("DEFVAR LF@substr_len\n");
     printf("STRLEN LF@str_len LF@arg_0\n");
     printf("MOVE LF@substr_len LF@str_len\n");
     printf("MOVE LF@in_string bool@true\n");
-    printf("LT LF@in_string LF@arg_1 int@1\n");
+    printf("LT LF@in_string LF@arg_1 int@0\n");
     printf("JUMPIFEQ _func_error_substr LF@in_string bool@true\n");
     printf("GT LF@in_string LF@arg_1 LF@str_len\n");
     printf("JUMPIFEQ _func_error_substr LF@in_string bool@true\n");

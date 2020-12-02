@@ -8,6 +8,7 @@ DEFVAR LF@substr_ret_0
 MOVE LF@substr_ret_0 string@
 DEFVAR LF@substr_ret_1
 MOVE LF@substr_ret_1 int@0
+ADD LF@arg_1 LF@arg_1 int@1
 
 DEFVAR LF@in_string
 DEFVAR LF@str_len
@@ -17,13 +18,13 @@ STRLEN LF@str_len LF@arg_0
 MOVE LF@substr_len LF@str_len
 MOVE LF@in_string bool@true
 
-LT LF@in_string LF@arg_1 int@1
+LT LF@in_string LF@arg_1 int@0
 JUMPIFEQ _func_error LF@in_string bool@true
 GT LF@in_string LF@arg_1 LF@str_len
 JUMPIFEQ _func_error LF@in_string bool@true
 LT LF@in_string LF@arg_2 int@0
 JUMPIFEQ _func_error LF@in_string bool@true
-
+# 7 1 2   5
 SUB LF@substr_len LF@substr_len LF@arg_1
 GT LF@in_string LF@arg_2 LF@substr_len
 JUMPIFNEQ _func_continue LF@in_string bool@true
@@ -60,9 +61,9 @@ CREATEFRAME
 DEFVAR TF@arg_0
 MOVE TF@arg_0 string@kdesibol
 DEFVAR TF@arg_1
-MOVE TF@arg_1 int@25
+MOVE TF@arg_1 int@7
 DEFVAR TF@arg_2
-MOVE TF@arg_2 int@3
+MOVE TF@arg_2 int@25
 CALL _substr
 MOVE LF@new_str TF@substr_ret_0
 MOVE LF@substr_flag TF@substr_ret_1
