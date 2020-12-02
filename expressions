@@ -2,9 +2,10 @@
 package main
 
 func ahoj(a int) (int, int){
-    b := 1*a+1
+    b := 0
     return b, 0
 }
+
 
 func main() {
     a := 0
@@ -23,16 +24,17 @@ func main() {
     b = float2int(f)
     print("#Float2Int\n")
     print("FLOAT: ", f, " INT: ",b , "\n")
-    string1 := "Nieco_som_sem_narval!"
+    string1 := "Nieco som sem narval!"
     string1_5 := ""
-    subOd := 5
+    subOd := 0
     subDo := 6
     string1_5, b = substr(string1, subOd, subDo)
 
     print("#Substring\n")
     print("String: ", string1, "\t SubString[",subOd, ":",subDo, "] :",string1_5 ," ERROR: ", b ,"\n")
 
-    a, b = ahoj(5)
+    a, b = ahoj(15+98*6)
+    //c,b = ahoj(8)
     print("#UserFunction\n")
     print("Ahoj(5) = ", a, " ", b, "\n")
 
