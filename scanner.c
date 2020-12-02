@@ -574,6 +574,7 @@ int state_OneLineComment(tTokenizer* tokenizer){
         if (state_BlockComment(tokenizer) != 0) {
             return 2;
         }
+        getNextChar(tokenizer);
         return 3;
     } else { //is divede operator
         tokenizer->outputToken.value = "/";
