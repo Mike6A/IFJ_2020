@@ -537,7 +537,8 @@ long returnExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLin
     }
 
     foundReturn = true;
-
+    if (returnCode == 0 && root->statements!=NULL && root->statements->first != NULL)
+        func_ret_get_value(parentFunction, func->func, root->statements->first);
     //TODO codegen: return variables + destroy scope
     return returnCode;
 }
@@ -704,7 +705,7 @@ long assignmentExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStrin
                 }
                 func_args_TF_declar(value->node->token->value, func, value->node->statements);
                 general_func_call(value->node->token->value);
-                func_ret_to_LF(value->node->token->value, func, destination);
+                SyntaxNodes *tmpDest = destination;
                 for (int i = 0; i < func->return_count; i++) {
                     if (destination == NULL) {
                         //fprintf(stderr, "Not using all return values from function \"%s\"!\n", value->node->token->value);
@@ -727,7 +728,7 @@ long assignmentExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStrin
                     //fprintf(stderr, "Function \"%s\" does only return %d values!\n", value->node->token->value, func->return_count);
                     return 6;
                 }
-
+                func_ret_to_LF(value->node->token->value, func, tmpDest);
 
             }
             else {  //shouldn't happen, cuz only functions are defined in global scope
@@ -880,6 +881,7 @@ int forExpression(SyntaxNode* root, tScope* scope, char* parentFunction, tString
     createScope(scope);
     //TODO codegen: create scope
 
+
     //------- declaration part -------- -> optional
     if (root->left->left != NULL) {
         if (root->left->left->type == Node_DeclareExpression) {
@@ -893,9 +895,11 @@ int forExpression(SyntaxNode* root, tScope* scope, char* parentFunction, tString
 
     //------- condition part --------- -> obligatory
     tExpReturnType condition = evalExpression(root->left->right, scope, parentFunction, strList);
+    //@TODO POMOCNA FUNKCIA !!! SCOPE LEVEL DEFINITIONS... GENERALIZE IT ! MUST BE IN SEMANTICS NOT IN GENCODE!!!!
     if (condition.errCode != 0) {
        result = condition.errCode;
     }
+
     if (result != 0) {
         removeLastLocalScope(scope);
         return result;
@@ -924,6 +928,7 @@ int forExpression(SyntaxNode* root, tScope* scope, char* parentFunction, tString
             return result;
         }
     }
+
 
     //------- block part ------
     result = blockExp(root->right, scope, parentFunction, strList);    //block with things to loop in for
@@ -1096,11 +1101,14 @@ long runFunctionExp(SyntaxNode* root, tScope* scope, tStringLinkedListItem* strL
     }
 
     foundReturn = false;
+    tFuncItem * func =  getHashItem(table, funcName)->func;
     //TODO codegen: function head + scope + parameters
     if(strcmp(funcName, "main") == 0)
         main_prefix();
-    else
+    else {
         general_func_prefix(funcName); // GENERATE FUNCTION NAME
+        func_ret_declar(funcName, func);
+    }
     long errCode = blockExp(root->right, scope, funcName, strList);   //run things in the body of the function | also return it's errCode
 
     if (getHashItem(scope->global->table, funcName)->func->return_count > 0 && foundReturn == false) {
@@ -1109,9 +1117,9 @@ long runFunctionExp(SyntaxNode* root, tScope* scope, tStringLinkedListItem* strL
     }
     if(strcmp(funcName, "main") == 0)
         main_suffix();
-    else
+    else{
         general_func_suffix(funcName); // GENERATE CODE END OF FUNCTION
-
+    }
     return errCode;
 }
 
@@ -1141,37 +1149,37 @@ long addInbuiltFunctions(tScope* scope) {
 
     //func int2float(i int) (float64)
     addFuncToHT(table, "int2float", true);
-    addParamToFunc(table, "int2float", "i", TInt);
+    addParamToFunc(table, "int2float", "arg_0", TInt);
     addReturnTypeToFunc(table, "int2float", TDouble);
 
     //func float2int(f float64) (int)
     addFuncToHT(table, "float2int", true);
-    addParamToFunc(table, "float2int", "f", TDouble);
+    addParamToFunc(table, "float2int", "arg_0", TDouble);
     addReturnTypeToFunc(table, "float2int", TInt);
 
     //func len(s string) (int)
     addFuncToHT(table, "len", true);
-    addParamToFunc(table, "len", "s", TString);
+    addParamToFunc(table, "len", "arg_0", TString);
     addReturnTypeToFunc(table, "len", TInt);
 
     //func substr(s string, i int, n int) (string, int)
     addFuncToHT(table, "substr", true);
-    addParamToFunc(table, "substr", "s", TString);
-    addParamToFunc(table, "substr", "i", TInt);
-    addParamToFunc(table, "substr", "n", TInt);
+    addParamToFunc(table, "substr", "arg_0", TString);
+    addParamToFunc(table, "substr", "arg_1", TInt);
+    addParamToFunc(table, "substr", "arg_2", TInt);
     addReturnTypeToFunc(table, "substr", TString);
     addReturnTypeToFunc(table, "substr", TInt);
 
     //func ord(s string, i int) (int, int)
     addFuncToHT(table, "ord", true);
-    addParamToFunc(table, "ord", "s", TString);
-    addParamToFunc(table, "ord", "i", TInt);
+    addParamToFunc(table, "ord", "arg_0", TString);
+    addParamToFunc(table, "ord", "arg_1", TInt);
     addReturnTypeToFunc(table, "ord", TInt);
     addReturnTypeToFunc(table, "ord", TInt);
 
     //func chr(i int) (string, int)
     addFuncToHT(table, "chr", true);
-    addParamToFunc(table, "chr", "i", TInt);
+    addParamToFunc(table, "chr", "arg_0", TInt);
     addReturnTypeToFunc(table, "chr", TString);
     addReturnTypeToFunc(table, "chr", TInt);
 
