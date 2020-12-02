@@ -41,6 +41,7 @@ SyntaxNode* Pop_SN_Stack(tSN_Stack* list);
 
 ///------------SPECIAL CONVERTING FUNCS----------
 int hex_to_dec(char hex[]);
+void parse_str(char *str);
 
 ///------------BUILT-IN FUNCTIONS---------------
 void bif_lenght();

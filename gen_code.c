@@ -46,6 +46,64 @@ SyntaxNode* Pop_SN_Stack(tSN_Stack* list) {
 
 */
 
+void parse_str(char *str)
+{
+
+    int old_len = strlen(str);
+    int ord = 0;
+    char *parsed_str[old_len];
+    char *hex_arr[2];
+
+    for(int i=1; i< old_len-1;i++)
+    {
+
+        ord = str[i];
+        if((ord>=0 && ord<=32)||(ord == 35))
+        {
+            printf("\\%d%d",0,ord);
+        }
+        else if(ord == 92)
+        {
+                            
+            switch(str[i+1])
+            {
+                                
+                case 'n': 
+                        printf("\\010");
+                        break;
+
+                case 't':
+                        printf("\\009");
+                        break;
+
+                case '"':
+                        printf("\\034");
+                        break;
+
+                case '\\':
+                        printf("\\092");
+                        break;
+                //hex
+                case 'x':
+                        hex_arr[0] = str[i+2];
+                        hex_arr[1] = str[i+3];
+                        hex_arr[2] = '\0';
+                        ord = hex_to_dec(&hex_arr);
+                        printf("%c",ord);
+                        i+=2;
+                                            
+            }
+        ++i;
+        }
+        else
+        {
+            printf("%c",str[i]);
+        }
+                           
+    }
+
+}
+
 ///---------BUILT-IN FUNCTIONS-----------------
 
 /// built-in string functions
@@ -712,14 +770,12 @@ void func_ret_get_value(char *func_name, tFuncItem *func, SyntaxNodes* retValues
             struct genExpr param = GenParseExpr(currentRet->node, retId, temp1, temp2, get_var_type(func->return_vals[i]));
 
             printf("MOVE LF@%s_ret_%d %s@%s%s\n",func_name,i, param.constant? param.type : "LF", param.sign ? "-":"", param.value );
-
+            currentRet = currentRet->next;
         }
 
         printf("# ALL VARS FOR RETURNS HAS BEEN INITTED\n");
     
 }
-
-
 
 ///----------------FUNC FOR VARIABLES NAD EXPR-------------
 /*
