@@ -45,7 +45,7 @@ SyntaxNode* Pop_SN_Stack(tSN_Stack* list) {
 }
 
 */
-
+static int scope = 0;
 void parse_str(char *str)
 {
 
@@ -374,7 +374,7 @@ void bif_print(SyntaxNodes* my_statement)
                         */
                     break;
                 case Node_IdentifierExpression:
-                    printf("WRITE LF@%s\n", current_statement->node->right->token->value);
+                    printf("WRITE LF@%s_%d\n", current_statement->node->right->token->value, scope);
                     break;
                 case Node_UnaryExpression:
 
@@ -386,6 +386,7 @@ void bif_print(SyntaxNodes* my_statement)
                     char temp2[15];
                     sprintf(temp2, "__WRIGHT__%d", c++);
                     printf("DEFVAR LF@%s\n", temp2);
+
                     char *type = "int"; //@TODO
                     struct genExpr unary = GenParseExpr(current_statement->node, "tmpWriteExprUnary", temp1, temp2,
                                                         type);
@@ -676,6 +677,7 @@ void no_built_in_func_args_TF_declar(char *func_name, tFuncItem *func, SyntaxNod
 
 void func_args_TF_declar(char *func_name, tFuncItem *func, SyntaxNodes* paramValues)
 {
+    static int called = 0;
     SyntaxNodes * currentParam = paramValues;
     //have to create before args pass(for non args func too)
     printf("CREATEFRAME\n");
@@ -684,19 +686,34 @@ void func_args_TF_declar(char *func_name, tFuncItem *func, SyntaxNodes* paramVal
         for(int i = 0; i < func->params_count ; i++)
         {
             char paramId[64];
-            sprintf(paramId, "%s__P__%d",func_name, i);
+            sprintf(paramId, "%s__P__%d_%d",func_name, i,called);
 
             printf("DEFVAR LF@%s\n",paramId);
             char temp1[64];
-            sprintf(temp1, "%s__LEFT__%d",func_name, i);
+            sprintf(temp1, "%s__LEFT__%d_%d",func_name, i,called);
 
             printf("DEFVAR LF@%s\n", temp1);
             char temp2[64];
-            sprintf(temp2, "%s__RIGHT__%d",func_name, i);
+            sprintf(temp2, "%s__RIGHT__%d_%d",func_name, i,called++);
             printf("DEFVAR LF@%s\n", temp2);
             struct genExpr param = GenParseExpr(currentParam->node, paramId, temp1, temp2, get_var_type(func->paramsTypes[i]));
-            printf("DEFVAR TF@arg_%d\n",i);
-            printf("MOVE TF@arg_%d %s@%s%s\n",i, param.constant? param.type : "LF", param.sign ? "-":"", param.value );
+            if(strcmp(func->params[i], "arg_0") == 0 || strcmp(func->params[i], "arg_1") == 0 || strcmp(func->params[i], "arg_2") == 0){
+                printf("DEFVAR TF@%s\n",func->params[i]);
+            } else
+                printf("DEFVAR TF@%s_%d\n",func->params[i],0);
+            if(strcmp(param.type, "string") == 0){
+                if(strcmp(func->params[i], "arg_0") == 0 || strcmp(func->params[i], "arg_1") == 0 || strcmp(func->params[i], "arg_2") == 0){
+                    printf("MOVE TF@%s %s@%s",func->params[i], param.constant? param.type : "LF", param.sign ? "-":"");
+                }else
+                    printf("MOVE TF@%s_%d %s@%s",func->params[i], 0, param.constant? param.type : "LF", param.sign ? "-":"");
+                parse_str(param.value);
+                printf("\n");
+            } else
+            if(strcmp(func->params[i], "arg_0") == 0 || strcmp(func->params[i], "arg_1") == 0 || strcmp(func->params[i], "arg_2") == 0){
+                printf("MOVE TF@%s %s@%s%s\n",func->params[i], param.constant? param.type : "LF", param.sign ? "-":"", param.value );
+            }else
+                printf("MOVE TF@%s_%d %s@%s%s\n",func->params[i], 0, param.constant? param.type : "LF", param.sign ? "-":"", param.value );
+
             //declared_vars_default_init(func->paramsTypes[i]);
             currentParam = currentParam->next;
 
@@ -713,7 +730,7 @@ void func_ret_to_LF(char *func_name, tFuncItem *func, SyntaxNodes* dest)
     for(int i = 0; i<func->return_count; i++)
     {
         if(strcmp(currentDest->node->left->token->value, "_") != 0){
-            printf("MOVE LF@%s TF@%s_ret_%d\n",currentDest->node->left->token->value, func_name,i);
+            printf("MOVE LF@%s_%d TF@%s_ret_%d\n",currentDest->node->left->token->value,scope, func_name,i);
         }
         currentDest = currentDest->next;
     }
@@ -768,8 +785,13 @@ void func_ret_get_value(char *func_name, tFuncItem *func, SyntaxNodes* retValues
             sprintf(temp2, "%s__RIGHT__%d",func_name, i);
             printf("DEFVAR LF@%s\n", temp2);
             struct genExpr param = GenParseExpr(currentRet->node, retId, temp1, temp2, get_var_type(func->return_vals[i]));
-
-            printf("MOVE LF@%s_ret_%d %s@%s%s\n",func_name,i, param.constant? param.type : "LF", param.sign ? "-":"", param.value );
+            if(strcmp(param.type, "string") == 0){
+                printf("MOVE LF@%s_ret_%d %s@%s",func_name,i, param.constant? param.type : "LF", param.sign ? "-":"");
+                parse_str(param.value);
+                printf("\n");
+            } else
+                printf("MOVE LF@%s_ret_%d %s@%s%s\n",func_name,i, param.constant? param.type : "LF", param.sign ? "-":"", param.value );
+            //printf("MOVE LF@%s_ret_%d %s@%s%s\n",func_name,i, param.constant? param.type : "LF", param.sign ? "-":"", param.value );
             currentRet = currentRet->next;
         }
 
@@ -827,8 +849,15 @@ struct genExpr GenParseExpr(SyntaxNode* root, char* assignTo, char* left, char* 
     if(root->type == Node_NumberIntExpression || root->type == Node_NumberDoubleExpression || root->type == Node_StringExpression || root->type == Node_IdentifierExpression) {
 
         struct genExpr test;
-        test.value = root->right->token->value;
+        if (root->type == Node_IdentifierExpression){
+            char identifier[64]; //@TODO MALLOC
+            sprintf(identifier, "%s_%d", root->right->token->value, scope);
+            test.value =  identifier;
+        }else {
+            test.value = root->right->token->value;
+        }
         test.type = root->type == Node_IdentifierExpression ? "LF" : type;
+
         if(strcmp(test.type, "float") == 0){
             double f = atof(test.value);
             //char newVal[30];
@@ -859,9 +888,12 @@ struct genExpr GenParseExpr(SyntaxNode* root, char* assignTo, char* left, char* 
         switch (root->token->type) {
             case tokenType_PLUS:
                 if(strcmp(type, "string") == 0){
-                    printf("CONCAT LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type : "LF",
-                           leftTemp.sign ? "-" : "", leftTemp.value,
-                           rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "", rightTemp.value);
+                    printf("CONCAT LF@%s %s@%s", assignTo, leftTemp.constant ? leftTemp.type : "LF",
+                           leftTemp.sign ? "-" : "");
+                    parse_str(leftTemp.value);
+                    printf(" %s@%s", rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "");
+                    parse_str(rightTemp.value);
+                    printf("\n");
                 }else {
                     printf("ADD LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type : "LF",
                            leftTemp.sign ? "-" : "", leftTemp.value,
@@ -911,6 +943,66 @@ struct genExpr GenParseExpr(SyntaxNode* root, char* assignTo, char* left, char* 
             current_unary = true;
         unary_before = current_unary;
         return GenParseExpr(root->right, assignTo,left, right, type);
+    }else if(root->type == Node_BooleanExpression) {
+        leftTemp = GenParseExpr(root->left, leftTemp.value, leftTemp.value, rightTemp.value, type);
+        rightTemp = GenParseExpr(root->right, rightTemp.value, leftTemp.value, rightTemp.value, type);
+        switch (root->token->type) {
+            case tokenType_EQ:
+                if(strcmp(type, "string") == 0){
+                    printf("EQ LF@%s %s@%s", assignTo, leftTemp.constant ? leftTemp.type : "LF",
+                           leftTemp.sign ? "-" : "");
+                    parse_str(leftTemp.value);
+                    printf(" %s@%s", rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "");
+                    parse_str(rightTemp.value);
+                    printf("\n");
+                }else {
+                    printf("EQ LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type : "LF",
+                           leftTemp.sign ? "-" : "", leftTemp.value,
+                           rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "", rightTemp.value);
+                    }
+                break;
+            case tokenType_GE:
+                //@TODO
+                break;
+            case tokenType_LE:
+                //@TODO
+                break;
+            case tokenType_NEQ:
+                //@TODO
+                break;
+            case tokenType_GREATER:
+                if(strcmp(type, "string") == 0){
+                    printf("GT LF@%s %s@%s", assignTo, leftTemp.constant ? leftTemp.type : "LF",
+                           leftTemp.sign ? "-" : "");
+                    parse_str(leftTemp.value);
+                    printf(" %s@%s", rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "");
+                    parse_str(rightTemp.value);
+                    printf("\n");
+                }else {
+                    printf("GT LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type : "LF",
+                           leftTemp.sign ? "-" : "", leftTemp.value,
+                           rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "", rightTemp.value);
+                }
+                break;
+            case tokenType_LESS:
+                if(strcmp(type, "string") == 0){
+                    printf("LT LF@%s %s@%s", assignTo, leftTemp.constant ? leftTemp.type : "LF",
+                           leftTemp.sign ? "-" : "");
+                    parse_str(leftTemp.value);
+                    printf(" %s@%s", rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "");
+                    parse_str(rightTemp.value);
+                    printf("\n");
+                }else {
+                    printf("LT LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type : "LF",
+                           leftTemp.sign ? "-" : "", leftTemp.value,
+                           rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "", rightTemp.value);
+                }
+                break;
+            default:
+                break;
+        }
+        struct genExpr done = {.value = assignTo, .type = type, .sign = false};
+        return done;
     }
 }
 
@@ -942,10 +1034,16 @@ void vars_default_declar_init(SyntaxNode *root, tHashItem *item)
     char temp2[15];
     sprintf(temp2, "__DRIGHT__%d", c++);
     printf("DEFVAR LF@%s\n", temp2);
-
-    printf("DEFVAR LF@%s\n",item->id);
-    struct genExpr tmp = GenParseExpr(root, item->id, temp1, temp2, get_var_type(item->type));
-    printf("MOVE LF@%s %s@%s%s\n",item->id, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"", tmp.value);
+    char identific[64]; // TODO MALLOC
+    sprintf(identific, "%s_%d", item->id, scope);
+    printf("DEFVAR LF@%s\n",identific);
+    struct genExpr tmp = GenParseExpr(root, identific, temp1, temp2, get_var_type(item->type));
+    if(strcmp(tmp.type, "string") == 0){
+        printf("MOVE LF@%s %s@%s",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"");
+        parse_str(tmp.value);
+        printf("\n");
+    } else
+        printf("MOVE LF@%s %s@%s%s\n",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"", tmp.value);
     //GenParseExpr(root,assignTo,right,left));
 
 }
@@ -964,11 +1062,16 @@ void vars_set_new_value(SyntaxNode *root, tHashItem *item)
     printf("DEFVAR LF@%s\n", temp2);
 
     //printf("DEFVAR LF@%s\n",item->id);
-
-
+    char identific[64]; // TODO MALLOC
+    sprintf(identific, "%s_%d", item->id, scope);
     printf("# RE-SET VALUE FOR VAR %s\n",item->id);
-    struct genExpr tmp = GenParseExpr(root, item->id, temp1, temp2, get_var_type(item->type));
-    printf("MOVE LF@%s %s@%s%s\n",item->id,tmp.constant ? tmp.type: "LF", tmp.sign?"-":"", tmp.value);
+    struct genExpr tmp = GenParseExpr(root, identific, temp1, temp2, get_var_type(item->type));
+    if(strcmp(tmp.type, "string") == 0){
+        printf("MOVE LF@%s %s@%s",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"");
+        parse_str(tmp.value);
+        printf("\n");
+    } else
+        printf("MOVE LF@%s %s@%s%s\n",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"", tmp.value);
     //GenParseExpr(root,assignTo,right,left));
 
 }
@@ -1076,12 +1179,13 @@ void all_vars_after_new_scope(tScopeItem *item, int deep_index, int vars_total)
 
 ///--------------------FOR FUNCTIONS-------------------------------
 
-void for_args_TF_declar(char *func_name, TItem type)
+void for_args_TF_declar(char *func_name, TItem type, SyntaxNode* forInit)
 {
 
     //have to create before execute for loop
     printf("CREATEFRAME\n");
 
+    //vars_default_declar_init(forInit->right);
     printf("DEFVAR TF@i\n");
     printf("MOVE TF@i ");
     declared_vars_default_init(type);
@@ -1098,22 +1202,24 @@ void for_args_TF_declar(char *func_name, TItem type)
 
 void for_prefix(char *func_name, tScopeItem *item, int deep_index)
 {
-
+    static int countOfFor = 0;
     printf("# START FOR IN %s\n", func_name);
-    new_label_for(func_name,item->scopeLevel,deep_index);
+    new_label_for(func_name,countOfFor,deep_index);
     printf("PUSHFRAME\n");
-    new_label_for_in(func_name,item->scopeLevel,deep_index);
+    ++scope;
+    new_label_for_in(func_name,countOfFor++ ,deep_index);
     //nasleduje telo foru
 }
 
 void for_suffix(char *func_name, tScopeItem *item, int deep_index)
 {
-
+    static int countOfFor = 0;
     //koniec tela foru,...cond
     //printf(""); TODO: SUB||ADD||MUL||DIV assignment
-    printf("JUMPIFNEQ _%s_%d_%d_for_in ",func_name,item->scopeLevel,deep_index);
+    printf("JUMPIFNEQ _%s_%d_%d_for_in ",func_name,countOfFor++,deep_index);
     printf("LF@i LF@cond\n");
     printf("POPFRAME\n");
+    --scope;
     printf("# END FOR LOOP\n");
 
 }
