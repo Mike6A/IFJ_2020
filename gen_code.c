@@ -1090,7 +1090,7 @@ void label_if_else_end(char *func_name)
 void label_for_end(char *func_name)
 {
 
-    scope++;
+    
     printf("LABEL %s_for_end_%d_%d\n",func_name,scope,for_counter);
     scope--;
 
@@ -1236,30 +1236,40 @@ void for_header(SyntaxNode *root, tHashItem *item,char *func_name)
 
     //for_loop_label
     printf("LABEL %d_for_%d_%d\n",func_name,scope,for_counter);
+    //all_vars_after_new_scope();
+    
+}
 
+//immediately after func for_header
+
+void for_cond_to_loop(SyntaxNode *root, tHashItem *item,char *func_name)
+{
+    
     //section of init for_counter var
+    //all_vars_to_new_scope();
+    scope++;
+    printf("PUSHFRAME\n");
     printf("# DECLARE AND DEFAULT_INIT VAR %s\n",item->id);
     static int c = 0;
-    char temp3[15];
-    sprintf(temp1, "__LEFT__%d", c);
-
-    printf("DEFVAR LF@%s\n", temp3);
-    char temp4[15];
-    sprintf(temp2, "__RIGHT__%d", c++);
-    printf("DEFVAR LF@%s\n", temp4);
-    char identific2[64]; // TODO MALLOC
-    sprintf(identific2, "%s_%d", item->id, scope);
-    printf("DEFVAR LF@%s\n",identific2);
-    struct genExpr tmp = GenParseExpr(root, identific2, temp3, temp4, get_var_type(item->type));
+    char temp1[15];
+    sprintf(temp1, "__COLEFT__%d", c);
+    printf("DEFVAR LF@%s\n", temp1);
+    char temp2[15];
+    sprintf(temp2, "__CORIGHT__%d", c++);
+    printf("DEFVAR LF@%s\n", temp2);
+    char identific[64]; // TODO MALLOC
+    sprintf(identific, "%s_%d", item->id, scope);
+    printf("DEFVAR LF@%s\n",identific);
+    struct genExpr tmp = GenParseExpr(root, identific, temp1, temp2, get_var_type(item->type));
     if(strcmp(tmp.type, "string") == 0){
-        printf("MOVE LF@%s %s@%s",identific2, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"");
+        printf("MOVE LF@%s %s@%s",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"");
         parse_str(tmp.value);
         printf("\n");
     } else
-        printf("MOVE LF@%s %s@%s%s\n",identific2, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"", tmp.value);
+        printf("MOVE LF@%s %s@%s%s\n",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"", tmp.value);
 
     //cond to loop
-    printf("JUMPIFEQ %s_for_end_%d_%d ",func_name,scope,for_counter);
+    printf("JUMPIFEQ %s_for_end_%d_%d LF@__COLEFT__%d LF@__CORIGHT__%d\n",func_name,scope,for_counter,c--,c);
     
 }
 
@@ -1268,14 +1278,13 @@ void for_prefix(char *func_name)
     //all_vars_to_new_scope();
     printf("PUSHFRAME\n");
     scope++;
-    //begin if body
+    //begin for body
 
 }
 
 void for_suffix(char *func_name)
 {
-    //end if body
-
+    //end for body
     printf("POPFRAME\n");
     scope--;
     //all_vars_after_new_scope();

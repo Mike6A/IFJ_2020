@@ -96,7 +96,7 @@ void else_suffix(char *func_name);
 
 ///--------------------FOR FUNCTIONS-------------------------------
 void for_header(SyntaxNode *root, tHashItem *item,char *func_name);
-void for_args_TF_declar(char *func_name, TItem type, SyntaxNode* forInit);
+void for_cond_to_loop(SyntaxNode *root, tHashItem *item,char *func_name);
 void for_prefix(char *func_name);
 void for_suffix(char *func_name);
 
