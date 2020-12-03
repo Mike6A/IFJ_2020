@@ -10,8 +10,10 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-#define MAX_HASHTABLE_SIZE 65536
-#define MAX_PARAMS_COUNT 100
+#define MAX_HASHTABLE_SIZE 32029
+#define FNV_OFFSET 2166136261
+#define FNV_BASIC 16777619
+#define MAX_PARAMS_COUNT 1000
 
 typedef enum { TInt, TDouble, TString, TBool, TFunc, TEverything } TItem;
 

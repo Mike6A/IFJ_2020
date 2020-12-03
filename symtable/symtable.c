@@ -13,10 +13,12 @@
  * @return int key
  */
 int getHash(tHashTable* ht, char* value){
-    int i;
-    for (i = 0; i < strlen(value); i++)
-        i += value[i];
-    return i % ht->size;
+    unsigned long hash = FNV_OFFSET;
+    for(int i = 0; i < strlen(value); i++){
+        hash *= FNV_BASIC;
+        hash = hash ^ value[i];
+    }
+    return (int)(hash % ht->size);
 }
 
 /**
