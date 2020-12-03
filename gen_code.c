@@ -1008,7 +1008,6 @@ struct genExpr GenParseExpr(SyntaxNode* root, char* assignTo, char* left, char* 
     }
 }
 
-
 void GENASIGN(SyntaxNode* root, tHashItem* item){ //TEST!!!!!!!!
     static int c = 0;
     printf("DEFVAR %s\n", item->id);
@@ -1088,17 +1087,12 @@ void label_if_else_end(char *func_name)
 
 }
 
-void new_label_for(char *func_name, tScopeItem *item, int deep_index)
+void label_for_end(char *func_name)
 {
 
-    printf("LABEL _%s_%d_%d_for\n", func_name, item->scopeLevel, deep_index);
-
-}
-
-void new_label_for_in(char *func_name, tScopeItem *item, int deep_index)
-{
-
-    printf("LABEL _%s_%d_%d_for_in\n", func_name, item->scopeLevel, deep_index);
+    scope++;
+    printf("LABEL %s_for_end_%d_%d\n",func_name,scope,for_counter);
+    scope--;
 
 }
 
@@ -1110,11 +1104,11 @@ void if_cond(SyntaxNode *root, tHashItem *item,char *func_name)
     printf("# DECLARE AND DEFAULT_INIT VAR %s\n",item->id);
     static int c = 0;
     char temp1[15];
-    sprintf(temp1, "__DLEFT__%d", c);
+    sprintf(temp1, "__IFLEFT__%d", c);
 
     printf("DEFVAR LF@%s\n", temp1);
     char temp2[15];
-    sprintf(temp2, "__DRIGHT__%d", c++);
+    sprintf(temp2, "__IFRIGHT__%d", c++);
     printf("DEFVAR LF@%s\n", temp2);
     char identific[64]; // TODO MALLOC
     sprintf(identific, "%s_%d", item->id, scope);
@@ -1213,47 +1207,78 @@ void all_vars_after_new_scope(tScopeItem *item, int deep_index, int vars_total)
 
 ///--------------------FOR FUNCTIONS-------------------------------
 
-void for_args_TF_declar(char *func_name, TItem type, SyntaxNode* forInit)
+void for_header(SyntaxNode *root, tHashItem *item,char *func_name)
 {
 
-    //have to create before execute for loop
-    printf("CREATEFRAME\n");
-
-    //vars_default_declar_init(forInit->right);
-    printf("DEFVAR TF@i\n");
-    printf("MOVE TF@i ");
-    declared_vars_default_init(type);
-
-    printf("DEFVAR TF@cond\n");
-    printf("MOVE TF@cond ");
-    declared_vars_default_init(type);
-
-    printf("DEFVAR TF@incr\n");
-    printf("MOVE TF@ass ");
-    declared_vars_default_init(type);
-      
-}
-
-void for_prefix(char *func_name, tScopeItem *item, int deep_index)
-{
-    static int countOfFor = 0;
-    printf("# START FOR IN %s\n", func_name);
-    new_label_for(func_name,countOfFor,deep_index);
+    //all_vars_to_new_scope();
     printf("PUSHFRAME\n");
-    ++scope;
-    new_label_for_in(func_name,countOfFor++ ,deep_index);
-    //nasleduje telo foru
+    scope++;
+    //section of init for_counter var
+    printf("# DECLARE AND DEFAULT_INIT VAR %s\n",item->id);
+    static int c = 0;
+    char temp1[15];
+    sprintf(temp1, "__LEFT__%d", c);
+
+    printf("DEFVAR LF@%s\n", temp1);
+    char temp2[15];
+    sprintf(temp2, "__RIGHT__%d", c++);
+    printf("DEFVAR LF@%s\n", temp2);
+    char identific[64]; // TODO MALLOC
+    sprintf(identific, "%s_%d", item->id, scope);
+    printf("DEFVAR LF@%s\n",identific);
+    struct genExpr tmp = GenParseExpr(root, identific, temp1, temp2, get_var_type(item->type));
+    if(strcmp(tmp.type, "string") == 0){
+        printf("MOVE LF@%s %s@%s",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"");
+        parse_str(tmp.value);
+        printf("\n");
+    } else
+        printf("MOVE LF@%s %s@%s%s\n",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"", tmp.value);
+
+    //for_loop_label
+    printf("LABEL %d_for_%d_%d\n",func_name,scope,for_counter);
+
+    //section of init for_counter var
+    printf("# DECLARE AND DEFAULT_INIT VAR %s\n",item->id);
+    static int c = 0;
+    char temp3[15];
+    sprintf(temp1, "__LEFT__%d", c);
+
+    printf("DEFVAR LF@%s\n", temp3);
+    char temp4[15];
+    sprintf(temp2, "__RIGHT__%d", c++);
+    printf("DEFVAR LF@%s\n", temp4);
+    char identific2[64]; // TODO MALLOC
+    sprintf(identific2, "%s_%d", item->id, scope);
+    printf("DEFVAR LF@%s\n",identific2);
+    struct genExpr tmp = GenParseExpr(root, identific2, temp3, temp4, get_var_type(item->type));
+    if(strcmp(tmp.type, "string") == 0){
+        printf("MOVE LF@%s %s@%s",identific2, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"");
+        parse_str(tmp.value);
+        printf("\n");
+    } else
+        printf("MOVE LF@%s %s@%s%s\n",identific2, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"", tmp.value);
+
+    //cond to loop
+    printf("JUMPIFEQ %s_for_end_%d_%d ",func_name,scope,for_counter);
+    
 }
 
-void for_suffix(char *func_name, tScopeItem *item, int deep_index)
+void for_prefix(char *func_name)
 {
-    static int countOfFor = 0;
-    //koniec tela foru,...cond
-    //printf(""); TODO: SUB||ADD||MUL||DIV assignment
-    printf("JUMPIFNEQ _%s_%d_%d_for_in ",func_name,countOfFor++,deep_index);
-    printf("LF@i LF@cond\n");
-    printf("POPFRAME\n");
-    --scope;
-    printf("# END FOR LOOP\n");
+    //all_vars_to_new_scope();
+    printf("PUSHFRAME\n");
+    scope++;
+    //begin if body
 
+}
+
+void for_suffix(char *func_name)
+{
+    //end if body
+
+    printf("POPFRAME\n");
+    scope--;
+    //all_vars_after_new_scope();
+    //assignment
+    printf("JUMP %s_for_%d_%d\n",func_name,scope,for_counter);
 }

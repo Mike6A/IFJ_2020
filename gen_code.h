@@ -83,13 +83,9 @@ void vars_default_declar_init(SyntaxNode *root, tHashItem *item);
 void vars_set_new_value(SyntaxNode *root, tHashItem *item);
 void var_assign_to_func_value(char *func_name, tHashItem *item);
 
-///---------STACK FUNCTIONS----------------------
-void stack_concat_string(char *str3, char *str2, char *str1);
 ///------------LABEL GENERATORS------------------------
 void label_if_else_end(char *func_name);
-void new_label_for(char *func_name, tScopeItem *item, int deep_index);
-void new_label_for_in(char *func_name, tScopeItem *item, int deep_index);
-
+void label_for_end(char *func_name);
 
 ///------------IF/ELSE FUNCTIONS------------------------
 void if_cond(SyntaxNode *root, tHashItem *item,char *func_name);
@@ -99,9 +95,10 @@ void else_prefix(char *func_name);
 void else_suffix(char *func_name);
 
 ///--------------------FOR FUNCTIONS-------------------------------
+void for_header(SyntaxNode *root, tHashItem *item,char *func_name);
 void for_args_TF_declar(char *func_name, TItem type, SyntaxNode* forInit);
-void for_prefix(char *func_name, tScopeItem *item, int deep_index);
-void for_suffix(char *func_name, tScopeItem *item, int deep_index);
+void for_prefix(char *func_name);
+void for_suffix(char *func_name);
 
 ///----------------BEFORE/AFTER FOR OR IF/ELSE SCOPE--------------------------
 void all_vars_to_new_scope(tScopeItem *item, int deep_index, int vars_total);
