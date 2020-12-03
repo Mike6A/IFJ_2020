@@ -1076,31 +1076,13 @@ void vars_set_new_value(SyntaxNode *root, tHashItem *item)
 
 }
 
-///---------STACK FUNCTIONS-----------------
-
-void stack_concat_string(char *str3, char *str2, char *str1)
-{
-    
-    printf("POPS LF@%s\n",str3);
-    printf("POPS LF@%s\n",str2);
-    printf("CONCAT LF@%s LF@%s LF@%s\n",str1,str2,str3);
-    printf("POPS LF@%s\n",str1);
-
-}
-
 ///------------LABEL GENERATORS------------------------
 
-void new_label_if(char *func_name, tScopeItem *item, int deep_index)
+void label_if_else_end(char *func_name)
 {
-
-    printf("LABEL _%s_%d_%d_if\n", func_name, item->scopeLevel, deep_index);
-
-}
-
-void new_label_else(char *func_name, tScopeItem *item, int deep_index)
-{
-
-    printf("LABEL _%s_%d_%d_else\n", func_name, item->scopeLevel, deep_index);
+    scope++;
+    printf("LABEL _%s_end_else_%d\n",func_name, scope);
+    scope--;
 
 }
 
@@ -1120,21 +1102,71 @@ void new_label_for_in(char *func_name, tScopeItem *item, int deep_index)
 
 ///------------IF/ELSE FUNCTIONS------------------------
 
-//vod expr_in_if(expr)
-
-void if_prefix(char *func_name, tScopeItem *item, int deep_index)
+void if_cond(SyntaxNode *root, tHashItem *item,char *func_name)
 {
 
-    printf("JUMPIFEQ _%s_%d_%d_if LF@if_bool_result bool@false\n",func_name, item->scopeLevel, deep_index);
+    printf("# DECLARE AND DEFAULT_INIT VAR %s\n",item->id);
+    static int c = 0;
+    char temp1[15];
+    sprintf(temp1, "__DLEFT__%d", c);
+
+    printf("DEFVAR LF@%s\n", temp1);
+    char temp2[15];
+    sprintf(temp2, "__DRIGHT__%d", c++);
+    printf("DEFVAR LF@%s\n", temp2);
+    char identific[64]; // TODO MALLOC
+    sprintf(identific, "%s_%d", item->id, scope);
+    printf("DEFVAR LF@%s\n",identific);
+    struct genExpr tmp = GenParseExpr(root, identific, temp1, temp2, get_var_type(item->type));
+    if(strcmp(tmp.type, "string") == 0){
+        printf("MOVE LF@%s %s@%s",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"");
+        parse_str(tmp.value);
+        printf("\n");
+    } else
+        printf("MOVE LF@%s %s@%s%s\n",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"", tmp.value);
+
+    scope++;
+    printf("JUMPIFNEQ _%s_else_%d LF@final bool@true\n",func_name,scope);
+    scope--;
 
 }
 
-void if_else(char *func_name, tScopeItem *item, int deep_index)
+void if_prefix(char *func_name)
 {
-    
-    printf("JUMP _%s_%d_%d_else\n",func_name, item->scopeLevel, ++deep_index);
-    printf("# ELSE PART\n");
-    new_label_else(func_name,item->scopeLevel,deep_index);
+    //all_vars_to_new_scope();
+    printf("PUSHFRAME\n");
+    scope++;
+    //begin if body
+
+}
+
+void if_suffix(char *func_name)
+{
+    //end if body
+    printf("POPFRAME\n");
+    scope--;
+    //all_vars_after_new_scope();
+    printf("JUMP _%s_end_else_%d\n",func_name, scope); //end of if/else
+
+}
+
+void else_prefix(char *func_name)
+{
+
+    //all vars_to_new_scope
+    printf("LABEL _%s_else_%d\n", func_name, scope);
+    printf("PUSHFRAME\n");
+    scope++;
+
+
+}
+
+void else_suffix(char *func_name)
+{
+
+    printf("POPFRAME\n");
+    scope--;
+    //all vars_after_new_scope
 
 }
 
