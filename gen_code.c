@@ -46,6 +46,8 @@ SyntaxNode* Pop_SN_Stack(tSN_Stack* list) {
 
 */
 static int scope = 0;
+static int if_else_counter = 0;
+static int for_counter = 0;
 void parse_str(char *str)
 {
 
@@ -1081,7 +1083,7 @@ void vars_set_new_value(SyntaxNode *root, tHashItem *item)
 void label_if_else_end(char *func_name)
 {
     scope++;
-    printf("LABEL _%s_end_else_%d\n",func_name, scope);
+    printf("LABEL _%s_end_else_%d_%d\n",func_name, scope,if_else_counter);
     scope--;
 
 }
@@ -1125,8 +1127,9 @@ void if_cond(SyntaxNode *root, tHashItem *item,char *func_name)
     } else
         printf("MOVE LF@%s %s@%s%s\n",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"", tmp.value);
 
+    if_else_counter++;
     scope++;
-    printf("JUMPIFNEQ _%s_else_%d LF@final bool@true\n",func_name,scope);
+    printf("JUMPIFNEQ _%s_else_%d_%d LF@%s bool@true\n",func_name,scope,if_else_counter,identific);
     scope--;
 
 }
@@ -1146,7 +1149,7 @@ void if_suffix(char *func_name)
     printf("POPFRAME\n");
     scope--;
     //all_vars_after_new_scope();
-    printf("JUMP _%s_end_else_%d\n",func_name, scope); //end of if/else
+    printf("JUMP _%s_end_else_%d_%d\n",func_name, scope,if_else_counter); //end of if/else
 
 }
 
@@ -1154,10 +1157,9 @@ void else_prefix(char *func_name)
 {
 
     //all vars_to_new_scope
-    printf("LABEL _%s_else_%d\n", func_name, scope);
+    printf("LABEL _%s_else_%d_%d\n", func_name, scope,if_else_counter);
     printf("PUSHFRAME\n");
     scope++;
-
 
 }
 
