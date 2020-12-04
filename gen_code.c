@@ -48,6 +48,8 @@ SyntaxNode* Pop_SN_Stack(tSN_Stack* list) {
 static int scope = 0;
 static int if_else_counter = 0;
 static int for_counter = 0;
+static bool skipDefvarAssignTemp = false;
+static int assignC = 0;
 idList * currentScopeVars = NULL;
 
 //ID LIST NODE
@@ -77,7 +79,8 @@ void deleteIdListScope(idList** list){
         free(tmpIdList);
         tmpIdList = NULL;
     }
-    scope--;
+    if(scope > 0)
+        scope--;
 }
 
 void deleteIdList(idList** list){
@@ -601,13 +604,14 @@ void main_suffix()
     printf("# END OF MAIN FUNCTION\n");
     printf("POPFRAME\n");
     printf("CLEARS\n");
+    printf("EXIT int@0\n");
     deleteIdListScope(&currentScopeVars);
 
 }
 
 void program_exit(tExpReturnType* ret_err) //TODO USING
 {
-    deleteIdList(&currentScopeVars);
+    //deleteIdList(&currentScopeVars);
     //printf("EXIT int@%ld\n",ret_err.errCode);
     printf("# END OF GEN_CODE\n");
 
@@ -1194,7 +1198,7 @@ void GENASIGN(SyntaxNode* root, tHashItem* item){ //TEST!!!!!!!!
 
 void vars_default_declar_init(SyntaxNode *root, tHashItem *item)
 {
-
+    //@TODO MALLOC
     printf("# DECLARE AND DEFAULT_INIT VAR %s\n",item->id);
     static int c = 0;
     char temp1[15];
@@ -1232,15 +1236,16 @@ void vars_default_declar_init(SyntaxNode *root, tHashItem *item)
 // only use after vars_default_declar_init!!
 void vars_set_new_value(SyntaxNode *root, tHashItem *item)
 {
-    //@TODO
-    static int c = 0;
+    // @TODO MALLOC
     char temp1[15];
-    sprintf(temp1, "__ALEFT__%d", c);
-
-    printf("DEFVAR LF@%s\n", temp1);
+    sprintf(temp1, "__ALEFT__%d", assignC);
     char temp2[15];
-    sprintf(temp2, "__ARIGHT__%d", c++);
-    printf("DEFVAR LF@%s\n", temp2);
+    sprintf(temp2, "__ARIGHT__%d", assignC++);
+    if(!skipDefvarAssignTemp){
+        printf("DEFVAR LF@%s\n", temp1);
+        printf("DEFVAR LF@%s\n", temp2);
+    }
+
 
     //printf("DEFVAR LF@%s\n",item->id);
     int countScopeLen = 1;
@@ -1278,7 +1283,6 @@ void label_if_else_end(char *func_name)
 void label_for_end(char *func_name)
 {
     printf("LABEL %s_for_end_%d_%d\n",func_name,scope,for_counter);
-    scope--;
 }
 
 ///------------IF/ELSE FUNCTIONS------------------------
@@ -1421,60 +1425,88 @@ void all_vars_after_new_scope(int scopeLessThan)
 
 ///--------------------FOR FUNCTIONS-------------------------------
 
-void for_header(SyntaxNode *root, tHashItem *item,char *func_name)
+void for_header()
 {
 
-    //all_vars_to_new_scope();
+    all_vars_to_new_scope();
     printf("PUSHFRAME\n");
-    scope++;
+    createNewIdListScope(&currentScopeVars);
     //section of init for_counter var
-    printf("# DECLARE AND DEFAULT_INIT VAR %s\n",item->id);
-    static int c = 0;
-    char temp1[15];
-    sprintf(temp1, "__LEFT__%d", c);
-
-    printf("DEFVAR LF@%s\n", temp1);
-    char temp2[15];
-    sprintf(temp2, "__RIGHT__%d", c++);
-    printf("DEFVAR LF@%s\n", temp2);
-    char identific[64]; // TODO MALLOC
-    sprintf(identific, "%s_%d", item->id, scope);
-    printf("DEFVAR LF@%s\n",identific);
-    struct genExpr tmp = GenParseExpr(root, identific, temp1, temp2, get_var_type(item->type));
-    if(strcmp(tmp.type, "string") == 0){
-        printf("MOVE LF@%s %s@%s",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"");
-        parse_str(tmp.value);
-        printf("\n");
-    } else
-        printf("MOVE LF@%s %s@%s%s\n",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"", tmp.value);
-
-    //for_loop_label
-    printf("LABEL %d_for_%d_%d\n",func_name,scope,for_counter);
-    //all_vars_after_new_scope();
+//    printf("# DECLARE AND DEFAULT_INIT VAR %s\n",item->id);
+//    static int c = 0;
+//    char temp1[15];
+//    sprintf(temp1, "__LEFT__%d", c);
+//
+//    printf("DEFVAR LF@%s\n", temp1);
+//    char temp2[15];
+//    sprintf(temp2, "__RIGHT__%d", c++);
+//    printf("DEFVAR LF@%s\n", temp2);
+//    char identific[64]; // TODO MALLOC
+//    sprintf(identific, "%s_%d", item->id, scope);
+//    printf("DEFVAR LF@%s\n",identific);
+//    struct genExpr tmp = GenParseExpr(root, identific, temp1, temp2, get_var_type(item->type));
+//    if(strcmp(tmp.type, "string") == 0){
+//        printf("MOVE LF@%s %s@%s",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"");
+//        parse_str(tmp.value);
+//        printf("\n");
+//    } else
+//        printf("MOVE LF@%s %s@%s%s\n",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"", tmp.value);
     
+}
+void for_afterDeclaration(char* func_name){
+    //for_loop_label
+    all_vars_to_new_scope(scope);
+    printf("PUSHFRAME\n");
+    //TODO MALLOC
+    char temp1[15];
+    sprintf(temp1, "__ALEFT__%d", assignC);
+    char temp2[15];
+    sprintf(temp2, "__ARIGHT__%d", assignC);
+    printf("DEFVAR LF@%s\n", temp1);
+    printf("DEFVAR LF@%s\n", temp2);
+
 }
 
 //immediately after func for_header
 
-void for_cond_to_loop(SyntaxNode *root, tHashItem *item,char *func_name)
+void for_cond_to_loop(SyntaxNode *root,char *func_name)
 {
     
     //section of init for_counter var
-    //all_vars_to_new_scope();
-    scope++;
-    printf("PUSHFRAME\n");
-    printf("# DECLARE AND DEFAULT_INIT VAR %s\n",item->id);
     static int c = 0;
+    //all_vars_to_new_scope();
+    createNewIdListScope(&currentScopeVars);
+    printf("# DECLARE AND DEFAULT_INIT VAR %s_%d\n","__FORCOND__", c);
+
     char temp1[15];
     sprintf(temp1, "__COLEFT__%d", c);
     printf("DEFVAR LF@%s\n", temp1);
     char temp2[15];
     sprintf(temp2, "__CORIGHT__%d", c++);
     printf("DEFVAR LF@%s\n", temp2);
-    char identific[64]; // TODO MALLOC
-    sprintf(identific, "%s_%d", item->id, scope);
+
+    int countScopeLen = 1;
+    int tmpScope = scope;
+    while(tmpScope > 9){
+        ++countScopeLen;
+        tmpScope /= 10;
+    }
+    int countCLen = 1;
+    int tmpC = c;
+    while(tmpC > 9){
+        ++countCLen;
+        tmpC /= 10;
+    }
+
+    char *identific = (char*)malloc(sizeof(char)*strlen("__FORCOND__")+countCLen+1+countScopeLen+2); // TODO WTF ? PRECO 2
+    sprintf(identific, "%s%d_%d","__FORCOND__", c, scope);
     printf("DEFVAR LF@%s\n",identific);
-    struct genExpr tmp = GenParseExpr(root, identific, temp1, temp2, get_var_type(item->type));
+
+    printf("LABEL %s_for_%d_%d\n",func_name,scope,for_counter);
+
+    //TODO TYPE
+    int type = TInt;
+    struct genExpr tmp = GenParseExpr(root, identific, temp1, temp2, get_var_type(type));
     if(strcmp(tmp.type, "string") == 0){
         printf("MOVE LF@%s %s@%s",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"");
         parse_str(tmp.value);
@@ -1483,10 +1515,15 @@ void for_cond_to_loop(SyntaxNode *root, tHashItem *item,char *func_name)
         printf("MOVE LF@%s %s@%s%s\n",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"", tmp.value);
 
     //cond to loop
-    printf("JUMPIFEQ %s_for_end_%d_%d LF@__COLEFT__%d LF@__CORIGHT__%d\n",func_name,scope,for_counter,c--,c);
-    
-}
+    printf("JUMPIFNEQ %s_for_end_%d_%d LF@%s bool@true\n",func_name,scope,for_counter,identific);
 
+}
+void for_start_Assign(){
+    skipDefvarAssignTemp = true;
+};
+void for_end_Assign(){
+    skipDefvarAssignTemp = false;
+}
 void for_prefix(char *func_name)
 {
     //all_vars_to_new_scope();
@@ -1499,9 +1536,19 @@ void for_prefix(char *func_name)
 void for_suffix(char *func_name)
 {
     //end for body
+
+    printf("JUMP %s_for_%d_%d\n",func_name,scope,for_counter);
+    label_for_end(func_name);
+    deleteIdListScope(&currentScopeVars);
     printf("POPFRAME\n");
-    scope--;
+
+    all_vars_after_new_scope(scope);
+
+    deleteIdListScope(&currentScopeVars);
+    printf("POPFRAME\n");
+    all_vars_after_new_scope(scope);
+
     //all_vars_after_new_scope();
     //assignment
-    printf("JUMP %s_for_%d_%d\n",func_name,scope,for_counter);
+
 }

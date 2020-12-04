@@ -819,8 +819,7 @@ int callFunction(SyntaxNode* root, tScope* scope, char* parentFunction, tStringL
                 //fprintf(stderr, "Function \"%s\" has been called with different parameters!", root->token->value);
                 return 6;
             }
-            func_args_TF_declar(root->token->value, func, root->statements->first);
-            general_func_call(root->token->value);
+
         }
         else {  //shouldn't happen, cuz only functions are defined in global scope
             //fprintf(stderr, "\"%s\" is already defined as a variable, function needs another name!", root->token->value);
@@ -846,7 +845,9 @@ int callFunction(SyntaxNode* root, tScope* scope, char* parentFunction, tStringL
         }
 
     }
-
+    tHashItem* tItemFunc = getIdentifier(scope->topLocal, root->token->value, NULL);
+    func_args_TF_declar(root->token->value, tItemFunc->func, root->statements->first);
+    general_func_call(root->token->value);
     return result;
 }
 
@@ -886,7 +887,7 @@ int forExpression(SyntaxNode* root, tScope* scope, char* parentFunction, tString
     int result = 0;
     createScope(scope);
     //TODO codegen: create scope
-
+    for_header(); // GENCODE
 
     //------- declaration part -------- -> optional
     if (root->left->left != NULL) {
@@ -894,6 +895,8 @@ int forExpression(SyntaxNode* root, tScope* scope, char* parentFunction, tString
             result = declareExp(root->left->left, scope, parentFunction, strList);
         }
     }
+    for_afterDeclaration(parentFunction);// GENCODE
+
     if (result != 0) {
         removeLastLocalScope(scope);
         return result;
@@ -919,6 +922,15 @@ int forExpression(SyntaxNode* root, tScope* scope, char* parentFunction, tString
         removeLastLocalScope(scope);
         return result;
     }
+    for_cond_to_loop(root->left->right, parentFunction);
+
+    //------- block part ------
+    for_start_Assign();
+    result = blockExp(root->right, scope, parentFunction, strList);    //block with things to loop in for
+    if (result != 0) {
+        removeLastLocalScope(scope);
+        return result;
+    }
 
     //------- assignment part ------ -> optional
     if (root->left->statements != NULL) {
@@ -934,15 +946,9 @@ int forExpression(SyntaxNode* root, tScope* scope, char* parentFunction, tString
             return result;
         }
     }
+    for_end_Assign();
 
-
-    //------- block part ------
-    result = blockExp(root->right, scope, parentFunction, strList);    //block with things to loop in for
-    if (result != 0) {
-        removeLastLocalScope(scope);
-        return result;
-    }
-
+    for_suffix(parentFunction);
     //TODO codegen: destroy scope
     removeLastLocalScope(scope);
     return result;
@@ -1259,7 +1265,7 @@ long runSemanticAnalyze(SyntaxNode* root){
                 }
 
             }
-
+            /////////------------------------------------------------------
             removeLastLocalScope(&scope);
             destroyList(strList);
             program_exit(NULL);

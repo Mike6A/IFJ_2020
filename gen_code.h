@@ -112,8 +112,11 @@ void else_prefix(char *func_name);
 void else_suffix(char *func_name);
 
 ///--------------------FOR FUNCTIONS-------------------------------
-void for_header(SyntaxNode *root, tHashItem *item,char *func_name);
-void for_cond_to_loop(SyntaxNode *root, tHashItem *item,char *func_name);
+void for_header();
+void for_afterDeclaration(char* func_name);
+void for_cond_to_loop(SyntaxNode *root,char *func_name);
+void for_start_Assign();
+void for_end_Assign();
 void for_prefix(char *func_name);
 void for_suffix(char *func_name);
 
