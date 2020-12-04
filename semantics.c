@@ -654,7 +654,8 @@ long assignmentExpSingle(SyntaxNode* dest, SyntaxNode* value, tScope* scope, cha
             return 99;
         strcpy(item->value, rightSide.value);
     }
-    vars_set_new_value(value, item);
+    if(item != NULL)
+        vars_set_new_value(value, item);
     return 0;
 }
 
@@ -1261,7 +1262,7 @@ long runSemanticAnalyze(SyntaxNode* root){
 
             removeLastLocalScope(&scope);
             destroyList(strList);
-
+            program_exit(NULL);
             //TODO codegen: now you can throw the program to the interpret
             return 0;
         }
