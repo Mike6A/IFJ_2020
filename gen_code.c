@@ -46,7 +46,6 @@ SyntaxNode* Pop_SN_Stack(tSN_Stack* list) {
 
 */
 static int scope = 0;
-static int prevScope = -1; // MAYBE 0
 static int if_else_counter = 0;
 static int for_counter = 0;
 idList * currentScopeVars = NULL;
@@ -58,94 +57,68 @@ void initIdList(idList* list){
     list->last = NULL;
     list->prevScope = NULL;
 }
-void deleteIdList(idList* list){
-    if(list != NULL){
-        idListNode * current = list->first;
+void deleteIdListScope(idList** list){
+    if(list != NULL && (*list) != NULL){
+        idListNode * current = (*list)->last;
         while(current != NULL){
             idListNode * tmp = current;
-            current = current->next;
-            //@TODO ->name ??? mallocked ???
+            current = current->prev;
             free(tmp->name);
+            tmp->name = NULL;
             free(tmp);
-        }
-        list->first = NULL;
-        list->last = NULL;
-        list->scope = -1;
-        free(list);
-    }
-}
-void deleteIdListScope(idList** list, int scopetoDelete){
-    if(list != NULL && (*list) != NULL && (*list)->scope == scopetoDelete){
-        idListNode * current = (*list)->first;
-        while(current != NULL){
-            idListNode * tmp = current;
-            current = current->next;
-            //@TODO ->name ??? mallocked ???
-            free(tmp->name);
-            free(tmp);
+            tmp = NULL;
         }
         (*list)->first = NULL;
         (*list)->last = NULL;
         (*list)->scope = -1;
-        idList * tmpIdList = (*list);
+        idList* tmpIdList = (*list);
         (*list) = (*list)->prevScope;
+        tmpIdList->prevScope = NULL;
         free(tmpIdList);
-        --prevScope;
+        tmpIdList = NULL;
+    }
+    scope--;
+}
+
+void deleteIdList(idList** list){
+    if(list != NULL){
+        while((*list) != NULL){
+            //fprintf(stderr, ">>>>>>>>>>>>> DELETE!!! %d <<<<<<<<<<<<<<<", (*list)->scope);
+            deleteIdListScope(list);
+        }
     }
 }
+void createNewIdListScope(idList** list){
+    if((*list) != NULL)
+        scope++;
+    idList* newScopeList = malloc(sizeof(idList));
+    if(newScopeList == NULL){
+        return; //@TODO ERROR HANDLING!
+    }
+    newScopeList->scope = scope;
+    newScopeList->prevScope = (*list);
+    newScopeList->first = NULL;
+    newScopeList->last = NULL;
+    (*list) = newScopeList;
+}
 void addItemToIdList(idList** list, char* name){
-
-    if(prevScope != scope || (*list) == NULL){
-        idList* newScopeList = malloc(sizeof(idList));
-        if(newScopeList == NULL){
+    if(list != NULL && (*list) != NULL){
+        idListNode* newNode = malloc(sizeof(idListNode));
+        if(newNode == NULL){
             return; //@TODO ERROR HANDLING!
         }
-        newScopeList->scope = scope;
-        newScopeList->prevScope = *list;
-        newScopeList->first = NULL;
-        newScopeList->last = NULL;
-        if(name != NULL) {
-            idListNode *newNode = malloc(sizeof(idListNode));
-            if (newNode == NULL) {
-                free(newScopeList);
-                return; //@TODO ERROR HANDLING!
-            }
-            char * newName = malloc(sizeof(char) * strlen(name)+1);
-            if(newName == NULL){
-                free(newNode);
-                return;
-            }
-            strcpy(newName, name);
-            newNode->name = newName;
-            newNode->prev = NULL;
-            newNode->next = NULL;
-            //if ((*list) != NULL)
-            //    (*list)->last->next = newNode;
-            //(*list)->last = newNode;
-            newScopeList->first = newNode;
-            newScopeList->last = newNode;
+        char * newName = malloc(sizeof(char) * strlen(name)+1);
+        if(newName == NULL){
+            free(newNode);
+            return;
         }
-        (*list) = newScopeList;
-        prevScope = scope;
-    }else{
-        if(name != NULL){
-            idListNode* newNode = malloc(sizeof(idListNode));
-            if(newNode == NULL){
-                return; //@TODO ERROR HANDLING!
-            }
-            char * newName = malloc(sizeof(char) * strlen(name)+1);
-            if(newName == NULL){
-                free(newNode);
-                return;
-            }
-            strcpy(newName, name);
-            newNode->name = newName;
-            newNode->prev = (*list)->last;
-            newNode->next = NULL;
-            /*if((*list)->last != NULL)
-                (*list)->last->next = newNode;*/
-            (*list)->last = newNode;
-        }
+        strcpy(newName, name);
+        newNode->name = newName;
+        newNode->prev = (*list)->last;
+        newNode->next = NULL;
+        if((*list)->last != NULL)
+            (*list)->last->next = newNode;
+        (*list)->last = newNode;
     }
 }
 int getLastScopeOfIdInList(idList* list, char* item){
@@ -618,7 +591,7 @@ void main_prefix()
     printf("LABEL _main\n");
     printf("CREATEFRAME\n");
     printf("PUSHFRAME\n");
-    scope++;
+    createNewIdListScope(&currentScopeVars);
 
 }
 
@@ -628,15 +601,14 @@ void main_suffix()
     printf("# END OF MAIN FUNCTION\n");
     printf("POPFRAME\n");
     printf("CLEARS\n");
-    deleteIdList(currentScopeVars);
-    scope--;
+    deleteIdListScope(&currentScopeVars);
 
 }
 
-void program_exit(tExpReturnType ret_err) //TODO USING
+void program_exit(tExpReturnType* ret_err) //TODO USING
 {
-
-    printf("EXIT int@%ld\n",ret_err.errCode);
+    deleteIdList(&currentScopeVars);
+    //printf("EXIT int@%ld\n",ret_err.errCode);
     printf("# END OF GEN_CODE\n");
 
 }
@@ -655,6 +627,7 @@ void general_func_prefix(char *func_name, tFuncItem *func)
     printf("# START OF THE FUNCTION %s\n",func_name);
     printf("LABEL _%s\n",func_name);
     printf("PUSHFRAME\n");
+    createNewIdListScope(&currentScopeVars);
     for(int i = 0; i < func->params_count; ++i){
         addItemToIdList(&currentScopeVars, func->params[i]);
     }
@@ -668,8 +641,8 @@ void general_func_suffix(char *func_name)
     printf("LABEL _%s_ret\n", func_name);
     printf("POPFRAME\n");
     printf("RETURN\n");
-    deleteIdListScope(&currentScopeVars, scope--);
-    deleteIdListScope(&currentScopeVars, scope);
+    deleteIdListScope(&currentScopeVars);
+    deleteIdListScope(&currentScopeVars);
 }
 
 void general_terminal_val(tToken token)
@@ -838,12 +811,12 @@ void func_args_TF_declar(char *func_name, tFuncItem *func, SyntaxNodes* paramVal
                     printf("MOVE TF@%s_%d %s@%s",func->params[i], 0, param.constant? param.type : "LF", param.sign ? "-":"");
                 parse_str(param.value);
                 printf("\n");
-            } else
+            } else{
             if(strcmp(func->params[i], "arg_0") == 0 || strcmp(func->params[i], "arg_1") == 0 || strcmp(func->params[i], "arg_2") == 0){
                 printf("MOVE TF@%s %s@%s%s\n",func->params[i], param.constant? param.type : "LF", param.sign ? "-":"", param.value );
             }else
                 printf("MOVE TF@%s_%d %s@%s%s\n",func->params[i], 0, param.constant? param.type : "LF", param.sign ? "-":"", param.value );
-
+            }
             //declared_vars_default_init(func->paramsTypes[i]);
             currentParam = currentParam->next;
             if(param.alocated)
@@ -868,7 +841,7 @@ void func_ret_to_LF(char *func_name, tFuncItem *func, SyntaxNodes* dest)
                 ++countOfI;
                 tmpI /= 10;
             }
-            char* retId = malloc(sizeof(char)*(strlen(func_name) + 5 +countOfI)+1);
+            char* retId = malloc(sizeof(char)*strlen(func_name) + 5 +countOfI+1);
             sprintf(retId, "%s_ret_%d", func_name, i);
             int whichScopeRet = getLastScopeOfIdInList(currentScopeVars, retId);
             printf("MOVE LF@%s_%d TF@%s_%d\n",currentDest->node->left->token->value,whichScope, retId);
@@ -900,7 +873,7 @@ void func_ret_declar(char *func_name, tFuncItem *func)
             ++countOfI;
             tmpI /= 10;
         }
-        char* retId = malloc(sizeof(char)*(strlen(func_name) + 5 +countOfI)+1);
+        char* retId = malloc(sizeof(char)*strlen(func_name) + 5 +countOfI+1);
         sprintf(retId, "%s_ret_%d",func_name, i);
         addItemToIdList(&currentScopeVars, retId);
         int whichScope = getLastScopeOfIdInList(currentScopeVars, retId);
@@ -910,7 +883,7 @@ void func_ret_declar(char *func_name, tFuncItem *func)
         declared_vars_default_init(func->return_vals[i]);
 
     }
-    scope++;
+    createNewIdListScope(&currentScopeVars);
     printf("# ALL VARS FOR RETURNS HAS BEEN DECLARED\n");
     
 }
@@ -943,7 +916,7 @@ void func_ret_get_value(char *func_name, tFuncItem *func, SyntaxNodes* retValues
                 ++countOfI;
                 tmpI /= 10;
             }
-            char* retValueId = malloc(sizeof(char)*(strlen(func_name) + 5 +countOfI)+1);
+            char* retValueId = malloc(sizeof(char)*strlen(func_name) + 5 +countOfI+1);
             sprintf(retValueId, "%s_ret_%d",func_name, i);
             int whichRetValueScope = getLastScopeOfIdInList(currentScopeVars, retValueId);
             if(strcmp(param.type, "string") == 0){
@@ -958,9 +931,9 @@ void func_ret_get_value(char *func_name, tFuncItem *func, SyntaxNodes* retValues
             if(param.alocated)
                 free(param.value);
         }
-        for(int x = 1; x < scope; x++){
+        for(int x = scope-1; x > 0; --x){
             printf("POPFRAME\n");
-            //all_vars_after_new_scope();
+            all_vars_after_new_scope(x);
         }
         printf("JUMP _%s_ret\n", func_name);
         printf("# ALL VARS FOR RETURNS HAS BEEN INITTED\n");
@@ -1025,7 +998,7 @@ struct genExpr GenParseExpr(SyntaxNode* root, char* assignTo, char* left, char* 
                 ++countScopeLen;
                 tmpscope /= 10;
             }
-            char *identifier = malloc(sizeof(char)*(strlen(root->right->token->value)+1+countScopeLen)+1); // TODO MALLOC
+            char *identifier = malloc(sizeof(char)*strlen(root->right->token->value)+1+countScopeLen+2); // TODO WTF ? PRECO 2
             test.alocated = true;
             sprintf(identifier, "%s_%d", root->right->token->value, whichScope);
             test.value = identifier;
@@ -1237,7 +1210,7 @@ void vars_default_declar_init(SyntaxNode *root, tHashItem *item)
         ++countScopeLen;
         tmpscope /= 10;
     }
-    char *identific = malloc(sizeof(char)*(strlen(item->id)+1+countScopeLen)+1); // TODO MALLOC
+    char *identific = malloc(sizeof(char)*strlen(item->id)+1+countScopeLen+2 ); // TODO WTF??? PRECO 2
     sprintf(identific, "%s_%d", item->id, scope);
     addItemToIdList(&currentScopeVars, item->id);
     printf("DEFVAR LF@%s\n",identific);
@@ -1271,14 +1244,13 @@ void vars_set_new_value(SyntaxNode *root, tHashItem *item)
 
     //printf("DEFVAR LF@%s\n",item->id);
     int countScopeLen = 1;
-
     int whichScope = getLastScopeOfIdInList(currentScopeVars, item->id);
     int tmpScope = whichScope;
     while(tmpScope > 9){
         ++countScopeLen;
         tmpScope /= 10;
     }
-    char *identific = malloc(sizeof(char)*(strlen(item->id)+1+countScopeLen)+1); // TODO MALLOC
+    char *identific = malloc(sizeof(char)*strlen(item->id)+1+countScopeLen+1); // TODO MALLOC
     sprintf(identific, "%s_%d", item->id, tmpScope);
     printf("# RE-SET VALUE FOR VAR %s\n",item->id);
     struct genExpr tmp = GenParseExpr(root, identific, temp1, temp2, get_var_type(item->type));
@@ -1336,7 +1308,7 @@ void if_cond(SyntaxNode *root,char *func_name)
         tmpC /= 10;
     }
 
-    char *identific = (char*)malloc(sizeof(char)*(strlen("__IFCOND__")+countCLen+1+countScopeLen)+1); // TODO MALLOC
+    char *identific = (char*)malloc(sizeof(char)*strlen("__IFCOND__")+countCLen+1+countScopeLen+2); // TODO WTF ? PRECO 2
     sprintf(identific, "%s%d_%d","__IFCOND__", c, scope);
     printf("DEFVAR LF@%s\n",identific);
 
@@ -1361,7 +1333,8 @@ void if_prefix(char *func_name)
 {
     all_vars_to_new_scope(); //@TODO TO SOLVE
     printf("PUSHFRAME\n");
-    scope++;
+    createNewIdListScope(&currentScopeVars);
+    //scope++;
     //begin if body
 
 }
@@ -1370,8 +1343,8 @@ void if_suffix(char *func_name)
 {
     //end if body
     printf("POPFRAME\n");
-    deleteIdListScope(&currentScopeVars,scope--);
-    all_vars_after_new_scope(); // @TODO TO solve
+    deleteIdListScope(&currentScopeVars);
+    all_vars_after_new_scope(scope); // @TODO TO solve
     printf("JUMP _%s_end_else_%d_%d\n",func_name, scope,if_else_counter); //end of if/else
 
 }
@@ -1381,15 +1354,16 @@ void else_prefix(char *func_name)
     printf("LABEL _%s_else_%d_%d\n", func_name, scope,if_else_counter);
     all_vars_to_new_scope();//@TODO
     printf("PUSHFRAME\n");
-    scope++;
+    createNewIdListScope(&currentScopeVars);
+    //scope++;
 }
 
 void else_suffix(char *func_name)
 {
 
     printf("POPFRAME\n");
-    deleteIdListScope(&currentScopeVars, scope--);
-    all_vars_after_new_scope(); //@TODO
+    deleteIdListScope(&currentScopeVars);
+    all_vars_after_new_scope(scope); //@TODO
 
 }
 
@@ -1422,12 +1396,16 @@ void all_vars_to_new_scope()
 }
 
 //only after for and if/else scopes
-void all_vars_after_new_scope()
+void all_vars_after_new_scope(int scopeLessThan)
 {
     printf("# TRANSFER VARS REAL VALUES\n");
     idList *currentScopeList = currentScopeVars;
     while(currentScopeList != NULL)
     {
+        if(currentScopeList->scope > scopeLessThan){
+            currentScopeList = currentScopeList->prevScope;
+            continue;
+        }
         idListNode * currentScopeNode = currentScopeList->last;
         while (currentScopeNode != NULL) {
 

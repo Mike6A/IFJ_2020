@@ -77,7 +77,7 @@ void bif_inputf();
 void program_start();
 void main_prefix();
 void main_suffix();
-void program_exit(tExpReturnType ret_err);
+void program_exit(tExpReturnType *ret_err);
 
 ///----------USER FUNCTION's FUNCTIONS-------------
 
