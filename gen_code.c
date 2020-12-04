@@ -1170,7 +1170,6 @@ void else_suffix(char *func_name)
 
 ///----------------BEFORE/AFTER FOR OR IF/ELSE SCOPE--------------------------
 
-//ASK: Problem s rovnakym nazvom premennej(kazdej premennej index a deep??)
 //only after for and if/else scopes
 void all_vars_to_new_scope(tScopeItem *item, int deep_index, int vars_total)
 {
