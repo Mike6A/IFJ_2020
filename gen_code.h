@@ -19,6 +19,22 @@
 #define MAX_LEN 20
 #define MAX_STACK 100
 
+//DANGER!!!
+
+
+
+typedef struct identifierListNode{
+    char *name;
+    struct identifierListNode *next;
+    struct identifierListNode *prev;
+} idListNode;
+typedef struct identifierList{
+    idListNode* first;
+    idListNode* last;
+    int scope;
+    struct identifierList* prevScope;
+} idList;
+
 typedef struct t_SN_Stack {
     SyntaxNode* node[MAX_STACK];
     int top;
@@ -29,6 +45,7 @@ struct genExpr {
     char* type;
     bool sign;
     bool constant;
+    bool alocated;
 };
 
 void init_SN_Stack(tSN_Stack* list);
@@ -65,7 +82,7 @@ void program_exit(tExpReturnType ret_err);
 ///----------USER FUNCTION's FUNCTIONS-------------
 
 void general_func_call(char *func_name);
-void general_func_prefix(char *func_name);
+void general_func_prefix(char *func_name, tFuncItem *func);
 void general_func_suffix(char *func_name);
 void func_args_TF_declar(char *func_name, tFuncItem *func, SyntaxNodes* paramValues);
 void no_built_in_func_args_TF_declar(char *func_name, tFuncItem *func, SyntaxNodes* paramValues);
@@ -88,7 +105,7 @@ void label_if_else_end(char *func_name);
 void label_for_end(char *func_name);
 
 ///------------IF/ELSE FUNCTIONS------------------------
-void if_cond(SyntaxNode *root, tHashItem *item,char *func_name);
+void if_cond(SyntaxNode *root,char *func_name);
 void if_prefix(char *func_name);
 void if_suffix(char *func_name);
 void else_prefix(char *func_name);
@@ -101,8 +118,8 @@ void for_prefix(char *func_name);
 void for_suffix(char *func_name);
 
 ///----------------BEFORE/AFTER FOR OR IF/ELSE SCOPE--------------------------
-void all_vars_to_new_scope(tScopeItem *item, int deep_index, int vars_total);
-void all_vars_after_new_scope(tScopeItem *item, int deep_index, int vars_total);
+void all_vars_to_new_scope();
+void all_vars_after_new_scope();
 
 #endif
 
