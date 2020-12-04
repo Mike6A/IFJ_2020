@@ -654,7 +654,8 @@ long assignmentExpSingle(SyntaxNode* dest, SyntaxNode* value, tScope* scope, cha
             return 99;
         strcpy(item->value, rightSide.value);
     }
-    vars_set_new_value(value, item);
+    if(item != NULL)
+        vars_set_new_value(value, item);
     return 0;
 }
 
@@ -859,18 +860,23 @@ int ifExpression(SyntaxNode* root, tScope* scope, char* parentFunction, tStringL
         //fprintf(stderr, "Bad expression in if condition!\n");
         return 5;
     }
-
+    //GENERATE
+    if_cond(root->left, parentFunction);
+    if_prefix(parentFunction);
     //TODO assignment of constants in if/else is broken, cuz compiler doesn't know which path to choose...so always false
     disableAssignment = true;
     int result = blockExp(root->statements->first->node, scope, parentFunction, strList);    //true
     if (result != 0) {
         return result;
     }
-
+    if_suffix(parentFunction);
+    else_prefix(parentFunction);
     result = blockExp(root->right->right, scope, parentFunction, strList);    //else
     if (result != 0) {
         return result;
     }
+    else_suffix(parentFunction);
+    label_if_else_end(parentFunction);
     disableAssignment = false;
 
     return 0;
@@ -1106,7 +1112,7 @@ long runFunctionExp(SyntaxNode* root, tScope* scope, tStringLinkedListItem* strL
     if(strcmp(funcName, "main") == 0)
         main_prefix();
     else {
-        general_func_prefix(funcName); // GENERATE FUNCTION NAME
+        general_func_prefix(funcName, func); // GENERATE FUNCTION NAME
         func_ret_declar(funcName, func);
     }
     long errCode = blockExp(root->right, scope, funcName, strList);   //run things in the body of the function | also return it's errCode
@@ -1256,7 +1262,7 @@ long runSemanticAnalyze(SyntaxNode* root){
 
             removeLastLocalScope(&scope);
             destroyList(strList);
-
+            program_exit(NULL);
             //TODO codegen: now you can throw the program to the interpret
             return 0;
         }
