@@ -3,12 +3,11 @@
  *
  * @brief Implementation of code generator
  *
- * @author Michal Mikota (xmikot01@stud.fit.vutbr.cz)
+ * @author Michal Mikota (xmikot01@stud.fit.vutbr.cz) implemented general functions for gen_code
  * @author Dávid Oravec (xorave06@stud.fit.vutbr.cz) implemented expressions
  */
 
 #include "gen_code.h"
-
 
 /*
 ///-----------INTERPRET STACK-----------------
@@ -50,6 +49,7 @@ static int if_else_counter = 0;
 static int for_counter = 0;
 static bool skipDefvarAssignTemp = false;
 static int assignC = 0;
+static int spec_var = 0;
 idList * currentScopeVars = NULL;
 
 //ID LIST NODE
@@ -1130,12 +1130,94 @@ struct genExpr GenParseExpr(SyntaxNode* root, char* assignTo, char* left, char* 
                 break;
             case tokenType_GE:
                 //@TODO
+                if(strcmp(type, "string") == 0){
+                    printf("GT LF@%s %s@%s", assignTo, leftTemp.constant ? leftTemp.type : "LF",
+                           leftTemp.sign ? "-" : "");
+                    parse_str(leftTemp.value);
+                    printf(" %s@%s", rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "");
+                    parse_str(rightTemp.value);
+                    printf("\n");
+                printf("JUMPIFEQ _SPEC_VAR_END_%d LF@%s bool@true\n",spec_var,assignTo);
+                printf("EQ LF@%s %s@%s", assignTo, leftTemp.constant ? leftTemp.type : "LF",
+                           leftTemp.sign ? "-" : "");
+                    parse_str(leftTemp.value);
+                    printf(" %s@%s", rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "");
+                    parse_str(rightTemp.value);
+                    printf("\n");
+                printf("LABEL _SPEC_VAR_END_%d\n",spec_var);
+                }else {
+                    printf("GT LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type : "LF",
+                           leftTemp.sign ? "-" : "", leftTemp.value,
+                           rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "", rightTemp.value);
+                    printf("JUMPIFEQ _SPEC_VAR_END_%d LF@%s bool@true\n",spec_var,assignTo);
+
+                        printf("EQ LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type : "LF",
+                        leftTemp.sign ? "-" : "", leftTemp.value,
+                        rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "", rightTemp.value);      
+                        printf("LABEL _SPEC_VAR_END_%d\n",spec_var);
+                }
+                ++spec_var;
                 break;
             case tokenType_LE:
                 //@TODO
+                if(strcmp(type, "string") == 0){
+                    printf("LT LF@%s %s@%s", assignTo, leftTemp.constant ? leftTemp.type : "LF",
+                           leftTemp.sign ? "-" : "");
+                    parse_str(leftTemp.value);
+                    printf(" %s@%s", rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "");
+                    parse_str(rightTemp.value);
+                    printf("\n");
+
+                     printf("JUMPIFEQ _SPEC_VAR_END_%d LF@%s bool@true\n",spec_var,assignTo);
+                    printf("EQ LF@%s %s@%s", assignTo, leftTemp.constant ? leftTemp.type : "LF",
+                           leftTemp.sign ? "-" : "");
+                    parse_str(leftTemp.value);
+                    printf(" %s@%s", rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "");
+                    parse_str(rightTemp.value);
+                    printf("\n");
+                    printf("LABEL _SPEC_VAR_END_%d\n",spec_var);
+                }else {
+                    printf("LT LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type : "LF",
+                           leftTemp.sign ? "-" : "", leftTemp.value,
+                           rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "", rightTemp.value);
+                    printf("JUMPIFEQ _SPEC_VAR_END_%d LF@%s bool@true\n",spec_var,assignTo);
+
+                        printf("EQ LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type : "LF",
+                        leftTemp.sign ? "-" : "", leftTemp.value,
+                        rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "", rightTemp.value);      
+                        printf("LABEL _SPEC_VAR_END_%d\n",spec_var);
+                }
+                ++spec_var;
                 break;
             case tokenType_NEQ:
                 //@TODO
+                if(strcmp(type, "string") == 0){
+                    printf("EQ LF@%s %s@%s", assignTo, leftTemp.constant ? leftTemp.type : "LF",
+                           leftTemp.sign ? "-" : "");
+                    parse_str(leftTemp.value);
+                    printf(" %s@%s", rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "");
+                    parse_str(rightTemp.value);
+                    printf("\n");
+                    printf("JUMPIFEQ _SPEC_VAR_END_%d LF@%s bool@true\n",spec_var,assignTo);
+                    printf("MOVE LF@%s bool@true\n",assignTo);
+                    printf("JUMP _SPEC_VAR_END_FINAL_%d\n",spec_var);
+                    printf("LABEL _SPEC_VAR_END_%d\n",spec_var);
+                    printf("MOVE LF@%s bool@false\n",assignTo);
+                    printf("LABEL _SPEC_VAR_END_FINAL_%d\n",spec_var);
+                    
+                }else {
+                    printf("EQ LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type : "LF",
+                           leftTemp.sign ? "-" : "", leftTemp.value,
+                           rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "", rightTemp.value);
+                    printf("JUMPIFEQ _SPEC_VAR_END_%d LF@%s bool@true\n",spec_var,assignTo);
+                    printf("MOVE LF@%s bool@true\n",assignTo);
+                    printf("JUMP _SPEC_VAR_END_FINAL_%d\n",spec_var);
+                    printf("LABEL _SPEC_VAR_END_%d\n",spec_var);
+                    printf("MOVE LF@%s bool@false\n",assignTo);
+                    printf("LABEL _SPEC_VAR_END_FINAL_%d\n",spec_var);
+                    
+                }
+                ++spec_var;
                 break;
             case tokenType_GREATER:
                 if(strcmp(type, "string") == 0){
