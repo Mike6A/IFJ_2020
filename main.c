@@ -35,6 +35,10 @@ char* getEnumString(TokenType type){
         case tokenType_SCOMMA: return "SCAMMA";
         case tokenType_DECL: return "DECL";
         case tokenType_ASSIGN: return "ASSIGN";
+        case tokenType_ASSPLUS: return "ASSPLUS";
+        case tokenType_ASSMINUS: return "ASSMINUS";
+        case tokenType_ASSMUL: return "ASSMUL";
+        case tokenType_ASSDIV: return "ASSDIV";
         default: return "";
     }
 }
