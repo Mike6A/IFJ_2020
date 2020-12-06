@@ -15,6 +15,7 @@
 #include "string.h"
 #include "semantics.h"
 #include "analyse.h"
+#include "stack.h"
 
 #define MAX_LEN 20
 

@@ -46,6 +46,8 @@ SyntaxNode* Pop_SN_Stack(tSN_Stack* list) {
 */
 static int scope = 0;
 static int if_else_counter = 0;
+t_INT_Stack if_else_stack;
+t_INT_Stack for_stack;
 static int for_counter = 0;
 static bool skipDefvarAssignTemp = false;
 static int assignC = 0;
@@ -580,7 +582,8 @@ void bif_inputf()
 
 void program_start()
 {
-
+    init_INT_Stack(&for_stack);
+    init_INT_Stack(&if_else_stack);
     printf("# START OF GEN_CODE\n");
     printf(".IFJcode20\n");
     printf("JUMP _main\n");
@@ -1359,18 +1362,19 @@ void vars_set_new_value(SyntaxNode *root, tHashItem *item)
 
 void label_if_else_end(char *func_name)
 {
-    printf("LABEL _%s_end_else_%d_%d\n",func_name, scope,if_else_counter);
+    printf("LABEL _%s_end_else_%d_%d\n",func_name, scope,pop_INT_Stack(&if_else_stack));
 }
 
 void label_for_end(char *func_name)
 {
-    printf("LABEL %s_for_end_%d_%d\n",func_name,scope,for_counter);
+    printf("LABEL %s_for_end_%d_%d\n",func_name,scope,pop_INT_Stack(&for_stack));
 }
 
 ///------------IF/ELSE FUNCTIONS------------------------
 
 void if_cond(SyntaxNode *root,char *func_name)
 {
+    add_INT_StackItem(&if_else_stack, if_else_counter++);
     static int c = 0;
     printf("# DECLARE AND DEFAULT_INIT VAR %s%d\n","__IFCOND__", c);
 
@@ -1410,8 +1414,7 @@ void if_cond(SyntaxNode *root,char *func_name)
     if(tmp.alocated){
         free(tmp.value);
     }
-    ++if_else_counter;
-    printf("JUMPIFNEQ _%s_else_%d_%d LF@%s bool@true\n",func_name,scope,if_else_counter,identific);
+    printf("JUMPIFNEQ _%s_else_%d_%d LF@%s bool@true\n",func_name,scope,top_INT_Stack(&if_else_stack),identific);
     free(identific);
 }
 
@@ -1431,13 +1434,13 @@ void if_suffix(char *func_name)
     printf("POPFRAME\n");
     deleteIdListScope(&currentScopeVars);
     all_vars_after_new_scope(scope); // @TODO TO solve
-    printf("JUMP _%s_end_else_%d_%d\n",func_name, scope,if_else_counter); //end of if/else
+    printf("JUMP _%s_end_else_%d_%d\n",func_name, scope,top_INT_Stack(&if_else_stack)); //end of if/else
 
 }
 
 void else_prefix(char *func_name)
 {
-    printf("LABEL _%s_else_%d_%d\n", func_name, scope,if_else_counter);
+    printf("LABEL _%s_else_%d_%d\n", func_name, scope,top_INT_Stack(&if_else_stack));
     all_vars_to_new_scope();//@TODO
     printf("PUSHFRAME\n");
     createNewIdListScope(&currentScopeVars);
@@ -1513,6 +1516,7 @@ void for_header()
     all_vars_to_new_scope();
     printf("PUSHFRAME\n");
     createNewIdListScope(&currentScopeVars);
+    add_INT_StackItem(&for_stack, for_counter++);
     //section of init for_counter var
 //    printf("# DECLARE AND DEFAULT_INIT VAR %s\n",item->id);
 //    static int c = 0;
@@ -1587,7 +1591,7 @@ void for_cond_to_loop(SyntaxNode *root,char *func_name)
     sprintf(identific, "%s%d_%d","__FORCOND__", c, scope);
     printf("DEFVAR LF@%s\n",identific);
 
-    printf("LABEL %s_for_%d_%d\n",func_name,scope,for_counter);
+    printf("LABEL %s_for_%d_%d\n",func_name,scope,top_INT_Stack(&for_stack));
 
     //TODO TYPE
     int type = TInt;
@@ -1600,7 +1604,7 @@ void for_cond_to_loop(SyntaxNode *root,char *func_name)
         printf("MOVE LF@%s %s@%s%s\n",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"", tmp.value);
 
     //cond to loop
-    printf("JUMPIFNEQ %s_for_end_%d_%d LF@%s bool@true\n",func_name,scope,for_counter,identific);
+    printf("JUMPIFNEQ %s_for_end_%d_%d LF@%s bool@true\n",func_name,scope,top_INT_Stack(&for_stack),identific);
 
 }
 void for_start_Assign(){
@@ -1625,7 +1629,7 @@ void for_suffix(char *func_name)
     printf("POPFRAME\n");
     all_vars_after_new_scope(scope);
 
-    printf("JUMP %s_for_%d_%d\n",func_name,scope,for_counter++);
+    printf("JUMP %s_for_%d_%d\n",func_name,scope,top_INT_Stack(&for_stack));
 
     label_for_end(func_name);
 
