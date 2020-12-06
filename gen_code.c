@@ -1539,13 +1539,16 @@ void for_afterDeclaration(char* func_name){
     //for_loop_label
     all_vars_to_new_scope(scope);
     printf("PUSHFRAME\n");
+    createNewIdListScope(&currentScopeVars);
     //TODO MALLOC
+    /*
     char temp1[15];
     sprintf(temp1, "__ALEFT__%d", assignC);
     char temp2[15];
     sprintf(temp2, "__ARIGHT__%d", assignC);
     printf("DEFVAR LF@%s\n", temp1);
     printf("DEFVAR LF@%s\n", temp2);
+     */
 
 }
 
@@ -1557,7 +1560,7 @@ void for_cond_to_loop(SyntaxNode *root,char *func_name)
     //section of init for_counter var
     static int c = 0;
     //all_vars_to_new_scope();
-    createNewIdListScope(&currentScopeVars);
+//    createNewIdListScope(&currentScopeVars);
     printf("# DECLARE AND DEFAULT_INIT VAR %s_%d\n","__FORCOND__", c);
 
     char temp1[15];
@@ -1618,13 +1621,15 @@ void for_prefix(char *func_name)
 void for_suffix(char *func_name)
 {
     //end for body
-
-    printf("JUMP %s_for_%d_%d\n",func_name,scope,for_counter);
-    label_for_end(func_name);
     deleteIdListScope(&currentScopeVars);
     printf("POPFRAME\n");
-
     all_vars_after_new_scope(scope);
+
+    printf("JUMP %s_for_%d_%d\n",func_name,scope,for_counter++);
+
+    label_for_end(func_name);
+
+
 
     deleteIdListScope(&currentScopeVars);
     printf("POPFRAME\n");

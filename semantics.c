@@ -895,7 +895,7 @@ int forExpression(SyntaxNode* root, tScope* scope, char* parentFunction, tString
             result = declareExp(root->left->left, scope, parentFunction, strList);
         }
     }
-    for_afterDeclaration(parentFunction);// GENCODE
+
 
     if (result != 0) {
         removeLastLocalScope(scope);
@@ -922,10 +922,11 @@ int forExpression(SyntaxNode* root, tScope* scope, char* parentFunction, tString
         removeLastLocalScope(scope);
         return result;
     }
-    for_cond_to_loop(root->left->right, parentFunction);
 
+    for_cond_to_loop(root->left->right, parentFunction);
+    for_afterDeclaration(parentFunction);// GENCODE
     //------- block part ------
-    for_start_Assign();
+    //for_start_Assign();
     result = blockExp(root->right, scope, parentFunction, strList);    //block with things to loop in for
     if (result != 0) {
         removeLastLocalScope(scope);
@@ -946,7 +947,7 @@ int forExpression(SyntaxNode* root, tScope* scope, char* parentFunction, tString
             return result;
         }
     }
-    for_end_Assign();
+    //for_end_Assign();
 
     for_suffix(parentFunction);
     //TODO codegen: destroy scope

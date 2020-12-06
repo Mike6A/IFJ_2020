@@ -17,11 +17,6 @@
 #include "analyse.h"
 
 #define MAX_LEN 20
-#define MAX_STACK 100
-
-//DANGER!!!
-
-
 
 typedef struct identifierListNode{
     char *name;
@@ -35,10 +30,6 @@ typedef struct identifierList{
     struct identifierList* prevScope;
 } idList;
 
-typedef struct t_SN_Stack {
-    SyntaxNode* node[MAX_STACK];
-    int top;
-} tSN_Stack;
 
 struct genExpr {
     char* value;
@@ -47,12 +38,6 @@ struct genExpr {
     bool constant;
     bool alocated;
 };
-
-void init_SN_Stack(tSN_Stack* list);
-int add_SN_StackItem(tSN_Stack* list, SyntaxNode* node);
-int destroy_SN_Stack(tSN_Stack* list);
-bool is_SN_Stack_Empty(tSN_Stack* stack);
-SyntaxNode* Pop_SN_Stack(tSN_Stack* list);
 
 //function in gen_code.c
 
