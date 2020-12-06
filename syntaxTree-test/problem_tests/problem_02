@@ -1,0 +1,18 @@
+package main
+
+func main()() {
+
+    a:=1
+    b:=2
+    c:=0
+    c = a*5+2
+    for a:=0 ; a<5 ; a=a+1 {
+
+        print(a,"a\n")
+        for b:=3 ; b>-1 ; b=b-1 {
+
+            print(b,"b\n")
+        }
+
+    }
+}
