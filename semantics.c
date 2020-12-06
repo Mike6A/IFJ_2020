@@ -1213,7 +1213,7 @@ long addInbuiltFunctions(tScope* scope) {
  * @param root Start node of ASS
  * @return Return code (0 = OK)
  */
-long runSemanticAnalyze(SyntaxNode* root){
+long runSemanticAnalyze(SyntaxNode* root, tScope* scope){
     if(root == NULL){
         return 99;
     }
@@ -1222,12 +1222,8 @@ long runSemanticAnalyze(SyntaxNode* root){
     tStringLinkedListItem* strList = malloc(sizeof(tStringLinkedListItem));
     createList(strList);
 
-    tScope scope;
-    initScope(&scope);
-    createScope(&scope);
-
     program_start(); // GENCODE!
-    addInbuiltFunctions(&scope);    //loads inbuilt functions
+    addInbuiltFunctions(scope);    //loads inbuilt functions
 
     if (root->type == Node_Global){
         SyntaxNodes *statement = root->statements != NULL ? root->statements->first : NULL;
@@ -1237,10 +1233,10 @@ long runSemanticAnalyze(SyntaxNode* root){
                 return 3;
             }
 
-            long returnCode = runFunctionExp(statement->node, &scope, strList);  //evaluate expressions
+            long returnCode = runFunctionExp(statement->node, scope, strList);  //evaluate expressions
 
             if (returnCode != 0) {
-                removeLastLocalScope(&scope);
+                //removeLastLocalScope(scope);
                 destroyList(strList);
                 return returnCode;
             }
@@ -1249,16 +1245,16 @@ long runSemanticAnalyze(SyntaxNode* root){
         }
     }
 
-    if (getHashItem(scope.topLocal->table, "main") != NULL) {               /** Checks if main function is declared as it should be */
-        tHashItem* mainFunc = getHashItem(scope.topLocal->table, "main");
+    if (getHashItem(scope->topLocal->table, "main") != NULL) {               /** Checks if main function is declared as it should be */
+        tHashItem* mainFunc = getHashItem(scope->topLocal->table, "main");
         if (mainFunc->declared == true && mainFunc->func != NULL && mainFunc->func->params_count == 0 && mainFunc->func->return_count == 0) {
 
-            for(int i = 0; i < scope.global->table->size; i++) {
-                for(tHashItem* tmp = scope.global->table->table[i]; tmp != NULL; tmp = tmp->next)  {
+            for(int i = 0; i < scope->global->table->size; i++) {
+                for(tHashItem* tmp = scope->global->table->table[i]; tmp != NULL; tmp = tmp->next)  {
                     if (tmp->func != NULL) {
                         if (tmp->declared == false) {
                             //fprintf(stderr, "Function \"%s\" not declared!\n", tmp->id);
-                            removeLastLocalScope(&scope);
+                            //removeLastLocalScope(scope);
                             destroyList(strList);
                             return 3;
                         }
@@ -1267,15 +1263,15 @@ long runSemanticAnalyze(SyntaxNode* root){
 
             }
             /////////------------------------------------------------------
-            removeLastLocalScope(&scope);
+            //removeLastLocalScope(scope);
             destroyList(strList);
-            program_exit(NULL);
+            //program_exit(NULL);
             //TODO codegen: now you can throw the program to the interpret
             return 0;
         }
         else {
             //fprintf(stderr, "Main function should not have parameters or return value\n");
-            removeLastLocalScope(&scope);
+            //removeLastLocalScope(scope);
 
             destroyList(strList);
             return 6;
@@ -1286,7 +1282,7 @@ long runSemanticAnalyze(SyntaxNode* root){
 
 
     //fprintf(stderr, "Main function not declared!\n");
-    removeLastLocalScope(&scope);
+    //removeLastLocalScope(scope);
     destroyList(strList);
     return 3;
 }

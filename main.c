@@ -69,6 +69,7 @@ void test_tree(){
     getToken(&tokenizer);
     SyntaxNode* prog = NULL;
     prog = getSyntaxGlobal(&tokenizer);
+    //PRINT SYNTAX TREE
    /* if(prog != NULL){
         printSyntaxTree(prog, "", true);
     }*/
@@ -80,22 +81,17 @@ void test_tree(){
         exit(getError());
     }
 
-    //long res = eval(&tokenizer, prog, &scope);
-    long returnCode = runSemanticAnalyze(prog);
+    tScope scope;
+    initScope(&scope);
+    createScope(&scope);
 
+    long returnCode = runSemanticAnalyze(prog, &scope);
+    if(returnCode == 0){
+        // PRINT GENCODE HERE !!!!
+    }
+    //DELETE EVERYTHING
+    removeLastLocalScope(&scope);
     deleteSyntaxTree(prog);
-//    while (!tokenizer.isEOF){
-//        getToken(&tokenizer);
-//        SyntaxNode* exp = ParseExpression(&tokenizer, 0, &scope);
-//        /*if(exp == NULL)
-//            printf("EXPRESSION NULL");
-//            */
-//        printSyntaxTree(exp, "", true);
-//        long res = eval(&tokenizer, exp, &scope);
-//        if(res!=0)
-//            printf("RES>>> %ld\n", res);
-//        deleteSyntaxTree(exp);
-//    }
     destructBuilder(&tokenizer.sb);
     exit(returnCode);
 }

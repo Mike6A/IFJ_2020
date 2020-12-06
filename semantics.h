@@ -18,6 +18,6 @@ typedef struct t_ExpReturnType {
     bool constant;  /**< true if item is constant (known value) | false if unknown value */
 } tExpReturnType;
 
-long runSemanticAnalyze(SyntaxNode* root);
+long runSemanticAnalyze(SyntaxNode* root, tScope* scope);
 
 #endif //IFJ_2020_SEMANTICS_H
