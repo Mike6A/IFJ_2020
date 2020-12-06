@@ -713,6 +713,12 @@ SyntaxNode* ParseAssignSyntax(tTokenizer* tokenizer, tToken* FirstID){
             return NULL;
         }
     }
+    if ((   tokenizer->outputToken.type == tokenType_ASSPLUS ||
+            tokenizer->outputToken.type == tokenType_ASSMINUS ||
+            tokenizer->outputToken.type == tokenType_ASSMUL ||
+            tokenizer->outputToken.type == tokenType_ASSDIV)) {
+        return ParseUnaryAssignSyntax(tokenizer, FirstID);
+    }
     tToken* assign = Match(tokenizer, tokenType_ASSIGN, true);
     SyntaxNodes * node = list->first;
     SyntaxNodes* assignValues = NULL;
@@ -898,6 +904,7 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
                     addToNodeListEnd(list, createNode(idNode, NULL, NULL, NULL, "IdentifierAssignmentONE",
                                                       Node_AssignmentExpression));
                 }
+
                 if (tokenizer->outputToken.type != tokenType_ASSIGN) {
                     return createNode(NULL, list, NULL, NULL, "FUNCTION CALL PARAMS", Node_FunctionCallParameters);
                 }
