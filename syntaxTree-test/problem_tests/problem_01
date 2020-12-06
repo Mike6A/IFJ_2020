@@ -19,5 +19,6 @@ func main()() {
     } else {
         print(a-2)
     }
+    //STACK ON IF ELSE COUNTER
 }
 
