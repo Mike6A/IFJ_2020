@@ -9,6 +9,7 @@
 
 #include "gen_code.h"
 
+
 /*
 ///-----------INTERPRET STACK-----------------
 
@@ -54,6 +55,59 @@ static int assignC = 0;
 static int spec_var = 0;
 idList * currentScopeVars = NULL;
 
+//PRINT LIST NODE
+
+void initpList(pList *list)
+{
+
+    list->first = NULL;
+
+}
+
+void addItemTopList(int arg_num, ...)
+{
+
+    va_list valist;
+    //init valist for arg_num number of function args
+    va_start(valist, arg_num);
+    //main access to arguments
+
+    for(int i=0; i < arg_num; i++)
+    {
+
+
+
+    }
+
+
+
+    //clean used memory
+    va_end(valist);
+
+}
+
+void deletepList(pList** list){
+    if(list != NULL){
+        while((*list) != NULL){
+            
+            deletepListNode(list);
+        }
+    }
+}
+
+void deletepListNode(pList** list)
+{
+
+    if(list != NULL && (*list) != NULL){
+        pNode *current = (*list)->first;
+        while(current != NULL){
+            pNode * tmp = current;
+            free(tmp);
+            current = current->next;
+        }
+    }
+}
+
 //ID LIST NODE
 
 void initIdList(idList* list){
@@ -61,6 +115,7 @@ void initIdList(idList* list){
     list->last = NULL;
     list->prevScope = NULL;
 }
+
 void deleteIdListScope(idList** list){
     if(list != NULL && (*list) != NULL){
         idListNode * current = (*list)->last;
@@ -207,6 +262,7 @@ void parse_str(char *str)
 
 void bif_lenght()
 {
+    addItemTopList(0);
     printf("# func len(s string) (int)\n");
     printf("LABEL _len\n");
     printf("PUSHFRAME\n");
@@ -1330,7 +1386,6 @@ void vars_set_new_value(SyntaxNode *root, tHashItem *item)
         printf("DEFVAR LF@%s\n", temp1);
         printf("DEFVAR LF@%s\n", temp2);
     }
-
 
     //printf("DEFVAR LF@%s\n",item->id);
     int countScopeLen = 1;
