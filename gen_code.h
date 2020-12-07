@@ -18,6 +18,7 @@
 #include "stack.h"
 
 #define MAX_LEN 20
+#define MAX_PARAMS_COUNT 100
 
 typedef struct identifierListNode{
     char *name;
@@ -31,6 +32,17 @@ typedef struct identifierList{
     struct identifierList* prevScope;
 } idList;
 
+typedef struct printListNode{
+    char *paramName[MAX_PARAMS_COUNT];
+    bool func_defined;
+    char *func_name;
+    int paramCounter;
+    struct printListNode *next;
+} pNode;
+
+typedef struct printList{
+    pNode* first;
+} pList;
 
 struct genExpr {
     char* value;
