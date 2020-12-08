@@ -79,8 +79,6 @@ void addItemTopList(int arg_num, ...)
 
     }
 
-
-
     //clean used memory
     va_end(valist);
 
