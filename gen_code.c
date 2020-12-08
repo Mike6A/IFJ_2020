@@ -434,7 +434,7 @@ void bif_substr()
     addItemTopList("STRLEN LF@str_len LF@arg_0\n");
     addItemTopList("MOVE LF@substr_len LF@str_len\n");
     addItemTopList("MOVE LF@in_string bool@true\n");
-    addItemTopList("JUMPIFEQ _func_error_substr LF@arg_1 int@1\n");
+    addItemTopList("JUMPIFEQ _func_error_substr LF@arg_2 int@0\n");
     addItemTopList("LT LF@in_string LF@str_len int@1\n");
     addItemTopList("JUMPIFEQ _func_error_substr LF@in_string bool@true\n");
     addItemTopList("LT LF@in_string LF@arg_1 int@0\n");
@@ -577,7 +577,7 @@ void bif_print(SyntaxNodes* my_statement)
 {
 
     int i=0;
-    SyntaxNodes* current_statement = my_statement->first;
+    SyntaxNodes* current_statement = my_statement != NULL? my_statement->first: NULL;
     static int c = 0;
     static int ord = 0;
     static char hex_arr[3];
@@ -963,12 +963,15 @@ void no_built_in_func_args_TF_declar(char *func_name, tFuncItem *func, SyntaxNod
 
 void func_args_TF_declar(char *func_name, tHashItem *funcItem, SyntaxNodes* paramValues)
 {
+
     static int called = 0;
     tFuncItem *func = funcItem->func;
     SyntaxNodes * currentParam = paramValues;
     //have to create before args pass(for non args func too)
     addItemTopList("CREATEFRAME\n");
-
+    if (paramValues == NULL){
+        return;
+    }
         addItemTopList("# CREATE VARS FOR %s's ARGS\n",func_name);
         for(int i = 0; i < func->params_count ; i++)
         {
@@ -1853,10 +1856,15 @@ void for_cond_to_loop(SyntaxNode *root,char *func_name)
     free(identific);
 }
 void for_start_Assign(){
-    skipDefvarAssignTemp = true;
+    deleteIdListScope(&currentScopeVars);
+    addItemTopList("POPFRAME\n");
+    all_vars_after_new_scope(scope);
+    all_vars_to_new_scope(scope);
+    addItemTopList("PUSHFRAME\n");
+    createNewIdListScope(&currentScopeVars);
 };
 void for_end_Assign(){
-    skipDefvarAssignTemp = false;
+
 }
 void for_prefix(char *func_name)
 {
@@ -1870,9 +1878,11 @@ void for_prefix(char *func_name)
 void for_suffix(char *func_name)
 {
     //end for body
+
     deleteIdListScope(&currentScopeVars);
     addItemTopList("POPFRAME\n");
     all_vars_after_new_scope(scope);
+
 
     addItemTopList("JUMP %s_for_%d_%d\n",func_name,scope,top_INT_Stack(&for_stack));
 
