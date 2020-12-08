@@ -54,59 +54,200 @@ static bool skipDefvarAssignTemp = false;
 static int assignC = 0;
 static int spec_var = 0;
 idList * currentScopeVars = NULL;
-
+static pList gencodeList = {.first = NULL, .last = NULL};
+static int errorcodeList = 0;
 //PRINT LIST NODE
-
+int getErrorList(){
+    return errorcodeList;
+}
 void initpList(pList *list)
 {
-
     list->first = NULL;
-
 }
 
-void addItemTopList(int arg_num, ...)
+TItem getTypeOfExpr(SyntaxNode* root){
+    SyntaxNode *current = root;
+    if(current != NULL){
+        while (current->right != NULL && (  current->type != Node_NumberIntExpression ||
+                                            current->type != Node_NumberDoubleExpression ||
+                                            current->type != Node_StringExpression)){
+            current = current->right;
+        }
+        if(current->type == Node_NumberIntExpression || current->type == Node_NumberIntToken){
+            return TInt;
+        }else if(current->type == Node_NumberDoubleExpression || current->type == Node_NumberDoubleToken){
+            return TDouble;
+        }else if(current->type == Node_StringExpression || current->type == Node_StringToken){
+            return TString;
+        }
+    }
+    return TEverything;
+}
+
+void addItemTopList(const char* format, ... )
 {
 
-    va_list valist;
+    va_list args;
     //init valist for arg_num number of function args
-    va_start(valist, arg_num);
+    va_start(args, format);
     //main access to arguments
-
-    for(int i=0; i < arg_num; i++)
-    {
-
-
-
+    size_t needed = vsnprintf(NULL, 0,format, args)+2;
+    char * buffer = malloc(needed);
+    if(buffer == NULL) {
+        errorcodeList = 99;
+        va_end(args);
+        return;
     }
-
-
-
+    va_end(args);
+    va_start(args, format);
+    vsprintf(buffer, format, args);
+    //vprintf(format, args);
+    //printf(">>>>>>>>>>>>>>>>>>>>>>>>> ERRROOROR: %s - %ld\n", buffer, needed);
+    pNode* newGenLine = malloc(sizeof(pNode));
+    if(newGenLine == NULL) {
+        errorcodeList = 99;
+        va_end(args);
+        return;
+    }
+    newGenLine->next = NULL;
+    newGenLine->func_defined = true;
+    newGenLine->printString = buffer;
+    if(gencodeList.first == NULL){
+        gencodeList.first = newGenLine;
+        gencodeList.last = newGenLine;
+    }else{
+        gencodeList.last->next = newGenLine;
+        gencodeList.last = newGenLine;
+    }
     //clean used memory
-    va_end(valist);
+    va_end(args);
 
 }
 
-void deletepList(pList** list){
-    if(list != NULL){
-        while((*list) != NULL){
-            
-            deletepListNode(list);
-        }
-    }
-}
-
-void deletepListNode(pList** list)
+void addItemTopListCallFunction(char* funcName, bool funcIsDeclared,bool defvar, const char* format, ... )
 {
 
-    if(list != NULL && (*list) != NULL){
-        pNode *current = (*list)->first;
-        while(current != NULL){
-            pNode * tmp = current;
-            free(tmp);
-            current = current->next;
-        }
+    va_list args;
+    //init valist for arg_num number of function args
+    va_start(args, format);
+    //main access to arguments
+    size_t needed = vsnprintf(NULL, 0,format, args)+2;
+    char * buffer = malloc(needed);
+    if(buffer == NULL) {
+        errorcodeList = 99;
+        va_end(args);
+        return;
     }
+    va_end(args);
+    va_start(args, format);
+    vsprintf(buffer, format, args);
+    //vprintf(format, args);
+    //printf(">>>>>>>>>>>>>>>>>>>>>>>>> ERRROOROR: %s - %ld\n", buffer, needed);
+    pNode* newGenLine = malloc(sizeof(pNode));
+    if(newGenLine == NULL) {
+        errorcodeList = 99;
+        va_end(args);
+        return;
+    }
+    newGenLine->next = NULL;
+    newGenLine->func_defined = funcIsDeclared;
+    newGenLine->defvarFunc = defvar;
+    newGenLine->func_name = funcName;
+    newGenLine->printString = buffer;
+    if(gencodeList.first == NULL){
+        gencodeList.first = newGenLine;
+        gencodeList.last = newGenLine;
+    }else{
+        gencodeList.last->next = newGenLine;
+        gencodeList.last = newGenLine;
+    }
+    //clean used memory
+    va_end(args);
+
 }
+
+void deletepList()
+{
+    pNode* current = gencodeList.first;
+    while(current != NULL){
+        pNode * tmp = current;
+        current = current->next;
+        free(tmp->printString);
+        free(tmp);
+    }
+    gencodeList.first = NULL;
+    gencodeList.last = NULL;
+}
+
+void printAndDeleteGenCode(tScope* scopeVar){
+    pNode* current = gencodeList.first;
+    char *prevFuncName = NULL;
+    int paramNumber = 0;
+    bool defvar = false;
+    while(current != NULL){
+        if(!current->func_defined){
+            char* token = NULL;
+            int index = 0;
+            if(prevFuncName != NULL && strcmp(prevFuncName, current->func_name) != 0 ){
+                paramNumber = 0;
+            }
+            tHashItem *TITEM = getHashItem(scopeVar->global->table, current->func_name);
+            tFuncItem *func = NULL;
+            if (TITEM != NULL)
+                func = TITEM->func;
+            if (func != NULL) {
+                if(current->printString != NULL) {
+                    token = strtok(current->printString, "@ ");
+                    if(token!= NULL && strcmp(token, "MOVE") == 0)
+                        defvar = true;
+                    if(token!= NULL && strcmp(token, "DEFVAR") == 0)
+                        defvar = false;
+                    //fprintf(stderr, ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>%d\n", paramNumber);
+                    current->printString = realloc(current->printString, strlen(func->params[paramNumber]) + 1);
+                    char *buffer = malloc(strlen(current->printString) + 100);
+                    if (buffer != NULL) {
+                        strcpy(buffer, "");
+                        while (token != NULL) {
+                            if (index != 2) {
+                                strcat(buffer, token);
+                                if (index == 1 || index == 3)
+                                    strcat(buffer, "@\0");
+                                else
+                                    strcat(buffer, " \0");
+                            } else {
+
+                                strcat(buffer, func->params[paramNumber]);
+                                strcat(buffer, token);
+                                strcat(buffer, " \0");
+                            }
+                            ++index;
+                            token = strtok(NULL, "@ ");
+                        }
+                        if(defvar){
+                            paramNumber++;
+                        }
+                        if(paramNumber >= func->params_count)
+                            paramNumber = 0;
+                        prevFuncName = current->func_name;
+                        free(current->printString);
+                        current->printString = buffer;
+                    }
+                }
+            }
+        }
+
+        pNode * tmp = current;
+        current = current->next;
+        if(tmp->printString != NULL) {
+            printf("%s", tmp->printString);
+            free(tmp->printString);
+        }
+        free(tmp);
+    }
+    gencodeList.first = NULL;
+    gencodeList.last = NULL;
+}
+
 
 //ID LIST NODE
 
@@ -153,7 +294,8 @@ void createNewIdListScope(idList** list){
         scope++;
     idList* newScopeList = malloc(sizeof(idList));
     if(newScopeList == NULL){
-        return; //@TODO ERROR HANDLING!
+        errorcodeList = 99;
+        return;
     }
     newScopeList->scope = scope;
     newScopeList->prevScope = (*list);
@@ -165,11 +307,13 @@ void addItemToIdList(idList** list, char* name){
     if(list != NULL && (*list) != NULL){
         idListNode* newNode = malloc(sizeof(idListNode));
         if(newNode == NULL){
-            return; //@TODO ERROR HANDLING!
+            errorcodeList = 99;
+            return;
         }
         char * newName = malloc(sizeof(char) * strlen(name)+1);
         if(newName == NULL){
             free(newNode);
+            errorcodeList = 99;
             return;
         }
         strcpy(newName, name);
@@ -185,7 +329,7 @@ int getLastScopeOfIdInList(idList* list, char* item){
     idList *currentScope = list;
     while (currentScope != NULL){
         idListNode *currentScopeNode = currentScope->last;
-        while(currentScopeNode != NULL){ //@TODO strcmp(currentScopeNode->name, currentScope->first->name) != 0
+        while(currentScopeNode != NULL){
             if(strcmp(currentScopeNode->name, item) == 0){
                 return currentScope->scope;
             }
@@ -212,7 +356,7 @@ void parse_str(char *str)
         ord = str[i];
         if((ord>=0 && ord<=32)||(ord == 35))
         {
-            printf("\\%d%d",0,ord);
+            addItemTopList("\\%d%d",0,ord);
         }
         else if(ord == 92)
         {
@@ -221,19 +365,19 @@ void parse_str(char *str)
             {
                                 
                 case 'n': 
-                        printf("\\010");
+                        addItemTopList("\\010");
                         break;
 
                 case 't':
-                        printf("\\009");
+                        addItemTopList("\\009");
                         break;
 
                 case '"':
-                        printf("\\034");
+                        addItemTopList("\\034");
                         break;
 
                 case '\\':
-                        printf("\\092");
+                        addItemTopList("\\092");
                         break;
                 //hex
                 case 'x':
@@ -241,7 +385,7 @@ void parse_str(char *str)
                         hex_arr[1] = str[i+3];
                         hex_arr[2] = '\0';
                         ord = hex_to_dec(&hex_arr);
-                        printf("%c",ord);
+                        addItemTopList("%c",ord);
                         i+=2;
                                             
             }
@@ -249,7 +393,7 @@ void parse_str(char *str)
         }
         else
         {
-            printf("%c",str[i]);
+            addItemTopList("%c",str[i]);
         }
                            
     }
@@ -263,170 +407,147 @@ void parse_str(char *str)
 void bif_lenght()
 {
     addItemTopList(0);
-    printf("# func len(s string) (int)\n");
-    printf("LABEL _len\n");
-    printf("PUSHFRAME\n");
-    printf("DEFVAR LF@len_ret_0_%d\n", scope);
-    printf("MOVE LF@len_ret_0_%d int@0\n", scope);
-    printf("STRLEN LF@len_ret_0_%d LF@arg_0\n", scope);
-    printf("POPFRAME\n");
-    printf("RETURN\n");
+    addItemTopList("# func len(s string) (int)\n");
+    addItemTopList("LABEL _len\n");
+    addItemTopList("PUSHFRAME\n");
+    addItemTopList("DEFVAR LF@len_ret_0_%d\n", scope);
+    addItemTopList("MOVE LF@len_ret_0_%d int@0\n", scope);
+    addItemTopList("STRLEN LF@len_ret_0_%d LF@arg_0\n", scope);
+    addItemTopList("POPFRAME\n");
+    addItemTopList("RETURN\n");
 
 }
 
 void bif_substr()
 {
-    printf("# func substr(s string,i int,n int) (string, int)\n");
-    printf("LABEL _substr\n");
-    printf("PUSHFRAME\n");
-    printf("DEFVAR LF@substr_ret_0_%d\n", scope);
-    printf("MOVE LF@substr_ret_0_%d string@\n", scope);
-    printf("DEFVAR LF@substr_ret_1_%d\n", scope);
-    printf("MOVE LF@substr_ret_1_%d int@0\n", scope);
-    printf("ADD LF@arg_1 LF@arg_1 int@1\n");
-    printf("DEFVAR LF@in_string\n");
-    printf("DEFVAR LF@str_len\n");
-    printf("DEFVAR LF@substr_len\n");
-    printf("STRLEN LF@str_len LF@arg_0\n");
-    printf("MOVE LF@substr_len LF@str_len\n");
-    printf("MOVE LF@in_string bool@true\n");
-    printf("LT LF@in_string LF@arg_1 int@0\n");
-    printf("JUMPIFEQ _func_error_substr LF@in_string bool@true\n");
-    printf("GT LF@in_string LF@arg_1 LF@str_len\n");
-    printf("JUMPIFEQ _func_error_substr LF@in_string bool@true\n");
-    printf("LT LF@in_string LF@arg_2 int@0\n");
-    printf("JUMPIFEQ _func_error_substr LF@in_string bool@true\n");
-    printf("SUB LF@substr_len LF@substr_len LF@arg_1\n");
-    printf("GT LF@in_string LF@arg_2 LF@substr_len\n");
-    printf("JUMPIFNEQ _func_continue_substr LF@in_string bool@true\n");
-    printf("ADD LF@substr_len LF@substr_len int@1\n");
-    printf("MOVE LF@arg_2 LF@substr_len\n");
-    printf("LABEL _func_continue_substr\n");
-    printf("DEFVAR LF@index\n");
-    printf("MOVE LF@index LF@arg_1\n");
-    printf("SUB LF@index LF@index int@1\n");
-    printf("DEFVAR LF@char_on_index\n");
-    printf("DEFVAR LF@loop_counter\n");
-    printf("MOVE LF@loop_counter int@0\n"); 
-    printf("LABEL _func_loop_substr\n");
-    printf("GETCHAR LF@char_on_index LF@arg_0 LF@index\n");
-    printf("CONCAT LF@substr_ret_0_%d LF@substr_ret_0_%d LF@char_on_index\n", scope, scope);
-    printf("ADD LF@index LF@index int@1\n");
-    printf("ADD LF@loop_counter LF@loop_counter int@1\n");
-    printf("JUMPIFNEQ _func_loop_substr LF@loop_counter LF@arg_2\n");
-    printf("JUMP _func_end_substr\n");
-    printf("LABEL _func_error_substr\n");
-    printf("MOVE LF@substr_ret_1_%d int@1\n", scope);
-    printf("LABEL _func_end_substr\n");
-    printf("POPFRAME\n");
-    printf("RETURN\n");
+    addItemTopList("# func substr(s string,i int,n int) (string, int)\n");
+    addItemTopList("LABEL _substr\n");
+    addItemTopList("PUSHFRAME\n");
+    addItemTopList("DEFVAR LF@substr_ret_0_%d\n", scope);
+    addItemTopList("MOVE LF@substr_ret_0_%d string@\n", scope);
+    addItemTopList("DEFVAR LF@substr_ret_1_%d\n", scope);
+    addItemTopList("MOVE LF@substr_ret_1_%d int@0\n", scope);
+    addItemTopList("ADD LF@arg_1 LF@arg_1 int@1\n");
+    addItemTopList("DEFVAR LF@in_string\n");
+    addItemTopList("DEFVAR LF@str_len\n");
+    addItemTopList("DEFVAR LF@substr_len\n");
+    addItemTopList("STRLEN LF@str_len LF@arg_0\n");
+    addItemTopList("MOVE LF@substr_len LF@str_len\n");
+    addItemTopList("MOVE LF@in_string bool@true\n");
+    addItemTopList("JUMPIFEQ _func_error_substr LF@arg_1 int@1\n");
+    addItemTopList("LT LF@in_string LF@str_len int@1\n");
+    addItemTopList("JUMPIFEQ _func_error_substr LF@in_string bool@true\n");
+    addItemTopList("LT LF@in_string LF@arg_1 int@0\n");
+    addItemTopList("JUMPIFEQ _func_error_substr LF@in_string bool@true\n");
+    addItemTopList("GT LF@in_string LF@arg_1 LF@str_len\n");
+    addItemTopList("JUMPIFEQ _func_error_substr LF@in_string bool@true\n");
+    addItemTopList("LT LF@in_string LF@arg_2 int@0\n");
+    addItemTopList("JUMPIFEQ _func_error_substr LF@in_string bool@true\n");
+    addItemTopList("SUB LF@substr_len LF@substr_len LF@arg_1\n");
+    addItemTopList("GT LF@in_string LF@arg_2 LF@substr_len\n");
+    addItemTopList("JUMPIFNEQ _func_continue_substr LF@in_string bool@true\n");
+    addItemTopList("ADD LF@substr_len LF@substr_len int@1\n");
+    addItemTopList("MOVE LF@arg_2 LF@substr_len\n");
+    addItemTopList("LABEL _func_continue_substr\n");
+    addItemTopList("DEFVAR LF@index\n");
+    addItemTopList("MOVE LF@index LF@arg_1\n");
+    addItemTopList("SUB LF@index LF@index int@1\n");
+    addItemTopList("DEFVAR LF@char_on_index\n");
+    addItemTopList("DEFVAR LF@loop_counter\n");
+    addItemTopList("MOVE LF@loop_counter int@0\n");
+    addItemTopList("LABEL _func_loop_substr\n");
+    addItemTopList("GETCHAR LF@char_on_index LF@arg_0 LF@index\n");
+    addItemTopList("CONCAT LF@substr_ret_0_%d LF@substr_ret_0_%d LF@char_on_index\n", scope, scope);
+    addItemTopList("ADD LF@index LF@index int@1\n");
+    addItemTopList("ADD LF@loop_counter LF@loop_counter int@1\n");
+    addItemTopList("JUMPIFNEQ _func_loop_substr LF@loop_counter LF@arg_2\n");
+    addItemTopList("JUMP _func_end_substr\n");
+    addItemTopList("LABEL _func_error_substr\n");
+    addItemTopList("MOVE LF@substr_ret_1_%d int@1\n", scope);
+    addItemTopList("LABEL _func_end_substr\n");
+    addItemTopList("POPFRAME\n");
+    addItemTopList("RETURN\n");
 }
 
 void bif_ord()
 {
-    printf("# func ord(s string,i int) (int, int)\n");
-    printf("LABEL _ord\n");
-    printf("PUSHFRAME\n");
-    printf("DEFVAR LF@ord_ret_0_%d\n", scope);
-    printf("MOVE LF@ord_ret_0_%d int@0\n", scope);
-    printf("DEFVAR LF@ord_ret_1_%d\n", scope);
-    printf("MOVE LF@ord_ret_1_%d int@0\n", scope);
-    printf("DEFVAR LF@in_string\n");
-    printf("MOVE LF@in_string bool@true\n");
-    printf("LT LF@in_string LF@arg_1 int@0\n");
-    printf("JUMPIFEQ _func_error_ord LF@in_string bool@true\n");
-    printf("DEFVAR LF@max_int_value\n");
-    printf("STRLEN LF@max_int_value LF@arg_0\n");
-    printf("SUB LF@max_int_value LF@max_int_value int@1\n");
-    printf("GT LF@in_string LF@arg_1 LF@max_int_value\n");
-    printf("JUMPIFEQ _func_error_ord LF@in_string bool@true\n" );
-    printf("STRI2INT LF@ord_ret_0_%d LF@arg_0 LF@arg_1\n", scope );
-    printf("JUMP _func_end_ord\n");
-    printf("LABEL _func_error_ord\n");
-    printf("MOVE LF@ord_ret_1_%d int@1\n", scope);
-    printf("LABEL _func_end_ord\n");
-    printf("POPFRAME\n");
-    printf("RETURN\n");
+    addItemTopList("# func ord(s string,i int) (int, int)\n");
+    addItemTopList("LABEL _ord\n");
+    addItemTopList("PUSHFRAME\n");
+    addItemTopList("DEFVAR LF@ord_ret_0_%d\n", scope);
+    addItemTopList("MOVE LF@ord_ret_0_%d int@0\n", scope);
+    addItemTopList("DEFVAR LF@ord_ret_1_%d\n", scope);
+    addItemTopList("MOVE LF@ord_ret_1_%d int@0\n", scope);
+    addItemTopList("DEFVAR LF@in_string\n");
+    addItemTopList("MOVE LF@in_string bool@true\n");
+    addItemTopList("LT LF@in_string LF@arg_1 int@0\n");
+    addItemTopList("JUMPIFEQ _func_error_ord LF@in_string bool@true\n");
+    addItemTopList("DEFVAR LF@max_int_value\n");
+    addItemTopList("STRLEN LF@max_int_value LF@arg_0\n");
+    addItemTopList("SUB LF@max_int_value LF@max_int_value int@1\n");
+    addItemTopList("GT LF@in_string LF@arg_1 LF@max_int_value\n");
+    addItemTopList("JUMPIFEQ _func_error_ord LF@in_string bool@true\n" );
+    addItemTopList("STRI2INT LF@ord_ret_0_%d LF@arg_0 LF@arg_1\n", scope );
+    addItemTopList("JUMP _func_end_ord\n");
+    addItemTopList("LABEL _func_error_ord\n");
+    addItemTopList("MOVE LF@ord_ret_1_%d int@1\n", scope);
+    addItemTopList("LABEL _func_end_ord\n");
+    addItemTopList("POPFRAME\n");
+    addItemTopList("RETURN\n");
 
 }
 
 void bif_chr()
 {
-    printf("# func chr(i int) (string, int)\n");
-    printf("LABEL _chr\n");
-    printf("PUSHFRAME\n");
-    printf("DEFVAR LF@chr_ret_0_%d\n", scope);
-    printf("MOVE LF@chr_ret_0_%d string@\n", scope);
-    printf("DEFVAR LF@chr_ret_1_%d\n", scope);
-    printf("MOVE LF@chr_ret_1_%d int@0\n", scope);
-    printf("DEFVAR LF@in_string\n");
-    printf("MOVE LF@in_string bool@true\n");
-    printf("LT LF@in_string LF@arg_0 int@0\n");
-    printf("JUMPIFEQ _func_error_chr LF@in_string bool@true\n");
-    printf("GT LF@in_string LF@arg_0 int@255\n");
-    printf("JUMPIFEQ _func_error_chr LF@in_string bool@true\n");
-    printf("INT2CHAR LF@chr_ret_0_%d LF@arg_0\n", scope);
-    printf("JUMP _func_end_chr\n");
-    printf("LABEL _func_error_chr\n");
-    printf("MOVE LF@chr_ret_1_%d int@1\n", scope);
-    printf("LABEL _func_end_chr\n");
-    printf("POPFRAME\n");
-    printf("RETURN\n");
+    addItemTopList("# func chr(i int) (string, int)\n");
+    addItemTopList("LABEL _chr\n");
+    addItemTopList("PUSHFRAME\n");
+    addItemTopList("DEFVAR LF@chr_ret_0_%d\n", scope);
+    addItemTopList("MOVE LF@chr_ret_0_%d string@\n", scope);
+    addItemTopList("DEFVAR LF@chr_ret_1_%d\n", scope);
+    addItemTopList("MOVE LF@chr_ret_1_%d int@0\n", scope);
+    addItemTopList("DEFVAR LF@in_string\n");
+    addItemTopList("MOVE LF@in_string bool@true\n");
+    addItemTopList("LT LF@in_string LF@arg_0 int@0\n");
+    addItemTopList("JUMPIFEQ _func_error_chr LF@in_string bool@true\n");
+    addItemTopList("GT LF@in_string LF@arg_0 int@255\n");
+    addItemTopList("JUMPIFEQ _func_error_chr LF@in_string bool@true\n");
+    addItemTopList("INT2CHAR LF@chr_ret_0_%d LF@arg_0\n", scope);
+    addItemTopList("JUMP _func_end_chr\n");
+    addItemTopList("LABEL _func_error_chr\n");
+    addItemTopList("MOVE LF@chr_ret_1_%d int@1\n", scope);
+    addItemTopList("LABEL _func_end_chr\n");
+    addItemTopList("POPFRAME\n");
+    addItemTopList("RETURN\n");
 }
 
 ///build-in functions for data type conversion
 
 void bif_int2float()
 {
-    printf("# func int2float(i int) (float64 int)\n");
-    printf("LABEL _int2float\n");
-    printf("PUSHFRAME\n");
-    printf("DEFVAR LF@int2float_ret_0_%d\n", scope);
-    printf("MOVE LF@int2float_ret_0_%d float@0x1.2666666666666p+0\n",scope);
-    printf("INT2FLOAT LF@int2float_ret_0_%d LF@arg_0\n",scope);
-    printf("POPFRAME\n");
-    printf("RETURN\n");
+    addItemTopList("# func int2float(i int) (float64 int)\n");
+    addItemTopList("LABEL _int2float\n");
+    addItemTopList("PUSHFRAME\n");
+    addItemTopList("DEFVAR LF@int2float_ret_0_%d\n", scope);
+    addItemTopList("MOVE LF@int2float_ret_0_%d float@0x1.2666666666666p+0\n",scope);
+    addItemTopList("INT2FLOAT LF@int2float_ret_0_%d LF@arg_0\n",scope);
+    addItemTopList("POPFRAME\n");
+    addItemTopList("RETURN\n");
 }
 
 void bif_float2int()
 {
-    printf("# func float2int(f float64) (int int)\n");
-    printf("LABEL _float2int\n");
-    printf("PUSHFRAME\n");
-    printf("DEFVAR LF@float2int_ret_0_%d\n", scope);
-    printf("MOVE LF@float2int_ret_0_%d int@0\n",scope);
-    printf("FLOAT2INT LF@float2int_ret_0_%d LF@arg_0\n",scope);
-    printf("POPFRAME\n");
-    printf("RETURN\n");
+    addItemTopList("# func float2int(f float64) (int int)\n");
+    addItemTopList("LABEL _float2int\n");
+    addItemTopList("PUSHFRAME\n");
+    addItemTopList("DEFVAR LF@float2int_ret_0_%d\n", scope);
+    addItemTopList("MOVE LF@float2int_ret_0_%d int@0\n",scope);
+    addItemTopList("FLOAT2INT LF@float2int_ret_0_%d LF@arg_0\n",scope);
+    addItemTopList("POPFRAME\n");
+    addItemTopList("RETURN\n");
 }
 
 ///built-in function + parameters for value output
-
-/*void bif_print_input(SyntaxNodes* my_statement)
-{
-    //@TODO CO TO SAKRA JE !!!
-    int i=0;
-    SyntaxNodes* current_statement = my_statement->first;
-
-    //have to create before args pass(for non args func too)
-    printf("CREATEFRAME\n");
-
-        printf("# CREATE VARS FOR PRINT\n");
-
-        while(current_statement->next != NULL)
-        {
-
-            printf("DEFVAR TF@arg_%d\n",i);
-            printf("MOVE TF@arg_%d %s@%s\n",i, get_var_type(current_statement->node->token->type),
-            current_statement->node->token->value);
-
-            current_statement = current_statement->next;
-
-        }
-
-        printf("# ALL VARS FOR PRINT HAS BEEN CREATED\n");
-      
-}*/
 
 int hex_to_dec(char hex[]) 
 {    
@@ -467,10 +588,10 @@ void bif_print(SyntaxNodes* my_statement)
             int whichScope = -1;
             switch (current_statement->node->type) {
                 case Node_NumberIntExpression:
-                    printf("WRITE int@%s\n", current_statement->node->right->token->value);
+                    addItemTopList("WRITE int@%s\n", current_statement->node->right->token->value);
                     break;
                 case Node_NumberDoubleExpression:
-                    printf("WRITE float@%s\n", current_statement->node->right->token->value);
+                    addItemTopList("WRITE float@%s\n", current_statement->node->right->token->value);
                     break;
                 case Node_StringExpression:     
                     for(int i=1; i< strlen(current_statement->node->right->token->value)-1;i++)
@@ -479,7 +600,7 @@ void bif_print(SyntaxNodes* my_statement)
                         ord = current_statement->node->right->token->value[i];
                         if((ord>=0 && ord<=32)||(ord == 35))
                         {
-                            printf("WRITE string@\\%d%d\n",0,ord);
+                            addItemTopList("WRITE string@\\%d%d\n",0,ord);
                         }
                             
                         else if(ord == 92)
@@ -489,18 +610,18 @@ void bif_print(SyntaxNodes* my_statement)
                             {
                                 
                                 case 'n': 
-                                        printf("WRITE string@\\010\n");
+                                        addItemTopList("WRITE string@\\010\n");
                                         break;
 
                                 case 't':
-                                        printf("WRITE string@\\009\n");
+                                        addItemTopList("WRITE string@\\009\n");
                                         break;
 
                                 case '"':
-                                        printf("WRITE string@\\034\n");
+                                        addItemTopList("WRITE string@\\034\n");
                                         break;
                                 case '\\':
-                                        printf("WRITE string@\\092\n");
+                                        addItemTopList("WRITE string@\\092\n");
                                         break;
                                 //hex
                                 case 'x':
@@ -508,7 +629,7 @@ void bif_print(SyntaxNodes* my_statement)
                                         hex_arr[1] = current_statement->node->right->token->value[i+3];
                                         hex_arr[2] = '\0';
                                         ord = hex_to_dec(&hex_arr);
-                                        printf("WRITE string@%c\n",ord);
+                                        addItemTopList("WRITE string@%c\n",ord);
                                         i+=2;
                                             
                             }
@@ -516,49 +637,49 @@ void bif_print(SyntaxNodes* my_statement)
                         }
                         else
                         {
-                            printf("WRITE string@%c\n",current_statement->node->right->token->value[i]);
+                            addItemTopList("WRITE string@%c\n",current_statement->node->right->token->value[i]);
                         }
                            
                     }
 
                     /*if(strcmp(current_statement->node->right->token->value, "\n") == 0)
-                        printf("WRITE string@\010\n");
+                        addItemTopList("WRITE string@\010\n");
                     else
-                        printf("WRITE string@%s\n", current_statement->node->right->token->value);
+                        addItemTopList("WRITE string@%s\n", current_statement->node->right->token->value);
                         */
                     break;
                 case Node_IdentifierExpression:
                     whichScope = getLastScopeOfIdInList(currentScopeVars, current_statement->node->right->token->value);
-                    printf("WRITE LF@%s_%d\n",current_statement->node->right->token->value , whichScope);
+                    addItemTopList("WRITE LF@%s_%d\n",current_statement->node->right->token->value , whichScope);
                     break;
                 case Node_UnaryExpression:
 
-                    printf("DEFVAR LF@%s\n", "tmpWriteExprUnary");
+                    addItemTopList("DEFVAR LF@%s\n", "tmpWriteExprUnary");
                     char temp1[15];
                     sprintf(temp1, "__WLEFT__%d", c);
 
-                    printf("DEFVAR LF@%s\n", temp1);
+                    addItemTopList("DEFVAR LF@%s\n", temp1);
                     char temp2[15];
                     sprintf(temp2, "__WRIGHT__%d", c++);
-                    printf("DEFVAR LF@%s\n", temp2);
+                    addItemTopList("DEFVAR LF@%s\n", temp2);
 
-                    char *type = "int"; //@TODO
+                    int type = getTypeOfExpr(current_statement->node); //@TODO
                     struct genExpr unary = GenParseExpr(current_statement->node, "tmpWriteExprUnary", temp1, temp2,
-                                                        type);
-                    printf("WRITE %s@%s%s\n", unary.constant ? unary.type : "LF" , unary.sign ? "-" : "", unary.value);
+                                                        get_var_type(type));
+                    addItemTopList("WRITE %s@%s%s\n", unary.constant ? unary.type : "LF" , unary.sign ? "-" : "", unary.value);
                     break;
                 case Node_BinaryExpression:
-                    printf("DEFVAR LF@%s\n", "tmpWriteExprBin");
+                    addItemTopList("DEFVAR LF@%s\n", "tmpWriteExprBin");
                     char temp3[15];
                     sprintf(temp3, "__WLEFT__%d", c);
 
-                    printf("DEFVAR LF@%s\n", temp3);
+                    addItemTopList("DEFVAR LF@%s\n", temp3);
                     char temp4[15];
                     sprintf(temp4, "__WRIGHT__%d", c++);
-                    printf("DEFVAR LF@%s\n", temp4);
-                    char *typeBin = "int"; //@TODO
-                    struct genExpr binary = GenParseExpr(current_statement->node, "tmpWriteExprBin", temp3, temp4, typeBin);
-                    printf("WRITE %s@%s%s\n", binary.constant ? binary.type : "LF", binary.sign ? "-" : "", binary.value);
+                    addItemTopList("DEFVAR LF@%s\n", temp4);
+                    int typeBin = getTypeOfExpr(current_statement->node); //@TODO
+                    struct genExpr binary = GenParseExpr(current_statement->node, "tmpWriteExprBin", temp3, temp4, get_var_type(typeBin));
+                    addItemTopList("WRITE %s@%s%s\n", binary.constant ? binary.type : "LF", binary.sign ? "-" : "", binary.value);
                     break;
             }
         }
@@ -566,8 +687,8 @@ void bif_print(SyntaxNodes* my_statement)
 
     }
 /*
-    printf("POPFRAME\n");
-    printf("RETURN\n");
+    addItemTopList("POPFRAME\n");
+    addItemTopList("RETURN\n");
     */
     
 }
@@ -576,62 +697,62 @@ void bif_print(SyntaxNodes* my_statement)
 
 void bif_inputs()
 {
-    printf("# func inputs() (string,int)\n");
-    printf("LABEL _inputs\n");
-    printf("PUSHFRAME\n");
-    printf("DEFVAR LF@inputs_ret_0_%d\n", scope);
-    printf("DEFVAR LF@inputs_ret_1_%d\n", scope);
-    printf("MOVE LF@inputs_ret_1_%d int@0\n", scope);
-    printf("DEFVAR LF@input_type\n");
-    printf("READ LF@inputs_ret_0_%d string\n", scope);
-    printf("TYPE LF@input_type LF@inputs_ret__%d\n", scope);
-    printf("JUMPIFNEQ _func_err_inputs LF@input_type string@string\n");
-    printf("JUMP _func_end_inputs\n");
-    printf("LABEL _func_err_inputs\n");
-    printf("MOVE LF@inputs_ret_1_%d int@1\n", scope);
-    printf("LABEL _func_end_inputs\n");
-    printf("POPFRAME\n");
-    printf("RETURN\n");
+    addItemTopList("# func inputs() (string,int)\n");
+    addItemTopList("LABEL _inputs\n");
+    addItemTopList("PUSHFRAME\n");
+    addItemTopList("DEFVAR LF@inputs_ret_0_%d\n", scope);
+    addItemTopList("DEFVAR LF@inputs_ret_1_%d\n", scope);
+    addItemTopList("MOVE LF@inputs_ret_1_%d int@0\n", scope);
+    addItemTopList("DEFVAR LF@input_type\n");
+    addItemTopList("READ LF@inputs_ret_0_%d string\n", scope);
+    addItemTopList("TYPE LF@input_type LF@inputs_ret_0_%d\n", scope);
+    addItemTopList("JUMPIFNEQ _func_err_inputs LF@input_type string@string\n");
+    addItemTopList("JUMP _func_end_inputs\n");
+    addItemTopList("LABEL _func_err_inputs\n");
+    addItemTopList("MOVE LF@inputs_ret_1_%d int@1\n", scope);
+    addItemTopList("LABEL _func_end_inputs\n");
+    addItemTopList("POPFRAME\n");
+    addItemTopList("RETURN\n");
 }
 
 void bif_inputi()
 {
-    printf("# func inputi() (int,int)\n");
-    printf("LABEL _inputi\n");
-    printf("PUSHFRAME\n");
-    printf("DEFVAR LF@inputi_ret_0_%d\n", scope);
-    printf("DEFVAR LF@inputi_ret_1_%d\n", scope);
-    printf("MOVE LF@inputi_ret_1_%d int@0\n", scope);
-    printf("DEFVAR LF@input_type\n");
-    printf("READ LF@inputi_ret_0_%d int\n", scope);
-    printf("TYPE LF@input_type LF@inputi_ret_0_%d\n", scope);
-    printf("JUMPIFNEQ _func_err_inputi LF@input_type string@int\n");
-    printf("JUMP _func_end_inputi\n");
-    printf("LABEL _func_err_inputi\n");
-    printf("MOVE LF@inputi_ret_1_%d int@1\n", scope);
-    printf("LABEL _func_end_inputi\n");
-    printf("POPFRAME\n");
-    printf("RETURN\n");
+    addItemTopList("# func inputi() (int,int)\n");
+    addItemTopList("LABEL _inputi\n");
+    addItemTopList("PUSHFRAME\n");
+    addItemTopList("DEFVAR LF@inputi_ret_0_%d\n", scope);
+    addItemTopList("DEFVAR LF@inputi_ret_1_%d\n", scope);
+    addItemTopList("MOVE LF@inputi_ret_1_%d int@0\n", scope);
+    addItemTopList("DEFVAR LF@input_type\n");
+    addItemTopList("READ LF@inputi_ret_0_%d int\n", scope);
+    addItemTopList("TYPE LF@input_type LF@inputi_ret_0_%d\n", scope);
+    addItemTopList("JUMPIFNEQ _func_err_inputi LF@input_type string@int\n");
+    addItemTopList("JUMP _func_end_inputi\n");
+    addItemTopList("LABEL _func_err_inputi\n");
+    addItemTopList("MOVE LF@inputi_ret_1_%d int@1\n", scope);
+    addItemTopList("LABEL _func_end_inputi\n");
+    addItemTopList("POPFRAME\n");
+    addItemTopList("RETURN\n");
 }
 
 void bif_inputf()
 {
-    printf("# func inputf() (float64,int)\n");
-    printf("LABEL _inputf\n");
-    printf("PUSHFRAME\n");
-    printf("DEFVAR LF@inputf_ret_0_%d\n", scope);
-    printf("DEFVAR LF@inputf_ret_1_%d\n", scope);
-    printf("MOVE LF@inputf_ret_1_%d int@0\n", scope);
-    printf("DEFVAR LF@input_type\n");
-    printf("READ LF@inputf_ret_0_%d float\n", scope);
-    printf("TYPE LF@input_type LF@inputf_ret_0_%d\n", scope);
-    printf("JUMPIFNEQ _func_err_inputf LF@input_type string@float\n");
-    printf("JUMP _func_end_inputf\n");
-    printf("LABEL _func_err_inputf\n");
-    printf("MOVE LF@inputf_ret_1_%d int@1\n", scope);
-    printf("LABEL _func_end_inputf\n");
-    printf("POPFRAME\n");
-    printf("RETURN\n");
+    addItemTopList("# func inputf() (float64,int)\n");
+    addItemTopList("LABEL _inputf\n");
+    addItemTopList("PUSHFRAME\n");
+    addItemTopList("DEFVAR LF@inputf_ret_0_%d\n", scope);
+    addItemTopList("DEFVAR LF@inputf_ret_1_%d\n", scope);
+    addItemTopList("MOVE LF@inputf_ret_1_%d int@0\n", scope);
+    addItemTopList("DEFVAR LF@input_type\n");
+    addItemTopList("READ LF@inputf_ret_0_%d float\n", scope);
+    addItemTopList("TYPE LF@input_type LF@inputf_ret_0_%d\n", scope);
+    addItemTopList("JUMPIFNEQ _func_err_inputf LF@input_type string@float\n");
+    addItemTopList("JUMP _func_end_inputf\n");
+    addItemTopList("LABEL _func_err_inputf\n");
+    addItemTopList("MOVE LF@inputf_ret_1_%d int@1\n", scope);
+    addItemTopList("LABEL _func_end_inputf\n");
+    addItemTopList("POPFRAME\n");
+    addItemTopList("RETURN\n");
 }
 
 ///---------GENERATE PREFIX & SUFFIX FOR ALL FUNCTIONS-----------------
@@ -640,19 +761,19 @@ void program_start()
 {
     init_INT_Stack(&for_stack);
     init_INT_Stack(&if_else_stack);
-    printf("# START OF GEN_CODE\n");
-    printf(".IFJcode20\n");
-    printf("JUMP _main\n");
+    addItemTopList("# START OF GEN_CODE\n");
+    addItemTopList(".IFJcode20\n");
+    addItemTopList("JUMP _main\n");
 
 }
 
 void main_prefix()
 {
 
-    printf("# MAIN FUNCTION\n");
-    printf("LABEL _main\n");
-    printf("CREATEFRAME\n");
-    printf("PUSHFRAME\n");
+    addItemTopList("# MAIN FUNCTION\n");
+    addItemTopList("LABEL _main\n");
+    addItemTopList("CREATEFRAME\n");
+    addItemTopList("PUSHFRAME\n");
     createNewIdListScope(&currentScopeVars);
 
 }
@@ -660,19 +781,19 @@ void main_prefix()
 void main_suffix()
 {
 
-    printf("# END OF MAIN FUNCTION\n");
-    printf("POPFRAME\n");
-    printf("CLEARS\n");
-    printf("EXIT int@0\n");
+    addItemTopList("# END OF MAIN FUNCTION\n");
+    addItemTopList("POPFRAME\n");
+    addItemTopList("CLEARS\n");
+    addItemTopList("EXIT int@0\n");
     deleteIdListScope(&currentScopeVars);
 
 }
 
-void program_exit(tExpReturnType* ret_err) //TODO USING
+void program_exit(tExpReturnType* ret_err)
 {
     //deleteIdList(&currentScopeVars);
-    //printf("EXIT int@%ld\n",ret_err.errCode);
-    printf("# END OF GEN_CODE\n");
+    //addItemTopList("EXIT int@%ld\n",ret_err.errCode);
+    addItemTopList("# END OF GEN_CODE\n");
 
 }
 
@@ -680,16 +801,16 @@ void general_func_call(char *func_name)
 {
     //only after func_args_TF_declar
     //(only for func with argc>0)
-    printf("CALL _%s\n",func_name);
+    addItemTopList("CALL _%s\n",func_name);
 
 }
 
 void general_func_prefix(char *func_name, tFuncItem *func)
 {
 
-    printf("# START OF THE FUNCTION %s\n",func_name);
-    printf("LABEL _%s\n",func_name);
-    printf("PUSHFRAME\n");
+    addItemTopList("# START OF THE FUNCTION %s\n",func_name);
+    addItemTopList("LABEL _%s\n",func_name);
+    addItemTopList("PUSHFRAME\n");
     createNewIdListScope(&currentScopeVars);
     for(int i = 0; i < func->params_count; ++i){
         addItemToIdList(&currentScopeVars, func->params[i]);
@@ -701,9 +822,9 @@ void general_func_prefix(char *func_name, tFuncItem *func)
 void general_func_suffix(char *func_name)
 {
 
-    printf("LABEL _%s_ret\n", func_name);
-    printf("POPFRAME\n");
-    printf("RETURN\n");
+    addItemTopList("LABEL _%s_ret\n", func_name);
+    addItemTopList("POPFRAME\n");
+    addItemTopList("RETURN\n");
     deleteIdListScope(&currentScopeVars);
     deleteIdListScope(&currentScopeVars);
 }
@@ -720,13 +841,13 @@ void general_terminal_val(tToken token)
         case tokenType_INT:
 
             sprintf(help_str,"%s",token.value);
-			printf("int@%s\n",help_str);
+			addItemTopList("int@%s\n",help_str);
 			break;
 
         case tokenType_DOUBLE:
 
             sprintf(help_str,"%s",token.value);
-			printf("float@%s\n",help_str);
+			addItemTopList("float@%s\n",help_str);
 			break;
 
         case tokenType_STRING:
@@ -736,13 +857,13 @@ void general_terminal_val(tToken token)
 				help_str[i] = c;
 			}
 
-            printf("string@%s\n",help_str);
+            addItemTopList("string@%s\n",help_str);
             break;
 
         case tokenType_ID:
 
             sprintf(help_str,"%s", token.value);
-			printf("LF@%s\n",help_str);
+			addItemTopList("LF@%s\n",help_str);
 			break;
         
         default:
@@ -759,19 +880,19 @@ void declared_vars_default_init(TItem type)
     {
 
         case TInt:
-                printf("int@0\n");
+                addItemTopList("int@0\n");
                 break;
 
         case TDouble: 
-                printf("float@0.0\n");
+                addItemTopList("float@0x0p+0\n");
                 break;
 
         case TString:
-                printf("string@\n");
+                addItemTopList("string@\n");
                 break;
 
         case TBool:
-                printf("bool@false\n");
+                addItemTopList("bool@false\n");
                 break;
 
         default:
@@ -812,73 +933,77 @@ void no_built_in_func_args_TF_declar(char *func_name, tFuncItem *func, SyntaxNod
 {
     SyntaxNodes * currentParam = paramValues;
     //have to create before args pass(for non args func too)
-    printf("CREATEFRAME\n");
+    addItemTopList("CREATEFRAME\n");
 
-        printf("# CREATE VARS FOR %s's ARGS\n",func_name);
+        addItemTopList("# CREATE VARS FOR %s's ARGS\n",func_name);
         for(int i = 0; i < func->params_count ; i++)
         {
             char paramId[64];
             sprintf(paramId, "%s__P__%d",func_name, i);
 
-            printf("DEFVAR LF@%s\n",paramId);
+            addItemTopList("DEFVAR LF@%s\n",paramId);
             char temp1[64];
             sprintf(temp1, "%s__LEFT__%d",func_name, i);
 
-            printf("DEFVAR LF@%s\n", temp1);
+            addItemTopList("DEFVAR LF@%s\n", temp1);
             char temp2[64];
             sprintf(temp2, "%s__RIGHT__%d",func_name, i);
-            printf("DEFVAR LF@%s\n", temp2);
+            addItemTopList("DEFVAR LF@%s\n", temp2);
             struct genExpr param = GenParseExpr(currentParam->node, paramId, temp1, temp2, get_var_type(func->paramsTypes[i]));
-            printf("DEFVAR TF@%s\n",func->params[i]);
-            printf("MOVE TF@%s %s@%s%s\n",func->params[i], param.constant? param.type : "LF", param.sign ? "-":"", param.value );
+            addItemTopList("DEFVAR TF@%s\n",func->params[i]);
+            addItemTopList("MOVE TF@%s %s@%s%s\n",func->params[i], param.constant? param.type : "LF", param.sign ? "-":"", param.value );
             //declared_vars_default_init(func->paramsTypes[i]);
             currentParam = currentParam->next;
 
         }
 
-        printf("# ALL VARS FOR ARGS HAS BEEN CREATED\n");
+        addItemTopList("# ALL VARS FOR ARGS HAS BEEN CREATED\n");
       
 }
 
-void func_args_TF_declar(char *func_name, tFuncItem *func, SyntaxNodes* paramValues)
+void func_args_TF_declar(char *func_name, tHashItem *funcItem, SyntaxNodes* paramValues)
 {
     static int called = 0;
+    tFuncItem *func = funcItem->func;
     SyntaxNodes * currentParam = paramValues;
     //have to create before args pass(for non args func too)
-    printf("CREATEFRAME\n");
+    addItemTopList("CREATEFRAME\n");
 
-        printf("# CREATE VARS FOR %s's ARGS\n",func_name);
+        addItemTopList("# CREATE VARS FOR %s's ARGS\n",func_name);
         for(int i = 0; i < func->params_count ; i++)
         {
             char paramId[64];
             sprintf(paramId, "%s__P__%d_%d",func_name, i,called);
 
-            printf("DEFVAR LF@%s\n",paramId);
+            addItemTopList("DEFVAR LF@%s\n",paramId);
             char temp1[64];
             sprintf(temp1, "%s__LEFT__%d_%d",func_name, i,called);
 
-            printf("DEFVAR LF@%s\n", temp1);
+            addItemTopList("DEFVAR LF@%s\n", temp1);
             char temp2[64];
             sprintf(temp2, "%s__RIGHT__%d_%d",func_name, i,called++);
-            printf("DEFVAR LF@%s\n", temp2);
+            addItemTopList("DEFVAR LF@%s\n", temp2);
             struct genExpr param = GenParseExpr(currentParam->node, paramId, temp1, temp2, get_var_type(func->paramsTypes[i]));
             if(strcmp(func->params[i], "arg_0") == 0 || strcmp(func->params[i], "arg_1") == 0 || strcmp(func->params[i], "arg_2") == 0){
-                printf("DEFVAR TF@%s\n",func->params[i]);
+                addItemTopList("DEFVAR TF@%s\n",func->params[i]);
             } else{
-                printf("DEFVAR TF@%s_%d\n",func->params[i],0);
+                addItemTopListCallFunction(func_name,funcItem->declared,true,"DEFVAR TF@%s_%d\n",func->params[i],0);
             }
             if(strcmp(param.type, "string") == 0){
                 if(strcmp(func->params[i], "arg_0") == 0 || strcmp(func->params[i], "arg_1") == 0 || strcmp(func->params[i], "arg_2") == 0){
-                    printf("MOVE TF@%s %s@%s",func->params[i], param.constant? param.type : "LF", param.sign ? "-":"");
+                    addItemTopList("MOVE TF@%s %s@%s",func->params[i], param.constant? param.type : "LF", param.sign ? "-":"");
                 }else
-                    printf("MOVE TF@%s_%d %s@%s",func->params[i], 0, param.constant? param.type : "LF", param.sign ? "-":"");
-                parse_str(param.value);
-                printf("\n");
+                    addItemTopListCallFunction(func_name,funcItem->declared,false,"MOVE TF@%s_%d %s@%s",func->params[i], 0, param.constant? param.type : "LF", param.sign ? "-":"");
+                if(!param.constant || strcmp(param.type, "LF") == 0)
+                    addItemTopList("%s", param.value);
+                else
+                    parse_str(param.value);
+                addItemTopList("\n");
             } else{
             if(strcmp(func->params[i], "arg_0") == 0 || strcmp(func->params[i], "arg_1") == 0 || strcmp(func->params[i], "arg_2") == 0){
-                printf("MOVE TF@%s %s@%s%s\n",func->params[i], param.constant? param.type : "LF", param.sign ? "-":"", param.value );
+                addItemTopList("MOVE TF@%s %s@%s%s\n",func->params[i], param.constant? param.type : "LF", param.sign ? "-":"", param.value );
             }else
-                printf("MOVE TF@%s_%d %s@%s%s\n",func->params[i], 0, param.constant? param.type : "LF", param.sign ? "-":"", param.value );
+                addItemTopListCallFunction(func_name,funcItem->declared,false,"MOVE TF@%s_%d %s@%s%s\n",func->params[i], 0, param.constant? param.type : "LF", param.sign ? "-":"", param.value );
             }
             //declared_vars_default_init(func->paramsTypes[i]);
             currentParam = currentParam->next;
@@ -886,14 +1011,14 @@ void func_args_TF_declar(char *func_name, tFuncItem *func, SyntaxNodes* paramVal
                 free(param.value);
         }
 
-        printf("# ALL VARS FOR ARGS HAS BEEN CREATED\n");
+        addItemTopList("# ALL VARS FOR ARGS HAS BEEN CREATED\n");
       
 }
 
 void func_ret_to_LF(char *func_name, tFuncItem *func, SyntaxNodes* dest)
 {
     SyntaxNodes* currentDest = dest;
-    //printf(">>>>>>>>>>>>>%s\n",currentDest->node->name);
+    //addItemTopList(">>>>>>>>>>>>>%s\n",currentDest->node->name);
     for(int i = 0; i<func->return_count; i++)
     {
         if(strcmp(currentDest->node->left->token->value, "_") != 0){
@@ -907,7 +1032,7 @@ void func_ret_to_LF(char *func_name, tFuncItem *func, SyntaxNodes* dest)
             char* retId = malloc(sizeof(char)*strlen(func_name) + 5 +countOfI+1);
             sprintf(retId, "%s_ret_%d", func_name, i);
             int whichScopeRet = getLastScopeOfIdInList(currentScopeVars, retId);
-            printf("MOVE LF@%s_%d TF@%s_%d\n",currentDest->node->left->token->value,whichScope, retId);
+            addItemTopList("MOVE LF@%s_%d TF@%s_%d\n",currentDest->node->left->token->value,whichScope, retId);
             free(retId);
         }
         currentDest = currentDest->next;
@@ -920,14 +1045,14 @@ void func_ret_to_LF(char *func_name, tFuncItem *func, SyntaxNodes* dest)
 void var_assign_to_func_value(char *func_name, tHashItem *item)
 {
 
-    printf("MOVE LF@%s TF@%s_ret_0\n",item->id, func_name);
+    addItemTopList("MOVE LF@%s TF@%s_ret_0\n",item->id, func_name);
 
 }
 
 void func_ret_declar(char *func_name, tFuncItem *func)
 {
 
-    printf("# DECLA VALUES FOR %s's RETURNS\n",func_name);
+    addItemTopList("# DECLA VALUES FOR %s's RETURNS\n",func_name);
     for(int i = 0; i<func->return_count; i++)
     {
         int countOfI = 1;
@@ -940,14 +1065,14 @@ void func_ret_declar(char *func_name, tFuncItem *func)
         sprintf(retId, "%s_ret_%d",func_name, i);
         addItemToIdList(&currentScopeVars, retId);
         int whichScope = getLastScopeOfIdInList(currentScopeVars, retId);
-        printf("DEFVAR LF@%s_%d\n",retId, whichScope);
-        printf("MOVE LF@%s_%d ",retId,scope);
+        addItemTopList("DEFVAR LF@%s_%d\n",retId, whichScope);
+        addItemTopList("MOVE LF@%s_%d ",retId,scope);
         free(retId);
         declared_vars_default_init(func->return_vals[i]);
 
     }
     createNewIdListScope(&currentScopeVars);
-    printf("# ALL VARS FOR RETURNS HAS BEEN DECLARED\n");
+    addItemTopList("# ALL VARS FOR RETURNS HAS BEEN DECLARED\n");
     
 }
 
@@ -957,21 +1082,21 @@ void func_ret_get_value(char *func_name, tFuncItem *func, SyntaxNodes* retValues
     SyntaxNodes * currentRet = retValues;
     //only after func_ret_declar
 
-        printf("# MOVE VALUES FOR %s's RETURNS\n",func_name);
+        addItemTopList("# MOVE VALUES FOR %s's RETURNS\n",func_name);
         for(int i = 0; i<func->return_count; i++)
         {
             
             char retId[64];
             sprintf(retId, "%s__P__%d",func_name, i);
 
-            printf("DEFVAR LF@%s\n",retId);
+            addItemTopList("DEFVAR LF@%s\n",retId);
             char temp1[64];
             sprintf(temp1, "%s__LEFT__%d",func_name, i);
 
-            printf("DEFVAR LF@%s\n", temp1);
+            addItemTopList("DEFVAR LF@%s\n", temp1);
             char temp2[64];
             sprintf(temp2, "%s__RIGHT__%d",func_name, i);
-            printf("DEFVAR LF@%s\n", temp2);
+            addItemTopList("DEFVAR LF@%s\n", temp2);
             struct genExpr param = GenParseExpr(currentRet->node, retId, temp1, temp2, get_var_type(func->return_vals[i]));
             int countOfI = 1;
             int tmpI = i;
@@ -983,23 +1108,26 @@ void func_ret_get_value(char *func_name, tFuncItem *func, SyntaxNodes* retValues
             sprintf(retValueId, "%s_ret_%d",func_name, i);
             int whichRetValueScope = getLastScopeOfIdInList(currentScopeVars, retValueId);
             if(strcmp(param.type, "string") == 0){
-                printf("MOVE LF@%s_%d %s@%s",retValueId,whichRetValueScope, param.constant? param.type : "LF", param.sign ? "-":"");
-                parse_str(param.value);
-                printf("\n");
+                addItemTopList("MOVE LF@%s_%d %s@%s",retValueId,whichRetValueScope, param.constant? param.type : "LF", param.sign ? "-":"");
+                if(!param.constant || strcmp(param.type, "LF") == 0)
+                    addItemTopList("%s", param.value);
+                else
+                    parse_str(param.value);
+                addItemTopList("\n");
             } else
-                printf("MOVE LF@%s_%d %s@%s%s\n",retValueId,whichRetValueScope, param.constant? param.type : "LF", param.sign ? "-":"", param.value );
-            //printf("MOVE LF@%s_ret_%d %s@%s%s\n",func_name,i, param.constant? param.type : "LF", param.sign ? "-":"", param.value );
+                addItemTopList("MOVE LF@%s_%d %s@%s%s\n",retValueId,whichRetValueScope, param.constant? param.type : "LF", param.sign ? "-":"", param.value );
+            //addItemTopList("MOVE LF@%s_ret_%d %s@%s%s\n",func_name,i, param.constant? param.type : "LF", param.sign ? "-":"", param.value );
             free(retValueId);
             currentRet = currentRet->next;
             if(param.alocated)
                 free(param.value);
         }
         for(int x = scope-1; x > 0; --x){
-            printf("POPFRAME\n");
+            addItemTopList("POPFRAME\n");
             all_vars_after_new_scope(x);
         }
-        printf("JUMP _%s_ret\n", func_name);
-        printf("# ALL VARS FOR RETURNS HAS BEEN INITTED\n");
+        addItemTopList("JUMP _%s_ret\n", func_name);
+        addItemTopList("# ALL VARS FOR RETURNS HAS BEEN INITTED\n");
     
 }
 
@@ -1014,7 +1142,7 @@ void stack_most_right(tSN_Stack *stack, SyntaxNode *root)
     {
 
         add_SN_StackItem(stack, tmp);
-       // printf("%s\n",tmp->name);
+       // addItemTopList("%s\n",tmp->name);
     }
         
 }
@@ -1026,10 +1154,10 @@ void vars_final_counter(SyntaxNode *root, tHashItem *item)
     init_SN_Stack(&stack);
     stack_most_right(&stack,root);
     
-    printf("DEFVAR LF@tmp\n");
-    printf("%s\n",stack.node[stack.top]->right->right->name);
-    printf("MOVE LF@tmp %s@%s\n",get_var_type(item->type),stack.node[stack.top]->right->right->token->value);
-   // printf("MOVE LF@\%tmp ",stack->node->right->token->value);
+    addItemTopList("DEFVAR LF@tmp\n");
+    addItemTopList("%s\n",stack.node[stack.top]->right->right->name);
+    addItemTopList("MOVE LF@tmp %s@%s\n",get_var_type(item->type),stack.node[stack.top]->right->right->token->value);
+   // addItemTopList("MOVE LF@\%tmp ",stack->node->right->token->value);
     while(!is_SN_Stack_Empty(&stack))
     {
 
@@ -1061,7 +1189,7 @@ struct genExpr GenParseExpr(SyntaxNode* root, char* assignTo, char* left, char* 
                 ++countScopeLen;
                 tmpscope /= 10;
             }
-            char *identifier = malloc(sizeof(char)*strlen(root->right->token->value)+1+countScopeLen+2); // TODO WTF ? PRECO 2
+            char *identifier = malloc(sizeof(char)*strlen(root->right->token->value)+1+countScopeLen+2);
             test.alocated = true;
             sprintf(identifier, "%s_%d", root->right->token->value, whichScope);
             test.value = identifier;
@@ -1069,16 +1197,16 @@ struct genExpr GenParseExpr(SyntaxNode* root, char* assignTo, char* left, char* 
             test.alocated = false;
             test.value = root->right->token->value;
         }
-        test.type = root->type == Node_IdentifierExpression ? "LF" : type;
+        test.type = root->type == Node_IdentifierExpression ? "LF" : root->type == Node_NumberIntExpression ? "int" : root->type == Node_NumberDoubleExpression ? "float": "string";
 
         if(strcmp(test.type, "float") == 0){
             double f = atof(test.value);
 
             size_t needed = snprintf(NULL, 0,"%a", f)+1;
-            //fprintf(stderr, ">>>>>>>>>>>>>>>>>>>> %ld", needed);
+            //faddItemTopList(stderr, ">>>>>>>>>>>>>>>>>>>> %ld", needed);
             test.value = malloc(needed);
 
-            sprintf(test.value, "%a", f); // @TODO DANGER!!!!!!
+            sprintf(test.value, "%a", f); // DANGER!!!!!!
             test.alocated = true;
             //test.value = newVal;
         }
@@ -1106,52 +1234,58 @@ struct genExpr GenParseExpr(SyntaxNode* root, char* assignTo, char* left, char* 
         switch (root->token->type) {
             case tokenType_PLUS:
                 if(strcmp(type, "string") == 0){
-                    printf("CONCAT LF@%s %s@%s", assignTo, leftTemp.constant ? leftTemp.type : "LF",
+                    addItemTopList("CONCAT LF@%s %s@%s", assignTo, leftTemp.constant ? leftTemp.type : "LF",
                            leftTemp.sign ? "-" : "");
-                    parse_str(leftTemp.value);
-                    printf(" %s@%s", rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "");
-                    parse_str(rightTemp.value);
-                    printf("\n");
+                    if(!leftTemp.constant || strcmp(leftTemp.type, "LF") == 0)
+                        addItemTopList("%s", leftTemp.value);
+                    else
+                        parse_str(leftTemp.value);
+                    addItemTopList(" %s@%s", rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "");
+                    if(!rightTemp.constant || strcmp(rightTemp.type, "LF") == 0)
+                        addItemTopList("%s", rightTemp.value);
+                    else
+                        parse_str(rightTemp.value);
+                    addItemTopList("\n");
                 }else {
-                    printf("ADD LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type : "LF",
+                    addItemTopList("ADD LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type : "LF",
                            leftTemp.sign ? "-" : "", leftTemp.value,
                            rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "", rightTemp.value);
                 }
                 break;
             case tokenType_MINUS:
-                printf("SUB LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type: "LF", leftTemp.sign ? "-" : "", leftTemp.value,
+                addItemTopList("SUB LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type: "LF", leftTemp.sign ? "-" : "", leftTemp.value,
                        rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "", rightTemp.value);
                 break;
             case tokenType_MUL:
-                printf("MUL LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type: "LF", leftTemp.sign ? "-" : "", leftTemp.value,
+                addItemTopList("MUL LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type: "LF", leftTemp.sign ? "-" : "", leftTemp.value,
                        rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "", rightTemp.value);
                 break;
             case tokenType_DIV:
-                //printf("\n"); // IF rightTemp.value != 0 then jump on LABEL
+                //addItemTopList("\n"); // IF rightTemp.value != 0 then jump on LABEL
                 if((strcmp(rightTemp.value,"0") == 0)||(strcmp(rightTemp.value,"0.0") == 0))
                 {
-                    printf("DPRINT %s", "divide by zero\n");
-                    printf("EXIT int@9\n");
+                    addItemTopList("DPRINT %s", "divide by zero\n");
+                    addItemTopList("EXIT int@9\n");
                 }
                 if (strcmp(type, "int") == 0) {
-                    printf("IDIV LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type: "LF", leftTemp.sign ? "-" : "", leftTemp.value,
+                    addItemTopList("IDIV LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type: "LF", leftTemp.sign ? "-" : "", leftTemp.value,
                            rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "", rightTemp.value);
                 } else if (strcmp(type, "float") == 0) {
-                    printf("DIV LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type: "LF", leftTemp.sign ? "-" : "", leftTemp.value,
+                    addItemTopList("DIV LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type: "LF", leftTemp.sign ? "-" : "", leftTemp.value,
                            rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "", rightTemp.value);
                 }
                 break;
         }
         if(changeSign){
             if (strcmp(type, "int") == 0) {
-                printf("MUL LF@%s %s@%s %s@%s\n", assignTo, "LF", assignTo, "int", "-1");
+                addItemTopList("MUL LF@%s %s@%s %s@%s\n", assignTo, "LF", assignTo, "int", "-1");
             }else if (strcmp(type, "float") == 0) {
-                printf("MUL LF@%s %s@%s %s@%s\n", assignTo, "LF", assignTo, "float", "-1.0");
+                addItemTopList("MUL LF@%s %s@%s %s@%s\n", assignTo, "LF", assignTo, "float", "-1.0");
             }
             changeSign = false;
         }
         if(leftTemp.alocated){
-            free(leftTemp.value); //@TODO VALGRIND CHECK
+            free(leftTemp.value);
             leftTemp.alocated = false;
         }
         if(rightTemp.alocated){
@@ -1175,133 +1309,180 @@ struct genExpr GenParseExpr(SyntaxNode* root, char* assignTo, char* left, char* 
         switch (root->token->type) {
             case tokenType_EQ:
                 if(strcmp(type, "string") == 0){
-                    printf("EQ LF@%s %s@%s", assignTo, leftTemp.constant ? leftTemp.type : "LF",
+                    addItemTopList("EQ LF@%s %s@%s", assignTo, leftTemp.constant ? leftTemp.type : "LF",
                            leftTemp.sign ? "-" : "");
-                    parse_str(leftTemp.value);
-                    printf(" %s@%s", rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "");
-                    parse_str(rightTemp.value);
-                    printf("\n");
+                    if(!leftTemp.constant || strcmp(leftTemp.type, "LF") == 0)
+                        addItemTopList("%s", leftTemp.value);
+                    else
+                        parse_str(leftTemp.value);
+                    addItemTopList(" %s@%s", rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "");
+                    if(!rightTemp.constant || strcmp(rightTemp.type, "LF") == 0)
+                        addItemTopList("%s", rightTemp.value);
+                    else
+                        parse_str(rightTemp.value);
+                    addItemTopList("\n");
                 }else {
-                    printf("EQ LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type : "LF",
+                    addItemTopList("EQ LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type : "LF",
                            leftTemp.sign ? "-" : "", leftTemp.value,
                            rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "", rightTemp.value);
                     }
                 break;
             case tokenType_GE:
-                //@TODO
                 if(strcmp(type, "string") == 0){
-                    printf("GT LF@%s %s@%s", assignTo, leftTemp.constant ? leftTemp.type : "LF",
+                    addItemTopList("GT LF@%s %s@%s", assignTo, leftTemp.constant ? leftTemp.type : "LF",
                            leftTemp.sign ? "-" : "");
-                    parse_str(leftTemp.value);
-                    printf(" %s@%s", rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "");
-                    parse_str(rightTemp.value);
-                    printf("\n");
-                printf("JUMPIFEQ _SPEC_VAR_END_%d LF@%s bool@true\n",spec_var,assignTo);
-                printf("EQ LF@%s %s@%s", assignTo, leftTemp.constant ? leftTemp.type : "LF",
+                    if(!leftTemp.constant || strcmp(leftTemp.type, "LF") == 0)
+                        addItemTopList("%s", leftTemp.value);
+                    else
+                        parse_str(leftTemp.value);
+                    addItemTopList(" %s@%s", rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "");
+                    if(!rightTemp.constant || strcmp(rightTemp.type, "LF") == 0)
+                        addItemTopList("%s", rightTemp.value);
+                    else
+                        parse_str(rightTemp.value);
+                    addItemTopList("\n");
+                addItemTopList("JUMPIFEQ _SPEC_VAR_END_%d LF@%s bool@true\n",spec_var,assignTo);
+                addItemTopList("EQ LF@%s %s@%s", assignTo, leftTemp.constant ? leftTemp.type : "LF",
                            leftTemp.sign ? "-" : "");
-                    parse_str(leftTemp.value);
-                    printf(" %s@%s", rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "");
-                    parse_str(rightTemp.value);
-                    printf("\n");
-                printf("LABEL _SPEC_VAR_END_%d\n",spec_var);
+                    if(!leftTemp.constant || strcmp(leftTemp.type, "LF") == 0)
+                        addItemTopList("%s", leftTemp.value);
+                    else
+                        parse_str(leftTemp.value);
+                    addItemTopList(" %s@%s", rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "");
+                    if(!rightTemp.constant || strcmp(rightTemp.type, "LF") == 0)
+                        addItemTopList("%s", rightTemp.value);
+                    else
+                        parse_str(rightTemp.value);
+                    addItemTopList("\n");
+                addItemTopList("LABEL _SPEC_VAR_END_%d\n",spec_var);
                 }else {
-                    printf("GT LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type : "LF",
+                    addItemTopList("GT LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type : "LF",
                            leftTemp.sign ? "-" : "", leftTemp.value,
                            rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "", rightTemp.value);
-                    printf("JUMPIFEQ _SPEC_VAR_END_%d LF@%s bool@true\n",spec_var,assignTo);
+                    addItemTopList("JUMPIFEQ _SPEC_VAR_END_%d LF@%s bool@true\n",spec_var,assignTo);
 
-                        printf("EQ LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type : "LF",
+                        addItemTopList("EQ LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type : "LF",
                         leftTemp.sign ? "-" : "", leftTemp.value,
                         rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "", rightTemp.value);      
-                        printf("LABEL _SPEC_VAR_END_%d\n",spec_var);
+                        addItemTopList("LABEL _SPEC_VAR_END_%d\n",spec_var);
                 }
                 ++spec_var;
                 break;
             case tokenType_LE:
-                //@TODO
                 if(strcmp(type, "string") == 0){
-                    printf("LT LF@%s %s@%s", assignTo, leftTemp.constant ? leftTemp.type : "LF",
+                    addItemTopList("LT LF@%s %s@%s", assignTo, leftTemp.constant ? leftTemp.type : "LF",
                            leftTemp.sign ? "-" : "");
-                    parse_str(leftTemp.value);
-                    printf(" %s@%s", rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "");
-                    parse_str(rightTemp.value);
-                    printf("\n");
+                    if(!leftTemp.constant || strcmp(leftTemp.type, "LF") == 0)
+                        addItemTopList("%s", leftTemp.value);
+                    else
+                        parse_str(leftTemp.value);
+                    addItemTopList(" %s@%s", rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "");
+                    if(!rightTemp.constant || strcmp(rightTemp.type, "LF") == 0)
+                        addItemTopList("%s", rightTemp.value);
+                    else
+                        parse_str(rightTemp.value);
+                    addItemTopList("\n");
 
-                     printf("JUMPIFEQ _SPEC_VAR_END_%d LF@%s bool@true\n",spec_var,assignTo);
-                    printf("EQ LF@%s %s@%s", assignTo, leftTemp.constant ? leftTemp.type : "LF",
+                     addItemTopList("JUMPIFEQ _SPEC_VAR_END_%d LF@%s bool@true\n",spec_var,assignTo);
+                    addItemTopList("EQ LF@%s %s@%s", assignTo, leftTemp.constant ? leftTemp.type : "LF",
                            leftTemp.sign ? "-" : "");
-                    parse_str(leftTemp.value);
-                    printf(" %s@%s", rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "");
-                    parse_str(rightTemp.value);
-                    printf("\n");
-                    printf("LABEL _SPEC_VAR_END_%d\n",spec_var);
+                    if(!leftTemp.constant || strcmp(leftTemp.type, "LF") == 0)
+                        addItemTopList("%s", leftTemp.value);
+                    else
+                        parse_str(leftTemp.value);
+                    addItemTopList(" %s@%s", rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "");
+                    if(!rightTemp.constant || strcmp(rightTemp.type, "LF") == 0)
+                        addItemTopList("%s", rightTemp.value);
+                    else
+                        parse_str(rightTemp.value);
+                    addItemTopList("\n");
+                    addItemTopList("LABEL _SPEC_VAR_END_%d\n",spec_var);
                 }else {
-                    printf("LT LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type : "LF",
+                    addItemTopList("LT LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type : "LF",
                            leftTemp.sign ? "-" : "", leftTemp.value,
                            rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "", rightTemp.value);
-                    printf("JUMPIFEQ _SPEC_VAR_END_%d LF@%s bool@true\n",spec_var,assignTo);
+                    addItemTopList("JUMPIFEQ _SPEC_VAR_END_%d LF@%s bool@true\n",spec_var,assignTo);
 
-                        printf("EQ LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type : "LF",
+                        addItemTopList("EQ LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type : "LF",
                         leftTemp.sign ? "-" : "", leftTemp.value,
                         rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "", rightTemp.value);      
-                        printf("LABEL _SPEC_VAR_END_%d\n",spec_var);
+                        addItemTopList("LABEL _SPEC_VAR_END_%d\n",spec_var);
                 }
                 ++spec_var;
                 break;
             case tokenType_NEQ:
-                //@TODO
                 if(strcmp(type, "string") == 0){
-                    printf("EQ LF@%s %s@%s", assignTo, leftTemp.constant ? leftTemp.type : "LF",
+                    addItemTopList("EQ LF@%s %s@%s", assignTo, leftTemp.constant ? leftTemp.type : "LF",
                            leftTemp.sign ? "-" : "");
-                    parse_str(leftTemp.value);
-                    printf(" %s@%s", rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "");
-                    parse_str(rightTemp.value);
-                    printf("\n");
-                    printf("JUMPIFEQ _SPEC_VAR_END_%d LF@%s bool@true\n",spec_var,assignTo);
-                    printf("MOVE LF@%s bool@true\n",assignTo);
-                    printf("JUMP _SPEC_VAR_END_FINAL_%d\n",spec_var);
-                    printf("LABEL _SPEC_VAR_END_%d\n",spec_var);
-                    printf("MOVE LF@%s bool@false\n",assignTo);
-                    printf("LABEL _SPEC_VAR_END_FINAL_%d\n",spec_var);
+                    if(!leftTemp.constant || strcmp(leftTemp.type, "LF") == 0)
+                        addItemTopList("%s", leftTemp.value);
+                    else
+                        parse_str(leftTemp.value);
+                    addItemTopList(" %s@%s", rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "");
+
+                    if(!rightTemp.constant || strcmp(rightTemp.type, "LF") == 0)
+                        addItemTopList("%s", rightTemp.value);
+                    else
+                        parse_str(rightTemp.value);
+                    addItemTopList("\n");
+                    addItemTopList("JUMPIFEQ _SPEC_VAR_END_%d LF@%s bool@true\n",spec_var,assignTo);
+                    addItemTopList("MOVE LF@%s bool@true\n",assignTo);
+                    addItemTopList("JUMP _SPEC_VAR_END_FINAL_%d\n",spec_var);
+                    addItemTopList("LABEL _SPEC_VAR_END_%d\n",spec_var);
+                    addItemTopList("MOVE LF@%s bool@false\n",assignTo);
+                    addItemTopList("LABEL _SPEC_VAR_END_FINAL_%d\n",spec_var);
                     
                 }else {
-                    printf("EQ LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type : "LF",
+                    addItemTopList("EQ LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type : "LF",
                            leftTemp.sign ? "-" : "", leftTemp.value,
                            rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "", rightTemp.value);
-                    printf("JUMPIFEQ _SPEC_VAR_END_%d LF@%s bool@true\n",spec_var,assignTo);
-                    printf("MOVE LF@%s bool@true\n",assignTo);
-                    printf("JUMP _SPEC_VAR_END_FINAL_%d\n",spec_var);
-                    printf("LABEL _SPEC_VAR_END_%d\n",spec_var);
-                    printf("MOVE LF@%s bool@false\n",assignTo);
-                    printf("LABEL _SPEC_VAR_END_FINAL_%d\n",spec_var);
+                    addItemTopList("JUMPIFEQ _SPEC_VAR_END_%d LF@%s bool@true\n",spec_var,assignTo);
+                    addItemTopList("MOVE LF@%s bool@true\n",assignTo);
+                    addItemTopList("JUMP _SPEC_VAR_END_FINAL_%d\n",spec_var);
+                    addItemTopList("LABEL _SPEC_VAR_END_%d\n",spec_var);
+                    addItemTopList("MOVE LF@%s bool@false\n",assignTo);
+                    addItemTopList("LABEL _SPEC_VAR_END_FINAL_%d\n",spec_var);
                     
                 }
                 ++spec_var;
                 break;
             case tokenType_GREATER:
                 if(strcmp(type, "string") == 0){
-                    printf("GT LF@%s %s@%s", assignTo, leftTemp.constant ? leftTemp.type : "LF",
+                    addItemTopList("GT LF@%s %s@%s", assignTo, leftTemp.constant ? leftTemp.type : "LF",
                            leftTemp.sign ? "-" : "");
-                    parse_str(leftTemp.value);
-                    printf(" %s@%s", rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "");
-                    parse_str(rightTemp.value);
-                    printf("\n");
+                    if(!leftTemp.constant || strcmp(leftTemp.type, "LF") == 0)
+                        addItemTopList("%s", leftTemp.value);
+                    else
+                        parse_str(leftTemp.value);
+                    addItemTopList(" %s@%s", rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "");
+
+                    if(!rightTemp.constant || strcmp(rightTemp.type, "LF") == 0)
+                        addItemTopList("%s", rightTemp.value);
+                    else
+                        parse_str(rightTemp.value);
+                    addItemTopList("\n");
                 }else {
-                    printf("GT LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type : "LF",
+                    addItemTopList("GT LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type : "LF",
                            leftTemp.sign ? "-" : "", leftTemp.value,
                            rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "", rightTemp.value);
                 }
                 break;
             case tokenType_LESS:
                 if(strcmp(type, "string") == 0){
-                    printf("LT LF@%s %s@%s", assignTo, leftTemp.constant ? leftTemp.type : "LF",
+                    addItemTopList("LT LF@%s %s@%s", assignTo, leftTemp.constant ? leftTemp.type : "LF",
                            leftTemp.sign ? "-" : "");
-                    parse_str(leftTemp.value);
-                    printf(" %s@%s", rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "");
-                    parse_str(rightTemp.value);
-                    printf("\n");
+                    if(!leftTemp.constant || strcmp(leftTemp.type, "LF") == 0)
+                        addItemTopList("%s", leftTemp.value);
+                    else
+                        parse_str(leftTemp.value);
+                    addItemTopList(" %s@%s", rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "");
+                    if(!rightTemp.constant || strcmp(rightTemp.type, "LF") == 0)
+                        addItemTopList("%s", rightTemp.value);
+                    else
+                        parse_str(rightTemp.value);
+                    addItemTopList("\n");
                 }else {
-                    printf("LT LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type : "LF",
+                    addItemTopList("LT LF@%s %s@%s%s %s@%s%s\n", assignTo, leftTemp.constant ? leftTemp.type : "LF",
                            leftTemp.sign ? "-" : "", leftTemp.value,
                            rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "", rightTemp.value);
                 }
@@ -1310,7 +1491,7 @@ struct genExpr GenParseExpr(SyntaxNode* root, char* assignTo, char* left, char* 
                 break;
         }
         if(leftTemp.alocated){
-            free(leftTemp.value); //@TODO VALGRIND CHECK
+            free(leftTemp.value);
             leftTemp.alocated = false;
         }
         if(rightTemp.alocated){
@@ -1324,48 +1505,50 @@ struct genExpr GenParseExpr(SyntaxNode* root, char* assignTo, char* left, char* 
 
 void GENASIGN(SyntaxNode* root, tHashItem* item){ //TEST!!!!!!!!
     static int c = 0;
-    printf("DEFVAR %s\n", item->id);
+    addItemTopList("DEFVAR %s\n", item->id);
     char temp1[15];
     sprintf(temp1, "__LEFT__%d", c);
 
-    printf("DEFVAR LF@%s\n", temp1);
+    addItemTopList("DEFVAR LF@%s\n", temp1);
     char temp2[15];
     sprintf(temp2, "__RIGHT__%d", c++);
-    printf("DEFVAR LF@%s\n", temp2);
+    addItemTopList("DEFVAR LF@%s\n", temp2);
 
     struct genExpr tmp = GenParseExpr(root, item->id, temp1, temp2, get_var_type(item->type));
-    printf("MOVE LF@%s LF@%s\n", item->id, tmp.value);
+    addItemTopList("MOVE LF@%s LF@%s\n", item->id, tmp.value);
 }
 
 void vars_default_declar_init(SyntaxNode *root, tHashItem *item)
 {
-    //@TODO MALLOC
-    printf("# DECLARE AND DEFAULT_INIT VAR %s\n",item->id);
+    addItemTopList("# DECLARE AND DEFAULT_INIT VAR %s\n",item->id);
     static int c = 0;
-    char temp1[15];
+    char temp1[256];
     sprintf(temp1, "__DLEFT__%d", c);
 
-    printf("DEFVAR LF@%s\n", temp1);
-    char temp2[15];
+    addItemTopList("DEFVAR LF@%s\n", temp1);
+    char temp2[256];
     sprintf(temp2, "__DRIGHT__%d", c++);
-    printf("DEFVAR LF@%s\n", temp2);
+    addItemTopList("DEFVAR LF@%s\n", temp2);
     int countScopeLen = 1;
     int tmpscope = scope;
     while(tmpscope > 9){
         ++countScopeLen;
         tmpscope /= 10;
     }
-    char *identific = malloc(sizeof(char)*strlen(item->id)+1+countScopeLen+2 ); // TODO WTF??? PRECO 2
+    char *identific = malloc(sizeof(char)*strlen(item->id)+1+countScopeLen+2 );
     sprintf(identific, "%s_%d", item->id, scope);
     addItemToIdList(&currentScopeVars, item->id);
-    printf("DEFVAR LF@%s\n",identific);
+    addItemTopList("DEFVAR LF@%s\n",identific);
     struct genExpr tmp = GenParseExpr(root, identific, temp1, temp2, get_var_type(item->type));
     if(strcmp(tmp.type, "string") == 0){
-        printf("MOVE LF@%s %s@%s",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"");
-        parse_str(tmp.value);
-        printf("\n");
+        addItemTopList("MOVE LF@%s %s@%s",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"");
+        if(!tmp.constant || strcmp(tmp.type, "LF") == 0)
+            addItemTopList("%s", tmp.value);
+        else
+            parse_str(tmp.value);
+        addItemTopList("\n");
     } else
-        printf("MOVE LF@%s %s@%s%s\n",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"", tmp.value);
+        addItemTopList("MOVE LF@%s %s@%s%s\n",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"", tmp.value);
     if(tmp.alocated){
         free(tmp.value);
     }
@@ -1377,17 +1560,16 @@ void vars_default_declar_init(SyntaxNode *root, tHashItem *item)
 // only use after vars_default_declar_init!!
 void vars_set_new_value(SyntaxNode *root, tHashItem *item)
 {
-    // @TODO MALLOC
-    char temp1[15];
+    char temp1[256];
     sprintf(temp1, "__ALEFT__%d", assignC);
-    char temp2[15];
+    char temp2[256];
     sprintf(temp2, "__ARIGHT__%d", assignC++);
     if(!skipDefvarAssignTemp){
-        printf("DEFVAR LF@%s\n", temp1);
-        printf("DEFVAR LF@%s\n", temp2);
+        addItemTopList("DEFVAR LF@%s\n", temp1);
+        addItemTopList("DEFVAR LF@%s\n", temp2);
     }
 
-    //printf("DEFVAR LF@%s\n",item->id);
+    //addItemTopList("DEFVAR LF@%s\n",item->id);
     int countScopeLen = 1;
     int whichScope = getLastScopeOfIdInList(currentScopeVars, item->id);
     int tmpScope = whichScope;
@@ -1395,16 +1577,19 @@ void vars_set_new_value(SyntaxNode *root, tHashItem *item)
         ++countScopeLen;
         tmpScope /= 10;
     }
-    char *identific = malloc(sizeof(char)*strlen(item->id)+1+countScopeLen+1); // TODO MALLOC
+    char *identific = malloc(sizeof(char)*strlen(item->id)+1+countScopeLen+1);
     sprintf(identific, "%s_%d", item->id, tmpScope);
-    printf("# RE-SET VALUE FOR VAR %s\n",item->id);
+    addItemTopList("# RE-SET VALUE FOR VAR %s\n",item->id);
     struct genExpr tmp = GenParseExpr(root, identific, temp1, temp2, get_var_type(item->type));
     if(strcmp(tmp.type, "string") == 0){
-        printf("MOVE LF@%s %s@%s",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"");
-        parse_str(tmp.value);
-        printf("\n");
+        addItemTopList("MOVE LF@%s %s@%s",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"");
+        if(!tmp.constant || strcmp(tmp.type, "LF") == 0)
+            addItemTopList("%s", tmp.value);
+        else
+            parse_str(tmp.value);
+        addItemTopList("\n");
     } else
-        printf("MOVE LF@%s %s@%s%s\n",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"", tmp.value);
+        addItemTopList("MOVE LF@%s %s@%s%s\n",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"", tmp.value);
     //GenParseExpr(root,assignTo,right,left));
     if(tmp.alocated){
         free(tmp.value);
@@ -1417,12 +1602,12 @@ void vars_set_new_value(SyntaxNode *root, tHashItem *item)
 
 void label_if_else_end(char *func_name)
 {
-    printf("LABEL _%s_end_else_%d_%d\n",func_name, scope,pop_INT_Stack(&if_else_stack));
+    addItemTopList("LABEL _%s_end_else_%d_%d\n",func_name, scope,pop_INT_Stack(&if_else_stack));
 }
 
 void label_for_end(char *func_name)
 {
-    printf("LABEL %s_for_end_%d_%d\n",func_name,scope,pop_INT_Stack(&for_stack));
+    addItemTopList("LABEL %s_for_end_%d_%d\n",func_name,scope,pop_INT_Stack(&for_stack));
 }
 
 ///------------IF/ELSE FUNCTIONS------------------------
@@ -1431,15 +1616,15 @@ void if_cond(SyntaxNode *root,char *func_name)
 {
     add_INT_StackItem(&if_else_stack, if_else_counter++);
     static int c = 0;
-    printf("# DECLARE AND DEFAULT_INIT VAR %s%d\n","__IFCOND__", c);
+    addItemTopList("# DECLARE AND DEFAULT_INIT VAR %s%d\n","__IFCOND__", c);
 
     char temp1[15];
     sprintf(temp1, "__IFLEFT__%d", c);
 
-    printf("DEFVAR LF@%s\n", temp1);
+    addItemTopList("DEFVAR LF@%s\n", temp1);
     char temp2[15];
     sprintf(temp2, "__IFRIGHT__%d", c++);
-    printf("DEFVAR LF@%s\n", temp2);
+    addItemTopList("DEFVAR LF@%s\n", temp2);
     int countScopeLen = 1;
     int tmpScope = scope;
     while(tmpScope > 9){
@@ -1453,30 +1638,33 @@ void if_cond(SyntaxNode *root,char *func_name)
         tmpC /= 10;
     }
 
-    char *identific = (char*)malloc(sizeof(char)*strlen("__IFCOND__")+countCLen+1+countScopeLen+2); // TODO WTF ? PRECO 2
+    char *identific = (char*)malloc(sizeof(char)*strlen("__IFCOND__")+countCLen+1+countScopeLen+2);
     sprintf(identific, "%s%d_%d","__IFCOND__", c, scope);
-    printf("DEFVAR LF@%s\n",identific);
+    addItemTopList("DEFVAR LF@%s\n",identific);
 
-    int type = TInt; //@TODO variable types !!!!
+    int type = getTypeOfExpr(root); //@TODO variable types !!!!
     struct genExpr tmp = GenParseExpr(root, identific, temp1, temp2, get_var_type(type));
     if(strcmp(tmp.type, "string") == 0){
-        printf("MOVE LF@%s %s@%s",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"");
-        parse_str(tmp.value);
-        printf("\n");
+        addItemTopList("MOVE LF@%s %s@%s",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"");
+        if(!tmp.constant || strcmp(tmp.type, "LF") == 0)
+            addItemTopList("%s", tmp.value);
+        else
+            parse_str(tmp.value);
+        addItemTopList("\n");
     } else
-        printf("MOVE LF@%s %s@%s%s\n",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"", tmp.value);
+        addItemTopList("MOVE LF@%s %s@%s%s\n",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"", tmp.value);
 
     if(tmp.alocated){
         free(tmp.value);
     }
-    printf("JUMPIFNEQ _%s_else_%d_%d LF@%s bool@true\n",func_name,scope,top_INT_Stack(&if_else_stack),identific);
+    addItemTopList("JUMPIFNEQ _%s_else_%d_%d LF@%s bool@true\n",func_name,scope,top_INT_Stack(&if_else_stack),identific);
     free(identific);
 }
 
 void if_prefix(char *func_name)
 {
-    all_vars_to_new_scope(); //@TODO TO SOLVE
-    printf("PUSHFRAME\n");
+    all_vars_to_new_scope();
+    addItemTopList("PUSHFRAME\n");
     createNewIdListScope(&currentScopeVars);
     //scope++;
     //begin if body
@@ -1486,18 +1674,18 @@ void if_prefix(char *func_name)
 void if_suffix(char *func_name)
 {
     //end if body
-    printf("POPFRAME\n");
+    addItemTopList("POPFRAME\n");
     deleteIdListScope(&currentScopeVars);
-    all_vars_after_new_scope(scope); // @TODO TO solve
-    printf("JUMP _%s_end_else_%d_%d\n",func_name, scope,top_INT_Stack(&if_else_stack)); //end of if/else
+    all_vars_after_new_scope(scope);
+    addItemTopList("JUMP _%s_end_else_%d_%d\n",func_name, scope,top_INT_Stack(&if_else_stack)); //end of if/else
 
 }
 
 void else_prefix(char *func_name)
 {
-    printf("LABEL _%s_else_%d_%d\n", func_name, scope,top_INT_Stack(&if_else_stack));
-    all_vars_to_new_scope();//@TODO
-    printf("PUSHFRAME\n");
+    addItemTopList("LABEL _%s_else_%d_%d\n", func_name, scope,top_INT_Stack(&if_else_stack));
+    all_vars_to_new_scope();
+    addItemTopList("PUSHFRAME\n");
     createNewIdListScope(&currentScopeVars);
     //scope++;
 }
@@ -1505,9 +1693,9 @@ void else_prefix(char *func_name)
 void else_suffix(char *func_name)
 {
 
-    printf("POPFRAME\n");
+    addItemTopList("POPFRAME\n");
     deleteIdListScope(&currentScopeVars);
-    all_vars_after_new_scope(scope); //@TODO
+    all_vars_after_new_scope(scope);
 
 }
 
@@ -1519,19 +1707,19 @@ void else_suffix(char *func_name)
 void all_vars_to_new_scope()
 {
 
-    printf("# TRANSFER VARS TO NEW SCOPE\n");
-    printf("CREATEFRAME\n");
+    addItemTopList("# TRANSFER VARS TO NEW SCOPE\n");
+    addItemTopList("CREATEFRAME\n");
     idList *currentScopeList = currentScopeVars;
     while(currentScopeList != NULL)
     {
         idListNode * currentScopeNode = currentScopeList->last;
         while (currentScopeNode != NULL) {
 
-            printf("DEFVAR TF@%s_%d\n", currentScopeNode->name, currentScopeList->scope);
-            printf("MOVE TF@%s_%d LF@%s_%d\n", currentScopeNode->name, currentScopeList->scope, currentScopeNode->name, currentScopeList->scope);
+            addItemTopList("DEFVAR TF@%s_%d\n", currentScopeNode->name, currentScopeList->scope);
+            addItemTopList("MOVE TF@%s_%d LF@%s_%d\n", currentScopeNode->name, currentScopeList->scope, currentScopeNode->name, currentScopeList->scope);
             currentScopeNode = currentScopeNode->prev;
         }
-       // printf(">>>>>>>>>>>>>> %d\n", currentScopeList->scope);
+       // addItemTopList(">>>>>>>>>>>>>> %d\n", currentScopeList->scope);
         currentScopeList = currentScopeList->prevScope;
 
     }
@@ -1541,7 +1729,7 @@ void all_vars_to_new_scope()
 //only after for and if/else scopes
 void all_vars_after_new_scope(int scopeLessThan)
 {
-    printf("# TRANSFER VARS REAL VALUES\n");
+    addItemTopList("# TRANSFER VARS REAL VALUES\n");
     idList *currentScopeList = currentScopeVars;
     while(currentScopeList != NULL)
     {
@@ -1552,13 +1740,13 @@ void all_vars_after_new_scope(int scopeLessThan)
         idListNode * currentScopeNode = currentScopeList->last;
         while (currentScopeNode != NULL) {
 
-            printf("MOVE LF@%s_%d TF@%s_%d\n", currentScopeNode->name, currentScopeList->scope, currentScopeNode->name, currentScopeList->scope);
+            addItemTopList("MOVE LF@%s_%d TF@%s_%d\n", currentScopeNode->name, currentScopeList->scope, currentScopeNode->name, currentScopeList->scope);
             currentScopeNode = currentScopeNode->prev;
         }
         currentScopeList = currentScopeList->prevScope;
 
     }
-    printf("# TRANSFER VARS's VALUES END\n");
+    addItemTopList("# TRANSFER VARS's VALUES END\n");
 
 }
 
@@ -1569,44 +1757,43 @@ void for_header()
 {
 
     all_vars_to_new_scope();
-    printf("PUSHFRAME\n");
+    addItemTopList("PUSHFRAME\n");
     createNewIdListScope(&currentScopeVars);
     add_INT_StackItem(&for_stack, for_counter++);
     //section of init for_counter var
-//    printf("# DECLARE AND DEFAULT_INIT VAR %s\n",item->id);
+//    addItemTopList("# DECLARE AND DEFAULT_INIT VAR %s\n",item->id);
 //    static int c = 0;
 //    char temp1[15];
 //    sprintf(temp1, "__LEFT__%d", c);
 //
-//    printf("DEFVAR LF@%s\n", temp1);
+//    addItemTopList("DEFVAR LF@%s\n", temp1);
 //    char temp2[15];
 //    sprintf(temp2, "__RIGHT__%d", c++);
-//    printf("DEFVAR LF@%s\n", temp2);
-//    char identific[64]; // TODO MALLOC
+//    addItemTopList("DEFVAR LF@%s\n", temp2);
+//    char identific[64];
 //    sprintf(identific, "%s_%d", item->id, scope);
-//    printf("DEFVAR LF@%s\n",identific);
+//    addItemTopList("DEFVAR LF@%s\n",identific);
 //    struct genExpr tmp = GenParseExpr(root, identific, temp1, temp2, get_var_type(item->type));
 //    if(strcmp(tmp.type, "string") == 0){
-//        printf("MOVE LF@%s %s@%s",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"");
+//        addItemTopList("MOVE LF@%s %s@%s",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"");
 //        parse_str(tmp.value);
-//        printf("\n");
+//        addItemTopList("\n");
 //    } else
-//        printf("MOVE LF@%s %s@%s%s\n",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"", tmp.value);
+//        addItemTopList("MOVE LF@%s %s@%s%s\n",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"", tmp.value);
     
 }
 void for_afterDeclaration(char* func_name){
     //for_loop_label
     all_vars_to_new_scope(scope);
-    printf("PUSHFRAME\n");
+    addItemTopList("PUSHFRAME\n");
     createNewIdListScope(&currentScopeVars);
-    //TODO MALLOC
     /*
     char temp1[15];
     sprintf(temp1, "__ALEFT__%d", assignC);
     char temp2[15];
     sprintf(temp2, "__ARIGHT__%d", assignC);
-    printf("DEFVAR LF@%s\n", temp1);
-    printf("DEFVAR LF@%s\n", temp2);
+    addItemTopList("DEFVAR LF@%s\n", temp1);
+    addItemTopList("DEFVAR LF@%s\n", temp2);
      */
 
 }
@@ -1620,14 +1807,14 @@ void for_cond_to_loop(SyntaxNode *root,char *func_name)
     static int c = 0;
     //all_vars_to_new_scope();
 //    createNewIdListScope(&currentScopeVars);
-    printf("# DECLARE AND DEFAULT_INIT VAR %s_%d\n","__FORCOND__", c);
+    addItemTopList("# DECLARE AND DEFAULT_INIT VAR %s_%d\n","__FORCOND__", c);
 
     char temp1[15];
     sprintf(temp1, "__COLEFT__%d", c);
-    printf("DEFVAR LF@%s\n", temp1);
+    addItemTopList("DEFVAR LF@%s\n", temp1);
     char temp2[15];
     sprintf(temp2, "__CORIGHT__%d", c++);
-    printf("DEFVAR LF@%s\n", temp2);
+    addItemTopList("DEFVAR LF@%s\n", temp2);
 
     int countScopeLen = 1;
     int tmpScope = scope;
@@ -1642,25 +1829,28 @@ void for_cond_to_loop(SyntaxNode *root,char *func_name)
         tmpC /= 10;
     }
 
-    char *identific = (char*)malloc(sizeof(char)*strlen("__FORCOND__")+countCLen+1+countScopeLen+2); // TODO WTF ? PRECO 2
+    char *identific = (char*)malloc(sizeof(char)*strlen("__FORCOND__")+countCLen+1+countScopeLen+2);
     sprintf(identific, "%s%d_%d","__FORCOND__", c, scope);
-    printf("DEFVAR LF@%s\n",identific);
+    addItemTopList("DEFVAR LF@%s\n",identific);
 
-    printf("LABEL %s_for_%d_%d\n",func_name,scope,top_INT_Stack(&for_stack));
+    addItemTopList("LABEL %s_for_%d_%d\n",func_name,scope,top_INT_Stack(&for_stack));
 
     //TODO TYPE
-    int type = TInt;
+    int type = getTypeOfExpr(root);
     struct genExpr tmp = GenParseExpr(root, identific, temp1, temp2, get_var_type(type));
     if(strcmp(tmp.type, "string") == 0){
-        printf("MOVE LF@%s %s@%s",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"");
-        parse_str(tmp.value);
-        printf("\n");
+        addItemTopList("MOVE LF@%s %s@%s",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"");
+        if(!tmp.constant || strcmp(tmp.type, "LF") == 0)
+            addItemTopList("%s", tmp.value);
+        else
+            parse_str(tmp.value);
+        addItemTopList("\n");
     } else
-        printf("MOVE LF@%s %s@%s%s\n",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"", tmp.value);
+        addItemTopList("MOVE LF@%s %s@%s%s\n",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"", tmp.value);
 
     //cond to loop
-    printf("JUMPIFNEQ %s_for_end_%d_%d LF@%s bool@true\n",func_name,scope,top_INT_Stack(&for_stack),identific);
-
+    addItemTopList("JUMPIFNEQ %s_for_end_%d_%d LF@%s bool@true\n",func_name,scope,top_INT_Stack(&for_stack),identific);
+    free(identific);
 }
 void for_start_Assign(){
     skipDefvarAssignTemp = true;
@@ -1671,7 +1861,7 @@ void for_end_Assign(){
 void for_prefix(char *func_name)
 {
     //all_vars_to_new_scope();
-    printf("PUSHFRAME\n");
+    addItemTopList("PUSHFRAME\n");
     scope++;
     //begin for body
 
@@ -1681,17 +1871,17 @@ void for_suffix(char *func_name)
 {
     //end for body
     deleteIdListScope(&currentScopeVars);
-    printf("POPFRAME\n");
+    addItemTopList("POPFRAME\n");
     all_vars_after_new_scope(scope);
 
-    printf("JUMP %s_for_%d_%d\n",func_name,scope,top_INT_Stack(&for_stack));
+    addItemTopList("JUMP %s_for_%d_%d\n",func_name,scope,top_INT_Stack(&for_stack));
 
     label_for_end(func_name);
 
 
 
     deleteIdListScope(&currentScopeVars);
-    printf("POPFRAME\n");
+    addItemTopList("POPFRAME\n");
     all_vars_after_new_scope(scope);
 
     //all_vars_after_new_scope();

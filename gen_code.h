@@ -16,6 +16,7 @@
 #include "semantics.h"
 #include "analyse.h"
 #include "stack.h"
+#include "stdarg.h"
 
 #define MAX_LEN 20
 #define MAX_PARAMS_COUNT 100
@@ -33,15 +34,16 @@ typedef struct identifierList{
 } idList;
 
 typedef struct printListNode{
-    char *paramName[MAX_PARAMS_COUNT];
+    char *printString;
     bool func_defined;
+    bool defvarFunc;
     char *func_name;
-    int paramCounter;
     struct printListNode *next;
 } pNode;
 
 typedef struct printList{
     pNode* first;
+    pNode* last;
 } pList;
 
 struct genExpr {
@@ -82,7 +84,7 @@ void program_exit(tExpReturnType *ret_err);
 void general_func_call(char *func_name);
 void general_func_prefix(char *func_name, tFuncItem *func);
 void general_func_suffix(char *func_name);
-void func_args_TF_declar(char *func_name, tFuncItem *func, SyntaxNodes* paramValues);
+void func_args_TF_declar(char *func_name, tHashItem *funcItem, SyntaxNodes* paramValues);
 void no_built_in_func_args_TF_declar(char *func_name, tFuncItem *func, SyntaxNodes* paramValues);
 void func_ret_declar(char *func_name, tFuncItem *func);
 void func_ret_get_value(char *func_name, tFuncItem *func,SyntaxNodes* retValues);
@@ -122,6 +124,9 @@ void for_suffix(char *func_name);
 void all_vars_to_new_scope();
 void all_vars_after_new_scope();
 
+int getErrorList();
+void printAndDeleteGenCode();
+void deletepList();
 #endif
 
 
