@@ -2,6 +2,7 @@
 #include "symtable/symtable.h"
 #include "analyse.h"
 #include "semantics.h"
+#include "gen_code.h"
 
 //eg.
 extern char* KEYWORDS[];
@@ -92,8 +93,11 @@ void test_tree(){
     long returnCode = runSemanticAnalyze(prog, &scope);
     if(returnCode == 0){
         // PRINT GENCODE HERE !!!!
+        if (getErrorList() != 99)
+            printAndDeleteGenCode(&scope);
     }
     //DELETE EVERYTHING
+    deletepList();
     removeLastLocalScope(&scope);
     deleteSyntaxTree(prog);
     destructBuilder(&tokenizer.sb);
