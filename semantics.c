@@ -704,7 +704,7 @@ long assignmentExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStrin
                 if (destination->node == NULL) {    //nobody wants return values from this function. Poor function
                     return 0;
                 }
-                func_args_TF_declar(value->node->token->value, func, value->node->statements);
+                func_args_TF_declar(value->node->token->value, tItem, value->node->statements);
                 general_func_call(value->node->token->value);
                 SyntaxNodes *tmpDest = destination;
                 for (int i = 0; i < func->return_count; i++) {
@@ -749,7 +749,10 @@ long assignmentExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStrin
                 addParamToFunc(scope->global->table, value->node->token->value, "", paramItem.type);
                 param = param->next;
             }
-
+            tItem = getHashItem(scope->global->table, value->node->token->value);
+            func_args_TF_declar(value->node->token->value, tItem, value->node->statements);
+            general_func_call(value->node->token->value);
+            SyntaxNodes *tmpDest = destination;
             while (destination != NULL) {
                 disableAssignment = true;
                 tExpReturnType paramItem = assignmentExpSingleIdentifier(destination->node, scope, parentFunction);
@@ -760,8 +763,8 @@ long assignmentExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStrin
                 addReturnTypeToFunc(scope->global->table, value->node->token->value, paramItem.type);
                 destination = destination->next;
             }
+            func_ret_to_LF(value->node->token->value, tItem->func, tmpDest);
         }
-
     }
     else {  //normal values
         while (destination != NULL && value != NULL) {
@@ -846,7 +849,7 @@ int callFunction(SyntaxNode* root, tScope* scope, char* parentFunction, tStringL
 
     }
     tHashItem* tItemFunc = getIdentifier(scope->topLocal, root->token->value, NULL);
-    func_args_TF_declar(root->token->value, tItemFunc->func, root->statements->first);
+    func_args_TF_declar(root->token->value, tItemFunc, root->statements != NULL ? root->statements->first: NULL);
     general_func_call(root->token->value);
     return result;
 }
@@ -926,13 +929,13 @@ int forExpression(SyntaxNode* root, tScope* scope, char* parentFunction, tString
     for_cond_to_loop(root->left->right, parentFunction);
     for_afterDeclaration(parentFunction);// GENCODE
     //------- block part ------
-    //for_start_Assign();
+
     result = blockExp(root->right, scope, parentFunction, strList);    //block with things to loop in for
     if (result != 0) {
         removeLastLocalScope(scope);
         return result;
     }
-
+    for_start_Assign();
     //------- assignment part ------ -> optional
     if (root->left->statements != NULL) {
         if (root->left->statements->first->node->type != Node_AssignmentExpression) {

@@ -486,6 +486,7 @@ SyntaxNode* functionCallExpressionSyntax(tToken* id, SyntaxNodes* params){
 }
 
 SyntaxNode* ParseConditionExpresionSyntax(tTokenizer* tokenizer){
+    ///START of BooleanExpression Function (48-53 - LL-Tabulka)
     if(isError()){
         return NULL;
     }
@@ -498,6 +499,7 @@ SyntaxNode* ParseConditionExpresionSyntax(tTokenizer* tokenizer){
 }
 
 SyntaxNode* ParseDeclarationSyntax(tTokenizer* tokenizer, tToken* id){
+    ///START of Declaration (28 - LL-Tabulka)
     if(isError()){
         return NULL;
     }
@@ -534,6 +536,7 @@ SyntaxNode* ParseDeclarationSyntax(tTokenizer* tokenizer, tToken* id){
     return NULL;
 }
 SyntaxNode* ParseFunctionCallingSyntax(tTokenizer* tokenizer, tToken* id){
+    ///START of Calling Function (34 - LL-Tabulka)
     if(isError()){
         return NULL;
     }
@@ -629,6 +632,7 @@ SyntaxNode* ParseFunctionCallingSyntax(tTokenizer* tokenizer, tToken* id){
 }
 
 SyntaxNode * ParseUnaryAssignSyntax(tTokenizer* tokenizer, tToken* leftID){
+    ///START of identifier Unary assignment (30-33 - LL-Tabulka)
     if(isError()){
         deleteToken(leftID);
         return NULL;
@@ -691,6 +695,8 @@ SyntaxNode * ParseUnaryAssignSyntax(tTokenizer* tokenizer, tToken* leftID){
 
 }
 SyntaxNode* ParseAssignSyntax(tTokenizer* tokenizer, tToken* FirstID){
+    ///START of identifier assignment (29 - LL-Tabulka)
+    ///Must be assign when this code will be executed
     if(isError()){
         return NULL;
     }
@@ -826,11 +832,13 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
     //static int functionReturnParams = -1;
     static bool parsingReturn = false;
     if(tokenizer->outputToken.type == tokenType_EOF){
+        ///Unexpected EOF
         //fprintf(stderr, "Unexpected EOF!\n");
         error(2);
         return NULL;
     }
     if(tokenizer->outputToken.type == tokenType_LBC){
+        ///Unexpected Start of the block
         //createScope(scope);
         /*tToken* left = Match(tokenizer, tokenType_LBC);
         SyntaxNodes* statements = ParseBlockExpressions(tokenizer, 0, scope);
@@ -843,16 +851,19 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
         return NULL;
     }
     if(tokenizer->outputToken.type == tokenType_RBC){
+        ///Unexpected END of the block
         //fprintf(stderr, "Unexpected end of the BLOCK!\n");
         error(2);
         return NULL;
     }
     if(tokenizer->outputToken.type == tokenType_COMMA){
+        ///Unexpected Comma
         //fprintf(stderr, "Unexpected comma!\n");
         error(2);
         return NULL;
     }
     if(tokenizer->outputToken.type == tokenType_LBN){
+        ///Start of HIGH priority expression (42 - LL-Tabulka)
         Match(tokenizer, tokenType_LBN, false);
         while (tokenizer->outputToken.type == tokenType_EOL) {
             getToken(tokenizer);
@@ -867,6 +878,7 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
     }
 
     if(tokenizer->outputToken.type == tokenType_ID){
+        ///FOUND IDENTIFIER
         bool isSpace = tokenizer->actualChar == ' ';
         tToken *identifier = Match(tokenizer, tokenType_ID, true);
         if(functionCalling == 0) {
@@ -878,12 +890,14 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
                 return NULL;
             }
             if (tokenizer->outputToken.type == tokenType_DECL && !parsingReturn) {
+                ///Start of identifier DECLARATION (28 - LL-Tabulka)
                 return ParseDeclarationSyntax(tokenizer, identifier);
             }
             if ((   tokenizer->outputToken.type == tokenType_ASSPLUS ||
                     tokenizer->outputToken.type == tokenType_ASSMINUS ||
                     tokenizer->outputToken.type == tokenType_ASSMUL ||
                     tokenizer->outputToken.type == tokenType_ASSDIV) && !parsingReturn) {
+                ///Start of identifier UNARY ASSIGNMENT (30-33 - LL-Tabulka)
                 return ParseUnaryAssignSyntax(tokenizer, identifier);
             }
             if ((tokenizer->outputToken.type == tokenType_ASSIGN || tokenizer->outputToken.type == tokenType_COMMA) &&
@@ -893,12 +907,14 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
                         createNode(idNode, NULL, NULL, NULL, "IdentifierAssignmentONE", Node_AssignmentExpression));
                 while (tokenizer->outputToken.type != tokenType_ASSIGN &&
                        tokenizer->outputToken.type == tokenType_COMMA) {
+                    ///START of checking more identifiers in assignment
                     Match(tokenizer, tokenType_COMMA, false);
                     if (isError()) {
                         destroyNodeList(list);
                         return NULL;
                     }
                     if (tokenizer->outputToken.type != tokenType_ID) {
+                        ///RETURN identifier Function call param (7 - LL-Tabulka)
                         return createNode(NULL, list, NULL, NULL, "FUNCTION CALL PARAMS", Node_FunctionCallParameters);
                     }
                     tToken *newID = Match(tokenizer, tokenType_ID, true);
@@ -908,8 +924,10 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
                 }
 
                 if (tokenizer->outputToken.type != tokenType_ASSIGN) {
+                    ///RETURN identifier all Function call params (5 - LL-Tabulka)
                     return createNode(NULL, list, NULL, NULL, "FUNCTION CALL PARAMS", Node_FunctionCallParameters);
                 }
+                ///START of identifier assignment (29 - LL-Tabulka)
                 tToken *assign = Match(tokenizer, tokenType_ASSIGN, true);
                 while (tokenizer->outputToken.type == tokenType_EOL) {
                     getToken(tokenizer);
@@ -938,6 +956,7 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
                                 return NULL;
                             }
                         }
+                        ///Get ALL expressions to assign
                         SyntaxNode *expr = ParseExpression(tokenizer, 0);
                         if (expr != NULL) {
                             if (expr->type == Node_IdentifierToken ||
@@ -1031,6 +1050,7 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
 
         }
         if(tokenizer->outputToken.type == tokenType_LBN){
+            ///Identifier of function (34 - LL-Tabulka)
             if(isSpace){
                 deleteToken(identifier);
                 //fprintf(stderr, "Function call should not have ' ' after identifier!\n");
@@ -1039,15 +1059,17 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
             }
             return ParseFunctionCallingSyntax(tokenizer, identifier);
         }
+        ///Identifier only (44. - LL-Tabulka)
         return identifierExpressionSyntax(identifier);
     }
     if(tokenizer->outputToken.type == tokenType_KW){
-
+        ///Keyword FOUND
         tToken *kw = Match(tokenizer, tokenType_KW, true);
         if(kw == NULL){
             return NULL;
         }
         if(strcmp(kw->value, "if") == 0){
+            ///IF Keyword parsing (20. - LL-Tabulka)
             SyntaxNode *condition = ParseConditionExpresionSyntax(tokenizer);
             tToken *openBlockToken = Match(tokenizer, tokenType_LBC, true);
             Match(tokenizer, tokenType_EOL, false);
@@ -1055,6 +1077,7 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
             tToken *closeBlockToken = Match(tokenizer, tokenType_RBC, true);
             SyntaxNode *thenStatement = blockExpressionSyntax(openBlockToken, statements, closeBlockToken);
             SyntaxNode * elseSyntax = NULL;
+            ///ELSE Keyword parsing
             tToken *elsekw = Match(tokenizer, tokenType_KW, true);
             if((elsekw != NULL && strcmp(elsekw->value, "else") != 0) || elsekw == NULL){
                 deleteToken(kw);
@@ -1078,6 +1101,7 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
         }
         if(strcmp(kw->value, "for") == 0){
             //DECLARATION CHECK
+            ///FOR Keyword parsing (21. - LL-Tabulka)
             SyntaxNode *definition = NULL;
             SyntaxNode *condition = NULL;
             SyntaxNode *assignExpr = NULL;
@@ -1113,6 +1137,7 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
         }
 
         if(strcmp(kw->value, "return") == 0){
+            ///RETURN Keyword parsing (27. - LL-Tabulka)
             parsingReturn = true;
             SyntaxNodes* returnValues = NULL;
             SyntaxNode* expr = NULL;
@@ -1146,24 +1171,28 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
             return returnExpressionSyntax(kw, returnValues);
         }
         if(strcmp(kw->value, "package") == 0){
+            ///UNECPECTED PACKAGE
             deleteToken(kw);
             //fprintf(stderr, "Unexpected 'package'\n");
             error(2);
             return NULL;
         }
         if(strcmp(kw->value, "else") == 0){
+            ///UNECPECTED ELSE
             deleteToken(kw);
             //fprintf(stderr, "Unexpected 'else'\n");
             error(2);
             return NULL;
         }
         if(strcmp(kw->value, "int") == 0 || strcmp(kw->value, "string") == 0 || strcmp(kw->value, "float64") == 0){
+            ///UNECPECTED TYPE
             //(stderr, "Unexpected type KW '%s'\n", kw->value);
             deleteToken(kw);
             error(2);
             return NULL;
         }
         if(strcmp(kw->value, "func") == 0){
+            ///UNECPECTED FUNC
             //fprintf(stderr, "Unexpected func KW");
             deleteToken(kw);
             error(2);
@@ -1179,17 +1208,20 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
 
     //S => INT
     if(tokenizer->outputToken.type == tokenType_INT){
+        ///DATA INT_VAL (45. - LL-Tabulka)
         tToken* numberToken = Match(tokenizer, tokenType_INT, true);
         SyntaxNode *node = numberExpressionSyntax(numberToken);
         return node;
     }
     if(tokenizer->outputToken.type == tokenType_DOUBLE){
+        ///DATA DOUBLE_VAL (46. - LL-Tabulka)
         tToken* doubleToken = Match(tokenizer, tokenType_DOUBLE, true);
         SyntaxNode *node = doubleExpressionSyntax(doubleToken);
         return node;
     }
 
     if(tokenizer->outputToken.type == tokenType_STRING){
+        ///DATA STRING_VAL (47. - LL-Tabulka)
         tToken* stringToken = Match(tokenizer, tokenType_STRING, true);
         SyntaxNode *node = stringExpressionSyntax(stringToken);
         return node;
@@ -1201,6 +1233,7 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
         tokenizer->outputToken.type == tokenType_EQ ||
         tokenizer->outputToken.type == tokenType_LE)
     {
+        ///UNEXPECTED bool TOKEN
         //fprintf(stderr,"Unexpected comparison token!\n");
         error(2);
         return NULL;
@@ -1208,10 +1241,12 @@ SyntaxNode* PrimaryExpressionSyntax(tTokenizer* tokenizer){
     if( tokenizer->outputToken.type == tokenType_ASSIGN ||
         tokenizer->outputToken.type == tokenType_DECL
             ) {
+        ///UNEXPECTED ASSIGN OR DECLARE TOKEN
         //fprintf(stderr,"Expected EOL or continue expression. Not Declaration or Assignment!\n");
         error(2);
         return NULL;
     }
+    ///EVERYTHING NOT SPECIFIED
     return NULL;
 }
 SyntaxNodes* ParseGlobalBlockExpressions (tTokenizer* tokenizer, int parentPriority){
@@ -1274,8 +1309,7 @@ SyntaxNodes* ParseBlockExpressions (tTokenizer* tokenizer, int parentPriority){
 }
 
 SyntaxNode* ParseExpression(tTokenizer* tokenizer, int parentPriority){
-    //@todo ADD *,/, true, false, unary operators, +,-,!.
-    //@todo ADD Error report...
+    ///Vzdy očakávam Expression a následne sa rozhodujem.
     if (tokenizer->outputToken.type == tokenType_EOL)
         return NULL;
     if(tokenizer->errorCode != 0){
@@ -1290,8 +1324,8 @@ SyntaxNode* ParseExpression(tTokenizer* tokenizer, int parentPriority){
     }
     SyntaxNode* left;
     int unaryPriority = GetUnOperatorPriority(tokenizer->outputToken.type);
-    //S => -exp | +exp
     if(unaryPriority != 0 && unaryPriority >= parentPriority){
+        ///40-42. LL-Tabulka
         tToken* operator = Match(tokenizer, tokenizer->outputToken.type, true);
         SyntaxNode* operand = ParseExpression(tokenizer, unaryPriority);
         left = unaryExpressionSyntax(operator, operand);
@@ -1366,16 +1400,20 @@ SyntaxNode* ParseExpression(tTokenizer* tokenizer, int parentPriority){
             operator->type == tokenType_EQ ||
             operator->type == tokenType_LE)
         {
+            ///48-53. LL-Tabulka
             left = binaryConditionSyntax(left, operator, right);
             break;
         }else{
+            ///36-39. LL-Tabulka
             left = binaryExpressionSyntax(left, operator, right);
         }
     }
+    ///Všetko ostatné LL-Tabulka
     return left;
 }
 
 SyntaxNode* getPackage(tTokenizer* tokenizer){
+    ///START Package parse (1 - LL-Tabulka)
     if(isError()){
         return NULL;
     }
@@ -1414,6 +1452,7 @@ SyntaxNode* getPackage(tTokenizer* tokenizer){
 }
 
 SyntaxNode *getFunctionNode(tTokenizer * tokenizer){
+    ///START func parse (2 - LL-Tabulka)
     while (tokenizer->outputToken.type == tokenType_EOL) {
         getToken(tokenizer);
         if (tokenizer->errorCode != 0) {
@@ -1526,6 +1565,7 @@ SyntaxNode *getFunctionNode(tTokenizer * tokenizer){
 }
 
 SyntaxNode* getSyntaxGlobal(tTokenizer* tokenizer){
+    ///PROG
     SyntaxNode *prog = createNode(NULL, NULL, NULL, NULL, "GlobalScope", Node_Global);
     prog->left = getPackage(tokenizer);
     prog->statements = ParseGlobalBlockExpressions(tokenizer, 0);
