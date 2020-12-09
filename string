@@ -1,9 +1,0 @@
-package main
-
-func ahoj(a int)(int) {
-    return a
-}
-
-func main() {
-        print(ahoj(5))
-}
