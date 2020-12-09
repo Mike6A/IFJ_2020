@@ -9,42 +9,6 @@
 
 #include "gen_code.h"
 
-
-/*
-///-----------INTERPRET STACK-----------------
-
-void init_SN_Stack(tSN_Stack* list) {
-    
-    for(int i=0; i<MAX_STACK; ++i)
-    {
-
-        list->node[i] = NULL;
-
-    }
-
-    list->top = 0;
-
-}
-
-bool is_SN_Stack_Empty(tSN_Stack* stack) {
-
-    return stack->top == 0;
-
-}
-
-int add_SN_StackItem(tSN_Stack* list, SyntaxNode* node) {
-
-    list->node[++list->top] = node; 
-    
-}
-
-SyntaxNode* Pop_SN_Stack(tSN_Stack* list) {
-
-    
-    return list->node[list->top--];
-}
-
-*/
 static int scope = 0;
 static int if_else_counter = 0;
 t_INT_Stack if_else_stack;
@@ -102,7 +66,6 @@ void addItemTopList(const char* format, ... )
     va_start(args, format);
     vsprintf(buffer, format, args);
     //vprintf(format, args);
-    //printf(">>>>>>>>>>>>>>>>>>>>>>>>> ERRROOROR: %s - %ld\n", buffer, needed);
     pNode* newGenLine = malloc(sizeof(pNode));
     if(newGenLine == NULL) {
         errorcodeList = 99;
@@ -142,7 +105,6 @@ void addItemTopListCallFunction(char* funcName, bool funcIsDeclared,bool defvar,
     va_start(args, format);
     vsprintf(buffer, format, args);
     //vprintf(format, args);
-    //printf(">>>>>>>>>>>>>>>>>>>>>>>>> ERRROOROR: %s - %ld\n", buffer, needed);
     pNode* newGenLine = malloc(sizeof(pNode));
     if(newGenLine == NULL) {
         errorcodeList = 99;
@@ -197,10 +159,12 @@ void printAndDeleteGenCode(tScope* scopeVar){
                 func = TITEM->func;
             if (func != NULL) {
                 if(current->printString != NULL) {
-
-                    //fprintf(stderr, ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>%d\n", paramNumber);
                     current->printString = realloc(current->printString, sizeof(char)*(malloc_usable_size(current->printString)+malloc_usable_size(func->params[paramNumber]) + 1));
                     char *buffer = malloc(sizeof(char)*(malloc_usable_size(current->printString)+1));
+                    if(buffer == NULL){
+                        errorcodeList = 99;
+                        return;
+                    }
                     token = strtok(current->printString, "@ ");
                     if(token!= NULL && strcmp(token, "MOVE") == 0)
                         defvar = true;
@@ -285,14 +249,12 @@ void deleteIdListScope(idList** list){
 void deleteIdList(idList** list){
     if(list != NULL){
         while((*list) != NULL){
-            //fprintf(stderr, ">>>>>>>>>>>>> DELETE!!! %d <<<<<<<<<<<<<<<", (*list)->scope);
             deleteIdListScope(list);
         }
     }
 }
 void deleteIdListGlobal(){
     while(currentScopeVars != NULL){
-        //fprintf(stderr, ">>>>>>>>>>>>> DELETE!!! %d <<<<<<<<<<<<<<<", (*list)->scope);
         deleteIdListScope(&currentScopeVars);
     }
 }
@@ -664,11 +626,6 @@ void bif_print(SyntaxNodes* my_statement)
                            
                     }
 
-                    /*if(strcmp(current_statement->node->right->token->value, "\n") == 0)
-                        addItemTopList("WRITE string@\010\n");
-                    else
-                        addItemTopList("WRITE string@%s\n", current_statement->node->right->token->value);
-                        */
                     break;
                 case Node_IdentifierExpression:
                     whichScope = getLastScopeOfIdInList(currentScopeVars, current_statement->node->right->token->value);
@@ -710,10 +667,6 @@ void bif_print(SyntaxNodes* my_statement)
         current_statement = current_statement->next;
 
     }
-/*
-    addItemTopList("POPFRAME\n");
-    addItemTopList("RETURN\n");
-    */
     
 }
 
@@ -815,18 +768,8 @@ void main_suffix()
 
 }
 
-void program_exit(tExpReturnType* ret_err)
-{
-    //deleteIdList(&currentScopeVars);
-    //addItemTopList("EXIT int@%ld\n",ret_err.errCode);
-    addItemTopList("# END OF GEN_CODE\n");
-
-}
-
 void general_func_call(char *func_name)
 {
-    //only after func_args_TF_declar
-    //(only for func with argc>0)
     addItemTopList("CALL _%s\n",func_name);
 
 }
@@ -853,50 +796,6 @@ void general_func_suffix(char *func_name)
     addItemTopList("RETURN\n");
     deleteIdListScope(&currentScopeVars);
     deleteIdListScope(&currentScopeVars);
-}
-
-void general_terminal_val(tToken token)
-{
-
-    char help_str[MAX_LEN];
-    unsigned char c;
-
-    switch(token.type)
-    {
-
-        case tokenType_INT:
-
-            sprintf(help_str,"%s",token.value);
-			addItemTopList("int@%s\n",help_str);
-			break;
-
-        case tokenType_DOUBLE:
-
-            sprintf(help_str,"%s",token.value);
-			addItemTopList("float@%s\n",help_str);
-			break;
-
-        case tokenType_STRING:
-
-            for (int i = 0; (((c = (unsigned char) (token.value)[i]) != '\0') && (i < MAX_LEN)); i++)
-			{
-				help_str[i] = c;
-			}
-
-            addItemTopList("string@%s\n",help_str);
-            break;
-
-        case tokenType_ID:
-
-            sprintf(help_str,"%s", token.value);
-			addItemTopList("LF@%s\n",help_str);
-			break;
-        
-        default:
-            break;
-
-    }
-
 }
 
 void declared_vars_default_init(TItem type)
@@ -953,38 +852,6 @@ char* get_var_type(TItem type)
                 return "nil";
     }
 
-}
-
-void no_built_in_func_args_TF_declar(char *func_name, tFuncItem *func, SyntaxNodes* paramValues)
-{
-    SyntaxNodes * currentParam = paramValues;
-    //have to create before args pass(for non args func too)
-    addItemTopList("CREATEFRAME\n");
-
-        addItemTopList("# CREATE VARS FOR %s's ARGS\n",func_name);
-        for(int i = 0; i < func->params_count ; i++)
-        {
-            char paramId[64];
-            sprintf(paramId, "%s__P__%d",func_name, i);
-
-            addItemTopList("DEFVAR LF@%s\n",paramId);
-            char temp1[64];
-            sprintf(temp1, "%s__LEFT__%d",func_name, i);
-
-            addItemTopList("DEFVAR LF@%s\n", temp1);
-            char temp2[64];
-            sprintf(temp2, "%s__RIGHT__%d",func_name, i);
-            addItemTopList("DEFVAR LF@%s\n", temp2);
-            struct genExpr param = GenParseExpr(currentParam->node, paramId, temp1, temp2, get_var_type(func->paramsTypes[i]));
-            addItemTopList("DEFVAR TF@%s\n",func->params[i]);
-            addItemTopList("MOVE TF@%s %s@%s%s\n",func->params[i], param.constant? param.type : "LF", param.sign ? "-":"", param.value );
-            //declared_vars_default_init(func->paramsTypes[i]);
-            currentParam = currentParam->next;
-
-        }
-
-        addItemTopList("# ALL VARS FOR ARGS HAS BEEN CREATED\n");
-      
 }
 
 void func_args_TF_declar(char *func_name, tHashItem *funcItem, SyntaxNodes* paramValues)
@@ -1066,15 +933,6 @@ void func_ret_to_LF(char *func_name, tFuncItem *func, SyntaxNodes* dest)
         }
         currentDest = currentDest->next;
     }
-
-}
-
-//current var have to be declared before func
-//use only after selected func
-void var_assign_to_func_value(char *func_name, tHashItem *item)
-{
-
-    addItemTopList("MOVE LF@%s TF@%s_ret_0\n",item->id, func_name);
 
 }
 
@@ -1161,44 +1019,6 @@ void func_ret_get_value(char *func_name, tFuncItem *func, SyntaxNodes* retValues
 }
 
 ///----------------FUNC FOR VARIABLES NAD EXPR-------------
-/*
-void stack_most_right(tSN_Stack *stack, SyntaxNode *root)
-{
-
-    for(SyntaxNode *tmp = root; (tmp!=NULL)
-    &&(tmp->type==Node_BinaryExpression || 
-       tmp->type==Node_UnaryExpression); tmp = tmp->right)
-    {
-
-        add_SN_StackItem(stack, tmp);
-       // addItemTopList("%s\n",tmp->name);
-    }
-        
-}
-
-void vars_final_counter(SyntaxNode *root, tHashItem *item)
-{
-    tSN_Stack stack;
-
-    init_SN_Stack(&stack);
-    stack_most_right(&stack,root);
-    
-    addItemTopList("DEFVAR LF@tmp\n");
-    addItemTopList("%s\n",stack.node[stack.top]->right->right->name);
-    addItemTopList("MOVE LF@tmp %s@%s\n",get_var_type(item->type),stack.node[stack.top]->right->right->token->value);
-   // addItemTopList("MOVE LF@\%tmp ",stack->node->right->token->value);
-    while(!is_SN_Stack_Empty(&stack))
-    {
-
-        SyntaxNode *node = Pop_SN_Stack(&stack);
-        stack_most_right(&stack,node->left);
-
-    }
-
-}
-
-*/
-
 
 struct genExpr GenParseExpr(SyntaxNode* root, char* assignTo, char* left, char* right, char* type){
 
@@ -1232,7 +1052,6 @@ struct genExpr GenParseExpr(SyntaxNode* root, char* assignTo, char* left, char* 
             double f = atof(test.value);
 
             size_t needed = snprintf(NULL, 0,"%a", f)+1;
-            //faddItemTopList(stderr, ">>>>>>>>>>>>>>>>>>>> %ld", needed);
             test.value = malloc(needed);
 
             sprintf(test.value, "%a", f); // DANGER!!!!!!
@@ -1536,21 +1355,6 @@ struct genExpr GenParseExpr(SyntaxNode* root, char* assignTo, char* left, char* 
     return danger;
 }
 
-void GENASIGN(SyntaxNode* root, tHashItem* item){ //TEST!!!!!!!!
-    static int c = 0;
-    addItemTopList("DEFVAR %s\n", item->id);
-    char temp1[15];
-    sprintf(temp1, "__LEFT__%d", c);
-
-    addItemTopList("DEFVAR LF@%s\n", temp1);
-    char temp2[15];
-    sprintf(temp2, "__RIGHT__%d", c++);
-    addItemTopList("DEFVAR LF@%s\n", temp2);
-
-    struct genExpr tmp = GenParseExpr(root, item->id, temp1, temp2, get_var_type(item->type));
-    addItemTopList("MOVE LF@%s LF@%s\n", item->id, tmp.value);
-}
-
 void vars_default_declar_init(SyntaxNode *root, tHashItem *item)
 {
     addItemTopList("# DECLARE AND DEFAULT_INIT VAR %s\n",item->id);
@@ -1623,7 +1427,6 @@ void vars_set_new_value(SyntaxNode *root, tHashItem *item)
         addItemTopList("\n");
     } else
         addItemTopList("MOVE LF@%s %s@%s%s\n",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"", tmp.value);
-    //GenParseExpr(root,assignTo,right,left));
     if(tmp.alocated){
         free(tmp.value);
     }
@@ -1699,14 +1502,11 @@ void if_prefix(char *func_name)
     all_vars_to_new_scope();
     addItemTopList("PUSHFRAME\n");
     createNewIdListScope(&currentScopeVars);
-    //scope++;
-    //begin if body
 
 }
 
 void if_suffix(char *func_name)
 {
-    //end if body
     addItemTopList("POPFRAME\n");
     deleteIdListScope(&currentScopeVars);
     all_vars_after_new_scope(scope);
@@ -1720,7 +1520,6 @@ void else_prefix(char *func_name)
     all_vars_to_new_scope();
     addItemTopList("PUSHFRAME\n");
     createNewIdListScope(&currentScopeVars);
-    //scope++;
 }
 
 void else_suffix(char *func_name)
@@ -1788,47 +1587,16 @@ void all_vars_after_new_scope(int scopeLessThan)
 
 void for_header()
 {
-
     all_vars_to_new_scope();
     addItemTopList("PUSHFRAME\n");
     createNewIdListScope(&currentScopeVars);
     add_INT_StackItem(&for_stack, for_counter++);
-    //section of init for_counter var
-//    addItemTopList("# DECLARE AND DEFAULT_INIT VAR %s\n",item->id);
-//    static int c = 0;
-//    char temp1[15];
-//    sprintf(temp1, "__LEFT__%d", c);
-//
-//    addItemTopList("DEFVAR LF@%s\n", temp1);
-//    char temp2[15];
-//    sprintf(temp2, "__RIGHT__%d", c++);
-//    addItemTopList("DEFVAR LF@%s\n", temp2);
-//    char identific[64];
-//    sprintf(identific, "%s_%d", item->id, scope);
-//    addItemTopList("DEFVAR LF@%s\n",identific);
-//    struct genExpr tmp = GenParseExpr(root, identific, temp1, temp2, get_var_type(item->type));
-//    if(strcmp(tmp.type, "string") == 0){
-//        addItemTopList("MOVE LF@%s %s@%s",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"");
-//        parse_str(tmp.value);
-//        addItemTopList("\n");
-//    } else
-//        addItemTopList("MOVE LF@%s %s@%s%s\n",identific, tmp.constant ? tmp.type: "LF",tmp.sign?"-":"", tmp.value);
-    
 }
 void for_afterDeclaration(char* func_name){
     //for_loop_label
     all_vars_to_new_scope(scope);
     addItemTopList("PUSHFRAME\n");
     createNewIdListScope(&currentScopeVars);
-    /*
-    char temp1[15];
-    sprintf(temp1, "__ALEFT__%d", assignC);
-    char temp2[15];
-    sprintf(temp2, "__ARIGHT__%d", assignC);
-    addItemTopList("DEFVAR LF@%s\n", temp1);
-    addItemTopList("DEFVAR LF@%s\n", temp2);
-     */
-
 }
 
 //immediately after func for_header
@@ -1838,8 +1606,6 @@ void for_cond_to_loop(SyntaxNode *root,char *func_name)
     
     //section of init for_counter var
     static int c = 0;
-    //all_vars_to_new_scope();
-//    createNewIdListScope(&currentScopeVars);
     addItemTopList("# DECLARE AND DEFAULT_INIT VAR %s_%d\n","__FORCOND__", c);
 
     char temp1[15];
@@ -1893,17 +1659,6 @@ void for_start_Assign(){
     addItemTopList("PUSHFRAME\n");
     createNewIdListScope(&currentScopeVars);
 }
-void for_end_Assign(){
-
-}
-void for_prefix(char *func_name)
-{
-    //all_vars_to_new_scope();
-    addItemTopList("PUSHFRAME\n");
-    scope++;
-    //begin for body
-
-}
 
 void for_suffix(char *func_name)
 {
@@ -1924,7 +1679,5 @@ void for_suffix(char *func_name)
     addItemTopList("POPFRAME\n");
     all_vars_after_new_scope(scope);
 
-    //all_vars_after_new_scope();
-    //assignment
 
 }

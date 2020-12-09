@@ -68,7 +68,6 @@ void bif_chr();
 void bif_int2float();
 void bif_float2int();
 void bif_print(SyntaxNodes* my_statement);
-void bif_print_input(SyntaxNodes* my_statement);
 void bif_inputs();
 void bif_inputi();
 void bif_inputf();
@@ -77,7 +76,6 @@ void bif_inputf();
 void program_start();
 void main_prefix();
 void main_suffix();
-void program_exit(tExpReturnType *ret_err);
 
 ///----------USER FUNCTION's FUNCTIONS-------------
 
@@ -85,20 +83,16 @@ void general_func_call(char *func_name);
 void general_func_prefix(char *func_name, tFuncItem *func);
 void general_func_suffix(char *func_name);
 void func_args_TF_declar(char *func_name, tHashItem *funcItem, SyntaxNodes* paramValues);
-void no_built_in_func_args_TF_declar(char *func_name, tFuncItem *func, SyntaxNodes* paramValues);
 void func_ret_declar(char *func_name, tFuncItem *func);
 void func_ret_get_value(char *func_name, tFuncItem *func,SyntaxNodes* retValues);
 void func_ret_to_LF(char *func_name,tFuncItem *func, SyntaxNodes* dest);
 
 ///-----------VARS & EXPRESSIONS FUNCTIONS------------------
-void general_terminal_val(tToken token);
 void declared_vars_default_init(TItem type);
 char* get_var_type(TItem type);
 struct genExpr GenParseExpr(SyntaxNode* root, char* assignTo, char* right, char* left, char* type);
-void GENASIGN(SyntaxNode* root, tHashItem* item);
 void vars_default_declar_init(SyntaxNode *root, tHashItem *item);
 void vars_set_new_value(SyntaxNode *root, tHashItem *item);
-void var_assign_to_func_value(char *func_name, tHashItem *item);
 
 ///------------LABEL GENERATORS------------------------
 void label_if_else_end(char *func_name);
@@ -116,8 +110,6 @@ void for_header();
 void for_afterDeclaration(char* func_name);
 void for_cond_to_loop(SyntaxNode *root,char *func_name);
 void for_start_Assign();
-void for_end_Assign();
-void for_prefix(char *func_name);
 void for_suffix(char *func_name);
 
 ///----------------BEFORE/AFTER FOR OR IF/ELSE SCOPE--------------------------
