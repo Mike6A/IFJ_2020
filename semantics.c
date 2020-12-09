@@ -656,6 +656,12 @@ long assignmentExpSingle(SyntaxNode* dest, SyntaxNode* value, tScope* scope, cha
     }
     if(item != NULL)
         vars_set_new_value(value, item);
+    else{
+        if(leftSide.type != TEverything){
+            tHashItem itemFuncParam = {.type = leftSide.type, .id = dest->left->token->value};
+            vars_set_new_value(value, &itemFuncParam);
+        }
+    }
     return 0;
 }
 
