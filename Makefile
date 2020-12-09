@@ -1,7 +1,7 @@
 CC=gcc
 CFLAGS=-Wall -std=c11 -pedantic
 PROJ=IFJ20
-SOURCES= $(shell find . -path "./cmake-build-debug*" -prune -false -o -name '*.c')
+SOURCES= $(shell find . -name '*.c')
 OBJECTS= $(SOURCES:%.c=%.o)
 
 all: $(PROJ)
