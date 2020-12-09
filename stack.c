@@ -60,7 +60,7 @@ void initScope(tScope* scope) {
 
 int createScope(tScope *scope) {
     tHashTable* table = (tHashTable*) malloc(sizeof(tHashTable));
-    initHashTable(table, 5);    //TODO 1009
+    initHashTable(table, 401);
     if (table == NULL) {
         return 99;
     }
