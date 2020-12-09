@@ -1,3 +1,6 @@
+# Konečný deterministický automat lexikálnej analýzy
+![KDALA](/docs/images/IFJ_FSM.svg)
+
 # Syntax tree Docs.
 Základná dokumentácia k Syntaktickému stromu.
 
