@@ -527,11 +527,12 @@ SyntaxNode* ParseDeclarationSyntax(tTokenizer* tokenizer, tToken* id){
         return declExpressionSyntax(id, declare, expr);
     }
     //fprintf(stderr, "Expected expression after declaration!\n");
+
+    if(expr->type == Node_BooleanExpression)
+        error(5);
     deleteToken(id);
     deleteSyntaxTree(expr);
     deleteToken(declare);
-    if(expr->type == Node_BooleanExpression)
-        error(5);
     error(2);
     return NULL;
 }
