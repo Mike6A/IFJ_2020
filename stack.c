@@ -68,6 +68,7 @@ int createScope(tScope *scope) {
     if (scope->topLocal == NULL) {
         tScopeItem* newScope = (tScopeItem*) malloc(sizeof(tScopeItem));
         newScope->next = NULL;
+        newScope->scopeLevel = 0;
         scope->topLocal = newScope;
         scope->topLocal->table = table;
         scope->global = newScope;
@@ -78,6 +79,15 @@ int createScope(tScope *scope) {
             free(table);
             return 99;
         }
+
+        int scopeLevel = 0;
+        tScopeItem* tmp = scope->topLocal;
+        while (tmp != NULL) {
+            tmp = tmp->next;
+            scopeLevel++;
+        }
+        newScope->scopeLevel = scopeLevel;
+
         newScope->next = scope->topLocal;
         newScope->table = table;
         scope->topLocal = newScope;
@@ -93,3 +103,36 @@ int removeLastLocalScope(tScope* scope){
     free(tmp);
     return 0;
 }
+
+void init_INT_Stack(t_INT_Stack* stack){
+    for(int i = 0; i < MAX_STACK; ++i)
+        stack->data[i] = -1;
+    stack->top = 0;
+}
+int add_INT_StackItem(t_INT_Stack* stack, int data){
+    if(stack->top < MAX_STACK) {
+        stack->data[++stack->top] = data;
+        return 0;
+    }
+    return -1;
+}
+int destroy_INT_Stack(t_INT_Stack* stack){
+    stack->top = 0;
+    return 0;
+}
+bool is_INT_Stack_Empty(t_INT_Stack* stack){
+    if (stack->top == 0)
+        return true;
+    return false;
+}
+int top_INT_Stack(t_INT_Stack* stack){
+    if (stack->top < MAX_STACK && stack->top >= 0)
+        return stack->data[stack->top];
+    return -1;
+}
+int pop_INT_Stack(t_INT_Stack* stack){
+    if (stack->top < MAX_STACK && stack->top >= 0)
+        return stack->data[stack->top--];
+    return -1;
+}
+

@@ -1,0 +1,36 @@
+.IFJcode20
+JUMP _main
+# func inputs() (string,int)
+LABEL _inputs
+PUSHFRAME
+DEFVAR LF@inputs_ret_0
+DEFVAR LF@inputs_ret_1
+MOVE LF@inputs_ret_1 int@0
+DEFVAR LF@input_type
+READ LF@inputs_ret_0 string
+TYPE LF@input_type LF@inputs_ret_0
+JUMPIFNEQ _func_err LF@input_type string@string
+JUMP _func_end
+LABEL _func_err
+MOVE LF@inputs_ret_1 int@1
+LABEL _func_end
+POPFRAME
+RETURN
+
+LABEL _main
+CREATEFRAME
+PUSHFRAME
+DEFVAR LF@inputs_out
+MOVE LF@inputs_out string@
+DEFVAR LF@inputi_flag
+MOVE LF@inputi_flag int@0
+CREATEFRAME
+CALL _inputs
+MOVE LF@inputs_out TF@inputs_ret_0
+MOVE LF@inputi_flag TF@inputs_ret_1
+WRITE LF@inputs_out
+WRITE string@\010
+WRITE LF@inputi_flag
+WRITE string@\010
+POPFRAME
+CLEARS

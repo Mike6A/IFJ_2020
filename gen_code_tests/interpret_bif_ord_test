@@ -1,0 +1,46 @@
+.IFJcode20
+JUMP _main
+# func ord(s string,i int) (int, int)
+LABEL _ord
+PUSHFRAME
+DEFVAR LF@ord_ret_0
+MOVE LF@ord_ret_0 int@0
+DEFVAR LF@ord_ret_1
+MOVE LF@ord_ret_1 int@0
+DEFVAR LF@in_string
+MOVE LF@in_string bool@true
+LT LF@in_string LF@arg_1 int@0
+JUMPIFEQ _func_error LF@in_string bool@true
+DEFVAR LF@max_int_value
+STRLEN LF@max_int_value LF@arg_0
+SUB LF@max_int_value LF@max_int_value int@1
+GT LF@in_string LF@arg_1 LF@max_int_value
+JUMPIFEQ _func_error LF@in_string bool@true
+STRI2INT LF@ord_ret_0 LF@arg_0 LF@arg_1
+JUMP _func_end
+LABEL _func_error
+MOVE LF@ord_ret_1 int@1
+LABEL _func_end
+POPFRAME
+RETURN
+
+LABEL _main
+CREATEFRAME
+PUSHFRAME
+DEFVAR LF@ord_num
+MOVE LF@ord_num int@0
+DEFVAR LF@ord_flag
+MOVE LF@ord_flag int@0
+CREATEFRAME
+DEFVAR TF@arg_0
+MOVE TF@arg_0 string@l
+DEFVAR TF@arg_1
+MOVE TF@arg_1 int@0
+CALL _ord
+MOVE LF@ord_num TF@ord_ret_0
+MOVE LF@ord_flag TF@ord_ret_1
+WRITE LF@ord_num
+WRITE string@\010
+WRITE LF@ord_flag
+WRITE string@\010
+

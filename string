@@ -1,1 +1,9 @@
-"hex xFF" "rune \'" "corr \xAA""\\"  "not hex \xAL"
+package main
+
+func ahoj(a int)(int) {
+    return a
+}
+
+func main() {
+        print(ahoj(5))
+}

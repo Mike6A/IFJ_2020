@@ -1,0 +1,80 @@
+# Ukazka iterace pomoci podminenych skoku
+.IFJcode20
+JUMP _main
+# func substr(s string,i int,n int) (string, int)
+LABEL _substr
+PUSHFRAME
+DEFVAR LF@substr_ret_0
+MOVE LF@substr_ret_0 string@
+DEFVAR LF@substr_ret_1
+MOVE LF@substr_ret_1 int@0
+ADD LF@arg_1 LF@arg_1 int@1
+
+DEFVAR LF@in_string
+DEFVAR LF@str_len
+DEFVAR LF@substr_len
+
+STRLEN LF@str_len LF@arg_0
+
+MOVE LF@substr_len LF@str_len
+MOVE LF@in_string bool@true
+JUMPIFEQ _func_empty LF@arg_2 int@0
+LT LF@in_string LF@str_len int@1
+JUMPIFEQ _func_error LF@in_string bool@true
+LT LF@in_string LF@arg_1 int@0
+JUMPIFEQ _func_error LF@in_string bool@true
+GT LF@in_string LF@arg_1 LF@str_len
+JUMPIFEQ _func_error LF@in_string bool@true
+LT LF@in_string LF@arg_2 int@0
+JUMPIFEQ _func_error LF@in_string bool@true
+# 7 1 2   5
+SUB LF@substr_len LF@substr_len LF@arg_1
+GT LF@in_string LF@arg_2 LF@substr_len
+JUMPIFNEQ _func_continue LF@in_string bool@true
+ADD LF@substr_len LF@substr_len int@1
+MOVE LF@arg_2 LF@substr_len
+LABEL _func_continue
+DEFVAR LF@index
+MOVE LF@index LF@arg_1
+SUB LF@index LF@index int@1
+DEFVAR LF@char_on_index
+DEFVAR LF@loop_counter
+MOVE LF@loop_counter int@0 
+LABEL _func_loop
+GETCHAR LF@char_on_index LF@arg_0 LF@index
+CONCAT LF@substr_ret_0 LF@substr_ret_0 LF@char_on_index
+ADD LF@index LF@index int@1
+ADD LF@loop_counter LF@loop_counter int@1
+JUMPIFNEQ _func_loop LF@loop_counter LF@arg_2
+JUMP _func_end
+LABEL _func_empty
+MOVE LF@substr_ret_0 string@
+JUMP _func_end
+LABEL _func_error
+MOVE LF@substr_ret_1 int@1
+LABEL _func_end
+POPFRAME
+RETURN
+
+LABEL _main
+CREATEFRAME
+PUSHFRAME
+DEFVAR LF@new_str
+MOVE LF@new_str string@
+DEFVAR LF@substr_flag
+MOVE LF@substr_flag int@0
+CREATEFRAME
+DEFVAR TF@arg_0
+MOVE TF@arg_0 string@
+DEFVAR TF@arg_1
+MOVE TF@arg_1 int@1
+DEFVAR TF@arg_2
+MOVE TF@arg_2 int@1
+CALL _substr
+MOVE LF@new_str TF@substr_ret_0
+MOVE LF@substr_flag TF@substr_ret_1
+WRITE LF@new_str
+WRITE string@\010
+WRITE LF@substr_flag
+WRITE string@\010
+

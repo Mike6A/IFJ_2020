@@ -217,15 +217,27 @@ void getToken(tTokenizer* tokenizer) {
     switch (tokenizer->actualChar) {
         case '+':
             tokenizer->outputToken.value = "+";
-            tokenizer->outputToken.type = tokenType_PLUS;
+            if (state_SecondEq(tokenizer) == 1)
+                tokenizer->outputToken.type = tokenType_PLUS;
+            else {
+                tokenizer->outputToken.type = tokenType_ASSPLUS;
+            }
             return;
         case '-':
             tokenizer->outputToken.value = "-";
-            tokenizer->outputToken.type = tokenType_MINUS;
+            if (state_SecondEq(tokenizer) == 1)
+                tokenizer->outputToken.type = tokenType_MINUS;
+            else {
+                tokenizer->outputToken.type = tokenType_ASSMINUS;
+            }
             return;
         case '*':
             tokenizer->outputToken.value = "*";
-            tokenizer->outputToken.type = tokenType_MUL;
+            if (state_SecondEq(tokenizer) == 1)
+                tokenizer->outputToken.type = tokenType_MUL;
+            else {
+                tokenizer->outputToken.type = tokenType_ASSMUL;
+            }
             return;
         case '<':
             tokenizer->outputToken.value = "<";
@@ -574,7 +586,13 @@ int state_OneLineComment(tTokenizer* tokenizer){
         if (state_BlockComment(tokenizer) != 0) {
             return 2;
         }
+        getNextChar(tokenizer);
         return 3;
+    } else if (tokenizer->actualChar == '=') {  //is assign and mul /=
+        tokenizer->outputToken.value = "/=";
+        tokenizer->outputToken.type = tokenType_ASSDIV;
+        tokenizer->processed = true;
+        return 1;
     } else { //is divede operator
         tokenizer->outputToken.value = "/";
         tokenizer->outputToken.type = tokenType_DIV;
@@ -649,7 +667,7 @@ int state_SecondEq(tTokenizer* tokenizer){
 void freeToken(tTokenizer* tokenizer) {
     if (tokenizer->errorCode > 0) 
         return;
-    if (tokenizer->outputToken.type <= 9) {
+    if (tokenizer->outputToken.type <= 12) {
         if (tokenizer->outputToken.value != NULL && strlen(tokenizer->outputToken.value) > 0)
             free(tokenizer->outputToken.value);
     }

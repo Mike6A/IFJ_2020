@@ -1,0 +1,24 @@
+package main
+
+func main()() {
+
+    a:=1
+    b:=2
+    c:=0
+    c = a*5+2
+    if a>2 {
+        print(a+2,"\\\t")
+
+        if a>4 {
+            a:=58
+            print(a*2,"\"\t")
+        } else {
+            print(a/2,"\n")
+        }
+
+    } else {
+        print(a-2)
+    }
+    //STACK ON IF ELSE COUNTER
+}
+

@@ -1,0 +1,24 @@
+.IFJcode20
+JUMP _main
+# func len(s string) (int)
+LABEL _len
+PUSHFRAME
+DEFVAR LF@len_ret_0
+MOVE LF@len_ret_0 int@0
+STRLEN LF@len_ret_0 LF@arg_0
+POPFRAME
+RETURN
+
+LABEL _main
+CREATEFRAME
+PUSHFRAME
+DEFVAR LF@len_str
+MOVE LF@len_str int@0
+CREATEFRAME
+DEFVAR TF@arg_0
+MOVE TF@arg_0 string@kdesibolpici
+CALL _len
+MOVE LF@len_str TF@len_ret_0
+WRITE LF@len_str
+WRITE string@\010
+

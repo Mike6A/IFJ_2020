@@ -1,0 +1,40 @@
+.IFJcode20
+JUMP _main
+# func chr(i int) (string, int)
+LABEL _chr
+PUSHFRAME
+DEFVAR LF@chr_ret_0
+MOVE LF@chr_ret_0 string@
+DEFVAR LF@chr_ret_1
+MOVE LF@chr_ret_1 int@0
+DEFVAR LF@in_string
+MOVE LF@in_string bool@true
+LT LF@in_string LF@arg_0 int@0
+JUMPIFEQ _func_error LF@in_string bool@true
+GT LF@in_string LF@arg_0 int@255
+JUMPIFEQ _func_error LF@in_string bool@true
+INT2CHAR LF@chr_ret_0 LF@arg_0
+JUMP _func_end
+LABEL _func_error
+MOVE LF@chr_ret_1 int@1
+LABEL _func_end
+POPFRAME
+RETURN
+
+LABEL _main
+CREATEFRAME
+PUSHFRAME
+DEFVAR LF@chr_str
+MOVE LF@chr_str string@
+DEFVAR LF@chr_flag
+MOVE LF@chr_flag int@0
+CREATEFRAME
+DEFVAR TF@arg_0
+MOVE TF@arg_0 int@98
+CALL _chr
+MOVE LF@chr_str TF@chr_ret_0
+MOVE LF@chr_flag TF@chr_ret_1
+WRITE LF@chr_str
+WRITE string@\010
+WRITE LF@chr_flag
+WRITE string@\010

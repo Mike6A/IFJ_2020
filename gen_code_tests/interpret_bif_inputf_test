@@ -1,0 +1,34 @@
+.IFJcode20
+JUMP _main
+# func inputf() (float64,int)
+LABEL _inputf
+PUSHFRAME
+DEFVAR LF@inputf_ret_0
+DEFVAR LF@inputf_ret_1
+MOVE LF@inputf_ret_1 int@0
+DEFVAR LF@input_type
+READ LF@inputf_ret_0 float
+TYPE LF@input_type LF@inputf_ret_0
+JUMPIFNEQ _func_err LF@input_type string@float
+JUMP _func_end
+LABEL _func_err
+MOVE LF@inputf_ret_1 int@1
+LABEL _func_end
+POPFRAME
+RETURN
+
+LABEL _main
+CREATEFRAME
+PUSHFRAME
+DEFVAR LF@inputf_out
+MOVE LF@inputf_out int@0
+DEFVAR LF@inputf_flag
+MOVE LF@inputf_flag int@0
+CREATEFRAME
+CALL _inputf
+MOVE LF@inputf_out TF@inputf_ret_0
+MOVE LF@inputf_flag TF@inputf_ret_1
+WRITE LF@inputf_out
+WRITE string@\010
+WRITE LF@inputf_flag
+WRITE string@\010

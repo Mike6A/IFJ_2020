@@ -7,7 +7,7 @@
 #ifndef IFJ_2020_SEMANTICS_H
 #define IFJ_2020_SEMANTICS_H
 
-#include "symtable/symtable.h"
+#include "symtable.h"
 #include "stack.h"
 #include "analyse.h"
 
@@ -18,6 +18,6 @@ typedef struct t_ExpReturnType {
     bool constant;  /**< true if item is constant (known value) | false if unknown value */
 } tExpReturnType;
 
-long runSemanticAnalyze(SyntaxNode* root);
+long runSemanticAnalyze(SyntaxNode* root, tScope* scope);
 
 #endif //IFJ_2020_SEMANTICS_H
