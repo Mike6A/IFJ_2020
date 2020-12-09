@@ -17,6 +17,7 @@
 #include "analyse.h"
 #include "stack.h"
 #include "stdarg.h"
+#include <malloc.h>
 
 #define MAX_LEN 20
 #define MAX_PARAMS_COUNT 100
@@ -126,6 +127,7 @@ void all_vars_after_new_scope();
 
 int getErrorList();
 void printAndDeleteGenCode();
+void deleteIdListGlobal();
 void deletepList();
 #endif
 

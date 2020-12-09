@@ -197,14 +197,15 @@ void printAndDeleteGenCode(tScope* scopeVar){
                 func = TITEM->func;
             if (func != NULL) {
                 if(current->printString != NULL) {
+
+                    //fprintf(stderr, ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>%d\n", paramNumber);
+                    current->printString = realloc(current->printString, sizeof(char)*(malloc_usable_size(current->printString)+malloc_usable_size(func->params[paramNumber]) + 1));
+                    char *buffer = malloc(sizeof(char)*(malloc_usable_size(current->printString)+1));
                     token = strtok(current->printString, "@ ");
                     if(token!= NULL && strcmp(token, "MOVE") == 0)
                         defvar = true;
                     if(token!= NULL && strcmp(token, "DEFVAR") == 0)
                         defvar = false;
-                    //fprintf(stderr, ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>%d\n", paramNumber);
-                    current->printString = realloc(current->printString, strlen(func->params[paramNumber]) + 1);
-                    char *buffer = malloc(strlen(current->printString) + 100);
                     if (buffer != NULL) {
                         strcpy(buffer, "");
                         while (token != NULL) {
@@ -289,6 +290,12 @@ void deleteIdList(idList** list){
         }
     }
 }
+void deleteIdListGlobal(){
+    while(currentScopeVars != NULL){
+        //fprintf(stderr, ">>>>>>>>>>>>> DELETE!!! %d <<<<<<<<<<<<<<<", (*list)->scope);
+        deleteIdListScope(&currentScopeVars);
+    }
+}
 void createNewIdListScope(idList** list){
     if((*list) != NULL)
         scope++;
@@ -347,8 +354,7 @@ void parse_str(char *str)
 
     int old_len = strlen(str);
     int ord = 0;
-    char *parsed_str[old_len];
-    char *hex_arr[2];
+    char hex_arr[3];
 
     for(int i=1; i< old_len-1;i++)
     {
@@ -384,8 +390,16 @@ void parse_str(char *str)
                         hex_arr[0] = str[i+2];
                         hex_arr[1] = str[i+3];
                         hex_arr[2] = '\0';
-                        ord = hex_to_dec(&hex_arr);
-                        addItemTopList("%c",ord);
+                        ord = hex_to_dec(hex_arr);
+                        if(ord > 99){
+                            addItemTopList("\\%d",ord);
+                        }else if(ord > 9){
+                            addItemTopList("\\0%d",ord);
+                        }else if(ord >= 0){
+                            addItemTopList("\\00%d",ord);
+                        }
+
+
                         i+=2;
                                             
             }
@@ -434,7 +448,7 @@ void bif_substr()
     addItemTopList("STRLEN LF@str_len LF@arg_0\n");
     addItemTopList("MOVE LF@substr_len LF@str_len\n");
     addItemTopList("MOVE LF@in_string bool@true\n");
-    addItemTopList("JUMPIFEQ _func_error_substr LF@arg_2 int@0\n");
+    addItemTopList("JUMPIFEQ _func_empty_substr LF@arg_2 int@0\n");
     addItemTopList("LT LF@in_string LF@str_len int@1\n");
     addItemTopList("JUMPIFEQ _func_error_substr LF@in_string bool@true\n");
     addItemTopList("LT LF@in_string LF@arg_1 int@0\n");
@@ -461,6 +475,9 @@ void bif_substr()
     addItemTopList("ADD LF@index LF@index int@1\n");
     addItemTopList("ADD LF@loop_counter LF@loop_counter int@1\n");
     addItemTopList("JUMPIFNEQ _func_loop_substr LF@loop_counter LF@arg_2\n");
+    addItemTopList("JUMP _func_end_substr\n");
+    addItemTopList("LABEL _func_empty_substr\n");
+    addItemTopList("MOVE LF@substr_ret_0_%d string@\n",scope);
     addItemTopList("JUMP _func_end_substr\n");
     addItemTopList("LABEL _func_error_substr\n");
     addItemTopList("MOVE LF@substr_ret_1_%d int@1\n", scope);
@@ -567,7 +584,12 @@ int hex_to_dec(char hex[])
             dec_val += (hex[i] - 55)*base; 
           
             base = base*16; 
-        } 
+        } else if (hex[i]>='a' && hex[i]<='f')
+        {
+            dec_val += (hex[i] - 55-32)*base;
+
+            base = base*16;
+        }
     } 
       
     return dec_val; 
@@ -576,12 +598,11 @@ int hex_to_dec(char hex[])
 void bif_print(SyntaxNodes* my_statement)
 {
 
-    int i=0;
     SyntaxNodes* current_statement = my_statement != NULL? my_statement->first: NULL;
     static int c = 0;
     static int ord = 0;
     static char hex_arr[3];
-    
+    double f = 0.0;
     while(current_statement != NULL)
     {
         if(current_statement->node != NULL) {
@@ -591,7 +612,8 @@ void bif_print(SyntaxNodes* my_statement)
                     addItemTopList("WRITE int@%s\n", current_statement->node->right->token->value);
                     break;
                 case Node_NumberDoubleExpression:
-                    addItemTopList("WRITE float@%s\n", current_statement->node->right->token->value);
+                    f = atof(current_statement->node->right->token->value);
+                    addItemTopList("WRITE float@%a\n", f);
                     break;
                 case Node_StringExpression:     
                     for(int i=1; i< strlen(current_statement->node->right->token->value)-1;i++)
@@ -628,7 +650,7 @@ void bif_print(SyntaxNodes* my_statement)
                                         hex_arr[0] = current_statement->node->right->token->value[i+2];
                                         hex_arr[1] = current_statement->node->right->token->value[i+3];
                                         hex_arr[2] = '\0';
-                                        ord = hex_to_dec(&hex_arr);
+                                        ord = hex_to_dec(hex_arr);
                                         addItemTopList("WRITE string@%c\n",ord);
                                         i+=2;
                                             
@@ -681,6 +703,8 @@ void bif_print(SyntaxNodes* my_statement)
                     struct genExpr binary = GenParseExpr(current_statement->node, "tmpWriteExprBin", temp3, temp4, get_var_type(typeBin));
                     addItemTopList("WRITE %s@%s%s\n", binary.constant ? binary.type : "LF", binary.sign ? "-" : "", binary.value);
                     break;
+                default:
+                    break;
             }
         }
         current_statement = current_statement->next;
@@ -729,6 +753,7 @@ void bif_inputi()
     addItemTopList("JUMPIFNEQ _func_err_inputi LF@input_type string@int\n");
     addItemTopList("JUMP _func_end_inputi\n");
     addItemTopList("LABEL _func_err_inputi\n");
+    addItemTopList("MOVE LF@inputi_ret_0_%d int@0\n", scope);
     addItemTopList("MOVE LF@inputi_ret_1_%d int@1\n", scope);
     addItemTopList("LABEL _func_end_inputi\n");
     addItemTopList("POPFRAME\n");
@@ -749,6 +774,7 @@ void bif_inputf()
     addItemTopList("JUMPIFNEQ _func_err_inputf LF@input_type string@float\n");
     addItemTopList("JUMP _func_end_inputf\n");
     addItemTopList("LABEL _func_err_inputf\n");
+    addItemTopList("MOVE LF@inputf_ret_0_%d float@0x0p+0\n", scope);
     addItemTopList("MOVE LF@inputf_ret_1_%d int@1\n", scope);
     addItemTopList("LABEL _func_end_inputf\n");
     addItemTopList("POPFRAME\n");
@@ -1034,8 +1060,8 @@ void func_ret_to_LF(char *func_name, tFuncItem *func, SyntaxNodes* dest)
             }
             char* retId = malloc(sizeof(char)*strlen(func_name) + 5 +countOfI+1);
             sprintf(retId, "%s_ret_%d", func_name, i);
-            int whichScopeRet = getLastScopeOfIdInList(currentScopeVars, retId);
-            addItemTopList("MOVE LF@%s_%d TF@%s_%d\n",currentDest->node->left->token->value,whichScope, retId);
+            int whichScopeRet = 0;//getLastScopeOfIdInList(currentScopeVars, retId);
+            addItemTopList("MOVE LF@%s_%d TF@%s_%d\n",currentDest->node->left->token->value,whichScope, retId, whichScopeRet);
             free(retId);
         }
         currentDest = currentDest->next;
@@ -1278,6 +1304,8 @@ struct genExpr GenParseExpr(SyntaxNode* root, char* assignTo, char* left, char* 
                            rightTemp.constant ? rightTemp.type : "LF", rightTemp.sign ? "-" : "", rightTemp.value);
                 }
                 break;
+            default:
+                break;
         }
         if(changeSign){
             if (strcmp(type, "int") == 0) {
@@ -1504,6 +1532,8 @@ struct genExpr GenParseExpr(SyntaxNode* root, char* assignTo, char* left, char* 
         struct genExpr done = {.value = assignTo, .type = type, .sign = false};
         return done;
     }
+    struct genExpr danger = {.value = "", .type = "", .sign = false};
+    return danger;
 }
 
 void GENASIGN(SyntaxNode* root, tHashItem* item){ //TEST!!!!!!!!
@@ -1862,7 +1892,7 @@ void for_start_Assign(){
     all_vars_to_new_scope(scope);
     addItemTopList("PUSHFRAME\n");
     createNewIdListScope(&currentScopeVars);
-};
+}
 void for_end_Assign(){
 
 }
