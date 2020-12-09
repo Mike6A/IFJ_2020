@@ -536,6 +536,7 @@ SyntaxNode* ParseDeclarationSyntax(tTokenizer* tokenizer, tToken* id){
     error(2);
     return NULL;
 }
+
 SyntaxNode* ParseFunctionCallingSyntax(tTokenizer* tokenizer, tToken* id){
     ///START of Calling Function (34 - LL-Tabulka)
     if(isError()){

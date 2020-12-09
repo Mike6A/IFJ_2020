@@ -7,7 +7,7 @@
 #ifndef IFJ_2020_SEMANTICS_H
 #define IFJ_2020_SEMANTICS_H
 
-#include "symtable/symtable.h"
+#include "symtable.h"
 #include "stack.h"
 #include "analyse.h"
 

@@ -2,7 +2,7 @@
 // Created by david on 27/10/2020.
 //
 #include "scanner.h"
-#include "symtable/symtable.h"
+#include "symtable.h"
 #ifndef IFJ_2020_SYNTAXTREE_H
 #define IFJ_2020_SYNTAXTREE_H
 enum typeOfNode{

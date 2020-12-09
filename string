@@ -1,25 +1,9 @@
 package main
 
-func main()() {
+func ahoj(a int)(int) {
+    return a
+}
 
-    a:=1
-    b:=2
-    c:=0
-    c = a*5+2
-    for a:=0 ; a<5 ; a=a+1 {
-
-        print("a > ",a,"\n")
-        for b:=4 ; b>-1 ; b=b-1 {
-            ebola := 15
-            print("\t\t EBOLA: ", ebola ,"\n")
-            print("b2>> ",b,"\n")
-            if a != b {
-                print("\ta != b","\n")
-            }else{
-                print("\ta = b","\n")
-            }
-
-        }
-
-    }
+func main() {
+        print(ahoj(5))
 }

@@ -11,7 +11,7 @@
 #include "stdlib.h"
 #include "stdbool.h"
 #include "string.h"
-#include "stringBuilder/stringBuilder.h"
+#include "stringBuilder.h"
 
 typedef enum { tokenType_ID, tokenType_KW, tokenType_INT, tokenType_DOUBLE, tokenType_STRING, tokenType_LE, 
                tokenType_GE, tokenType_EQ, tokenType_NEQ, tokenType_DECL, tokenType_ASSMUL, tokenType_ASSPLUS, tokenType_ASSMINUS,
