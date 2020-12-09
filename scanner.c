@@ -220,7 +220,6 @@ void getToken(tTokenizer* tokenizer) {
             if (state_SecondEq(tokenizer) == 1)
                 tokenizer->outputToken.type = tokenType_PLUS;
             else {
-                tokenizer->outputToken.value = "+=";
                 tokenizer->outputToken.type = tokenType_ASSPLUS;
             }
             return;
@@ -229,7 +228,6 @@ void getToken(tTokenizer* tokenizer) {
             if (state_SecondEq(tokenizer) == 1)
                 tokenizer->outputToken.type = tokenType_MINUS;
             else {
-                tokenizer->outputToken.value = "-=";
                 tokenizer->outputToken.type = tokenType_ASSMINUS;
             }
             return;
@@ -238,7 +236,6 @@ void getToken(tTokenizer* tokenizer) {
             if (state_SecondEq(tokenizer) == 1)
                 tokenizer->outputToken.type = tokenType_MUL;
             else {
-                tokenizer->outputToken.value = "*=";
                 tokenizer->outputToken.type = tokenType_ASSMUL;
             }
             return;
@@ -670,7 +667,7 @@ int state_SecondEq(tTokenizer* tokenizer){
 void freeToken(tTokenizer* tokenizer) {
     if (tokenizer->errorCode > 0) 
         return;
-    if (tokenizer->outputToken.type <= 9) {
+    if (tokenizer->outputToken.type <= 12) {
         if (tokenizer->outputToken.value != NULL && strlen(tokenizer->outputToken.value) > 0)
             free(tokenizer->outputToken.value);
     }
