@@ -1,5 +1,5 @@
 /**
- * @file symtable.h
+ * @file symtable.c
  * @author Michal Mlčoch (xmlcoc12@stud.fit.vutbr.cz)
  * @brief Implementaion of symbol table with hash table.
  */
