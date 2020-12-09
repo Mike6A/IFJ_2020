@@ -11,13 +11,13 @@
 #define MAX_DOUBLE_ACCURACY 0.000000001
 
 long blockExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLinkedListItem* strList);
-bool foundReturn;
-bool disableAssignment;
+bool foundReturn;        /** Variable to check if all routes of code have return statement (if/else) */
+bool disableAssignment;  /** Disables assignments where isn't clear at compile time, what will happen (if/else and for) */
 
 /**
- * Parses string to TData type of data type
+ * Parse string to TItem type of data type
  * @param str String to parse
- * @return TData type
+ * @return TItem struct type
  */
 TItem getDataTypeFromString(char* str) {
     if (strcmp(str, "int") == 0)
@@ -34,10 +34,21 @@ TItem getDataTypeFromString(char* str) {
     }
 }
 
+/**
+ * Function to parse String to Int
+ * @param str String to parse
+ * @return Int value of parsed string
+ */
 long parseStringToInt(char* str) {
     return strtol(str, NULL, 10);
 }
 
+/**
+ * Function to parse Int to string
+ * @param num Int value
+ * @param strList Pointer to temp string list
+ * @return String from number
+ */
 char* parseIntToString(long num, tStringLinkedListItem* strList) {
     char* result = (char*) malloc(MAX_NUM2STRING_DIGITS * sizeof(char));
     snprintf(result, MAX_NUM2STRING_DIGITS, "%ld", num);
@@ -45,10 +56,21 @@ char* parseIntToString(long num, tStringLinkedListItem* strList) {
     return result;
 }
 
+/**
+ * Function to parse String to Float64
+ * @param str String to parse
+ * @return Float64 value of parsed string
+ */
 double parseStringToFloat64(char* str) {
     return strtod(str, NULL);
 }
 
+/**
+ * Function to parse Float64 to string
+ * @param num Float64 value
+ * @param strList Pointer to temp string list
+ * @return String from number
+ */
 char* parseFloat64ToString(double num, tStringLinkedListItem* strList) {
     char* result = (char*) malloc(MAX_NUM2STRING_DIGITS * sizeof(char));
     snprintf(result, MAX_NUM2STRING_DIGITS, "%lf", num);
@@ -56,11 +78,18 @@ char* parseFloat64ToString(double num, tStringLinkedListItem* strList) {
     return result;
 }
 
+/**
+ * Function to append strings
+ * @param str1 First string
+ * @param str2 Second string
+ * @param strList Pointer to temp string list
+ * @return Merged string
+ */
 char* appendString(char* str1, char* str2, tStringLinkedListItem* strList) {
     unsigned size = strlen(str1) + strlen(str2) + 1;
     char* result = (char*) malloc(size * sizeof(char));
     snprintf(result, size, "%s%s", str1, str2);
-    addListItem(strList, result);   //remember this string
+    addListItem(strList, result);   //remember this string to free it later
     return result;
 }
 
@@ -68,6 +97,7 @@ char* appendString(char* str1, char* str2, tStringLinkedListItem* strList) {
  * Looks up for identifier in all reachable scopes
  * @param scope Scope where to start
  * @param name Name of identifier
+ * @param scopeLevel Changes value of int at this pointer to the level of scope
  * @return tHashItem* if found, otherwise NULL
  */
 tHashItem* getIdentifier(tScopeItem* scope, char* name, int* scopeLevel) {
@@ -89,6 +119,13 @@ tHashItem* getIdentifier(tScopeItem* scope, char* name, int* scopeLevel) {
     return item;
 }
 
+/**
+ * Function to handle identifiers
+ * @param root Pointer to the node
+ * @param scope Pointer to current scope
+ * @param parentFunction Name of parent function
+ * @return Return code (0 = OK)
+ */
 tExpReturnType identifierExp(SyntaxNode* root, tScope* scope, char* parentFunction) {
     tExpReturnType result;
     result.errCode = 0;
@@ -96,7 +133,7 @@ tExpReturnType identifierExp(SyntaxNode* root, tScope* scope, char* parentFuncti
     result.constant = false;
     tScopeItem *currentScope = scope->topLocal;
 
-    char* id;           //TODO patch before David will fix bug in identifier in call function
+    char* id;
     if (root->right != NULL)
         id = root->right->token->value;
     else
@@ -113,8 +150,7 @@ tExpReturnType identifierExp(SyntaxNode* root, tScope* scope, char* parentFuncti
     }
 
     if (item == NULL) {
-        tHashItem* func = getIdentifier(scope->topLocal, parentFunction, NULL);      //TODO test for recursion error finding bad variables
-        //tHashItem* func = getIdentifier(scope->global, parentFunction);      //TODO test for recursion error finding bad variables
+        tHashItem* func = getIdentifier(scope->topLocal, parentFunction, NULL);
         if (func->func->params_count > 0) {
             for (int i = 0; i < func->func->params_count; i++) {
                 if (strcmp(func->func->params[i], id) == 0)   //trying to find identifier in func params
@@ -135,7 +171,6 @@ tExpReturnType identifierExp(SyntaxNode* root, tScope* scope, char* parentFuncti
     if (result.constant) {
         result.value = item->value;
     }
-    //TODO codegen: you'll need this variable, not sure how exactly
     return result;
 }
 
@@ -143,6 +178,7 @@ tExpReturnType identifierExp(SyntaxNode* root, tScope* scope, char* parentFuncti
  * Calculate expression result type
  * @param root Pointer to the expressions's node
  * @param scope Pointer to current scope
+ * @param parentFunction Name of parent function
  * @param strList Pointer to list of strings
  * @return tExpReturnType struct with type and data
  */
@@ -175,11 +211,10 @@ tExpReturnType evalExpression(SyntaxNode* root, tScope* scope, char* parentFunct
     else if (type == Node_UnaryExpression) {
         tExpReturnType rightSide = evalExpression(root->right, scope, parentFunction, strList);
         if (rightSide.type == TString) {
-            result.errCode = 5;     //TODO is it 5?
+            result.errCode = 5;
             //fprintf(stderr, "Unary operator does not work with string\n");
             return result;
         }
-        //TODO codegen: from this point, if we don't use optimization
         if (rightSide.constant == false) {
             return rightSide;
         }
@@ -234,7 +269,6 @@ tExpReturnType evalExpression(SyntaxNode* root, tScope* scope, char* parentFunct
         if (rightSide.type == TString) {                //string
             result.type = TString;
             if (tokenType == tokenType_PLUS) {
-                //TODO codegen: string concatenate, values -> leftSide.constant => leftSide.value | rightSide.constant => rightSide.value
                 if (rightSide.constant == true && leftSide.constant == true) {
                     result.value = appendString(leftSide.value, rightSide.value, strList);
                     result.constant = true;
@@ -255,7 +289,6 @@ tExpReturnType evalExpression(SyntaxNode* root, tScope* scope, char* parentFunct
                     return result;
                 }
             }
-            //TODO codegen: int operations, values -> leftSide.constant => leftSide.value | tokenType | rightSide.constant => rightSide.value
 
             if (rightSide.constant == false || leftSide.constant == false) {
                 if (tokenType == tokenType_MUL) {
@@ -283,8 +316,6 @@ tExpReturnType evalExpression(SyntaxNode* root, tScope* scope, char* parentFunct
             if (tokenType == tokenType_PLUS) {
                 
                 result.value = parseIntToString(left + right, strList);
-               // printf("DEFVAR LF@temp\n");
-               // printf("ADD LF@temp int@%d int@%d\n",left, right);
             }
             else if (tokenType == tokenType_MINUS) {
                 result.value = parseIntToString(left - right, strList);
@@ -301,14 +332,13 @@ tExpReturnType evalExpression(SyntaxNode* root, tScope* scope, char* parentFunct
             result.type = TDouble;
             if (rightSide.constant == true && tokenType == tokenType_DIV) {
                 double right = parseStringToFloat64(rightSide.value);
-                if (right > -MAX_DOUBLE_ACCURACY && right < MAX_DOUBLE_ACCURACY)        //TODO accuracy
+                if (right > -MAX_DOUBLE_ACCURACY && right < MAX_DOUBLE_ACCURACY)
                 {
                     //fprintf(stderr, "Division by zero is not allowed!\n");
                     result.errCode = 9;
                     return result;
                 }
             }
-            //TODO codegen: double operations, values -> leftSide.constant => leftSide.value | tokenType | rightSide.constant => rightSide.value
             if (rightSide.constant == false || leftSide.constant == false) {
                 if (tokenType == tokenType_MUL) {
                     if (rightSide.constant != leftSide.constant){
@@ -385,7 +415,6 @@ tExpReturnType evalExpression(SyntaxNode* root, tScope* scope, char* parentFunct
             return result;      //shouldn't happen
         }
 
-        //TODO codegen: boolean compare, values -> leftSide.constant => leftSide.value | tokenType | rightSide.constant => rightSide.value
         if (rightSide.type == TInt) {
             if (leftSide.constant == false || rightSide.constant == false) {
                 return result;
@@ -480,7 +509,7 @@ tExpReturnType evalExpression(SyntaxNode* root, tScope* scope, char* parentFunct
             }
             result.value = parseIntToString(isTrue, strList);
         }
-        else {      //else if (rightSide.type == TBool) -> only bool should fall to this else | BOOLTHEN -> add condition for == or !=
+        else {      //else if (rightSide.type == TBool) -> only bool should fall to this else
             //fprintf(stderr, "Using booleans as operands in boolean expression is not allowed!\n");
             result.errCode = 5;
         }
@@ -501,7 +530,6 @@ tExpReturnType evalExpression(SyntaxNode* root, tScope* scope, char* parentFunct
 long returnExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLinkedListItem* strList) {
     int returnCode = 0;
     tHashItem* func = getIdentifier(scope->topLocal, parentFunction, NULL);
-    //tHashItem* func = getIdentifier(scope->global, parentFunction);
     if (func != NULL) {     //function is declared (if not, there's something wrong)
         int retCount = 0;
         SyntaxNodes *retVal = root->statements != NULL ? root->statements->first : NULL;
@@ -539,21 +567,21 @@ long returnExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLin
     foundReturn = true;
     if (returnCode == 0 && root->statements!=NULL && root->statements->first != NULL)
         func_ret_get_value(parentFunction, func->func, root->statements->first);
-    //TODO codegen: return variables + destroy scope
     return returnCode;
 }
 
 /**
- * Declare variable. Returns error if already declared
+ * Declare variable, check if the variable isn't already declared
  * @param root Pointer to the node
  * @param scope Pointer to current scope
+ * @param parentFunction Name of parent function
+ * @param strList Pointer to temp string list
  * @return Return code (0 = OK)
  */
 long declareExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLinkedListItem* strList) {
     tScopeItem *currentScope = scope->topLocal;
     char* id = root->left->token->value;
 
-    //tHashItem *item = getIdentifier(currentScope, id);
     tHashItem *item = getHashItem(currentScope->table, id);
     if (item != NULL) {
         //fprintf(stderr, "Variable %s is already declared!\n", id);
@@ -561,7 +589,6 @@ long declareExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLi
     }
 
     tHashItem *parentFunc = getIdentifier(scope->topLocal, parentFunction, NULL);
-    //tHashItem *parentFunc = getIdentifier(scope->global, parentFunction);
     if (parentFunc->func->params_count > 0) {
         for (int i = 0; i < parentFunc->func->params_count; i++) {
             if (strcmp(parentFunc->func->params[i], id) == 0)   //trying to declare identifier that has same name as parameter in function
@@ -576,12 +603,18 @@ long declareExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLi
     if (result.errCode == 0) {
         addVarToHT(currentScope->table, id, result.type, result.value, result.constant);
         vars_default_declar_init(root->right, getIdentifier(currentScope, id, NULL));
-        //TODO codegen: declare variable in current scope | name: id, value: result.value, constant: result.constant
     }
 
     return result.errCode;
 }
 
+/**
+ * Function to assignment to an identifier
+ * @param root Pointer to the node
+ * @param scope Pointer to current scope
+ * @param parentFunction Name of parent function
+ * @return tExpReturnType struct with type and data
+ */
 tExpReturnType assignmentExpSingleIdentifier(SyntaxNode* root, tScope* scope, char* parentFunction) {
     tExpReturnType result;
     result.errCode = 0;
@@ -597,8 +630,7 @@ tExpReturnType assignmentExpSingleIdentifier(SyntaxNode* root, tScope* scope, ch
             return result;
         }
 
-        tHashItem* func = getIdentifier(scope->topLocal, parentFunction, NULL);      //TODO test for recursion error finding bad variables
-        //tHashItem* func = getIdentifier(scope->global, parentFunction);      //TODO test for recursion error finding bad variables
+        tHashItem* func = getIdentifier(scope->topLocal, parentFunction, NULL);
         if (func->func->params_count > 0) {
             for (int i = 0; i < func->func->params_count; i++) {
                 if (strcmp(func->func->params[i], id) == 0)   //trying to find identifier in func params
@@ -626,10 +658,18 @@ tExpReturnType assignmentExpSingleIdentifier(SyntaxNode* root, tScope* scope, ch
     else {
         item->declared = false;
     }
-    //TODO codegen: you'll need this variable
     return result;
 }
 
+/**
+ * Function to handle single assignment between two nodes
+ * @param dest Pointer to the destination node
+ * @param value Pointer to the value node
+ * @param scope Pointer to current scope
+ * @param parentFunction Name of parent function
+ * @param strList Pointer to temp string list
+ * @return Return code (0 = OK)
+ */
 long assignmentExpSingle(SyntaxNode* dest, SyntaxNode* value, tScope* scope, char* parentFunction, tStringLinkedListItem* strList) {
     tExpReturnType leftSide = assignmentExpSingleIdentifier(dest, scope, parentFunction);
     if (leftSide.errCode != 0) {
@@ -644,8 +684,6 @@ long assignmentExpSingle(SyntaxNode* dest, SyntaxNode* value, tScope* scope, cha
         //fprintf(stderr, "Assignment of incompatible types!\n");
         return 5;
     }
-
-    //TODO codegen: leftSide = variable | rightSide = value
 
     tHashItem* item = getIdentifier(scope->topLocal, dest->left->token->value, NULL); //if item is null -> function param
     if (item != NULL) {
@@ -665,7 +703,14 @@ long assignmentExpSingle(SyntaxNode* dest, SyntaxNode* value, tScope* scope, cha
     return 0;
 }
 
-//TODO asignment of values from function needs to reset constant to variable
+/**
+ * Main function to handle different assignments
+ * @param root Pointer to the node
+ * @param scope Pointer to current scope
+ * @param parentFunction Name of parent function
+ * @param strList Pointer to temp string list
+ * @return Return code (0 = OK)
+ */
 long assignmentExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLinkedListItem* strList) {
     SyntaxNodes *destination = root->left->statements != NULL ? root->left->statements->first : NULL;
     SyntaxNodes *value = root->right->statements != NULL ? root->right->statements->first : NULL;
@@ -673,7 +718,6 @@ long assignmentExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStrin
 
     if (value->node->type == Node_FunctionCallExpression) { //values from return from function
         tHashItem* tItem = getIdentifier(scope->topLocal, value->node->token->value, NULL);
-        //tHashItem* tItem = getIdentifier(scope->global, value->node->token->value);
         if (tItem != NULL) {
             tFuncItem* func = tItem->func;
             //function is already defined
@@ -725,7 +769,7 @@ long assignmentExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStrin
                         return leftSide.errCode;
                     }
                     if (leftSide.type != func->return_vals[i] && leftSide.type != TEverything) {
-                        ////fprintf(stderr, "Incompatible types in assignment of function return values!\n");
+                        //fprintf(stderr, "Incompatible types in assignment of function return values!\n");
                         return 6;
                     }
                     destination = destination->next;
@@ -738,7 +782,7 @@ long assignmentExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStrin
                 func_ret_to_LF(value->node->token->value, func, tmpDest);
 
             }
-            else {  //shouldn't happen, cuz only functions are defined in global scope
+            else {  //shouldn't happen, because only functions are defined in global scope
                 //fprintf(stderr, "\"%s\" is already defined as a variable, function needs another name!", value->node->token->value);
                 return 3;
             }
@@ -782,20 +826,24 @@ long assignmentExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStrin
             value = value->next;
         }
         if (value != NULL || destination != NULL) {     //number of expressions isn't equal
-            return 6;   //TODO idk if it's 6
+            return 6;
         }
     }
-
 
     return 0;
 }
 
-
-//call function WIP
+/**
+ * Function to handle function call (without assignment)
+ * @param root Pointer to the node
+ * @param scope Pointer to current scope
+ * @param parentFunction Name of parent function
+ * @param strList Pointer to temp string list
+ * @return Return code (0 = OK)
+ */
 int callFunction(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLinkedListItem* strList) {
     int result = 0;
     tHashItem* tItem = getIdentifier(scope->topLocal, root->token->value, NULL);
-    //tHashItem* tItem = getIdentifier(scope->global, root->token->value);
     if (tItem != NULL) {
         tFuncItem* func = tItem->func;
         //function is already defined
@@ -830,7 +878,7 @@ int callFunction(SyntaxNode* root, tScope* scope, char* parentFunction, tStringL
             }
 
         }
-        else {  //shouldn't happen, cuz only functions are defined in global scope
+        else {  //shouldn't happen, because only functions are defined in global scope
             //fprintf(stderr, "\"%s\" is already defined as a variable, function needs another name!", root->token->value);
             return 3;
         }
@@ -860,6 +908,14 @@ int callFunction(SyntaxNode* root, tScope* scope, char* parentFunction, tStringL
     return result;
 }
 
+/**
+ * Function to handle If expression
+ * @param root Pointer to the node
+ * @param scope Pointer to current scope
+ * @param parentFunction Name of parent function
+ * @param strList Pointer to temp string list
+ * @return Return code (0 = OK)
+ */
 int ifExpression(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLinkedListItem* strList) {
     tExpReturnType condition = evalExpression(root->left, scope, parentFunction, strList);
     if (condition.errCode != 0) {
@@ -873,7 +929,6 @@ int ifExpression(SyntaxNode* root, tScope* scope, char* parentFunction, tStringL
     //GENERATE
     if_cond(root->left, parentFunction);
     if_prefix(parentFunction);
-    //TODO assignment of constants in if/else is broken, cuz compiler doesn't know which path to choose...so always false
     disableAssignment = true;
     int result = blockExp(root->statements->first->node, scope, parentFunction, strList);    //true
     if (result != 0) {
@@ -892,10 +947,17 @@ int ifExpression(SyntaxNode* root, tScope* scope, char* parentFunction, tStringL
     return 0;
 }
 
+/**
+ * Function to handle For expression
+ * @param root Pointer to the node
+ * @param scope Pointer to current scope
+ * @param parentFunction Name of parent function
+ * @param strList Pointer to temp string list
+ * @return Return code (0 = OK)
+ */
 int forExpression(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLinkedListItem* strList) {
     int result = 0;
     createScope(scope);
-    //TODO codegen: create scope
     for_header(); // GENCODE
 
     //------- declaration part -------- -> optional
@@ -913,7 +975,6 @@ int forExpression(SyntaxNode* root, tScope* scope, char* parentFunction, tString
 
     //------- condition part --------- -> obligatory
     tExpReturnType condition = evalExpression(root->left->right, scope, parentFunction, strList);
-    //@TODO POMOCNA FUNKCIA !!! SCOPE LEVEL DEFINITIONS... GENERALIZE IT ! MUST BE IN SEMANTICS NOT IN GENCODE!!!!
     if (condition.errCode != 0) {
        result = condition.errCode;
     }
@@ -947,7 +1008,7 @@ int forExpression(SyntaxNode* root, tScope* scope, char* parentFunction, tString
         if (root->left->statements->first->node->type != Node_AssignmentExpression) {
             //fprintf(stderr, "Bad assignment in for expression!\n");
             removeLastLocalScope(scope);
-            return 7;   //TODO idk if 7
+            return 7;
         }
 
         result = assignmentExp(root->left->statements->first->node, scope, parentFunction, strList);
@@ -959,7 +1020,6 @@ int forExpression(SyntaxNode* root, tScope* scope, char* parentFunction, tString
     //for_end_Assign();
 
     for_suffix(parentFunction);
-    //TODO codegen: destroy scope
     removeLastLocalScope(scope);
     return result;
 }
@@ -968,41 +1028,42 @@ int forExpression(SyntaxNode* root, tScope* scope, char* parentFunction, tString
  * Main switch to redirect code to other functions
  * @param root Pointer to the node
  * @param scope Pointer to current scope
+ * @param parentFunction Name of parent function
+ * @param strList Pointer to temp string list
  * @return Return code (0 = OK)
  */
 long statementMainSwitch(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLinkedListItem* strList) {
     enum typeOfNode type = root->type;
     switch(type) {
-        case Node_DeclareExpression:            //DONE
+        case Node_DeclareExpression:
             return declareExp(root, scope, parentFunction, strList);
-        case Node_AssignmentExpression:         //DONE
+        case Node_AssignmentExpression:
             return assignmentExp(root, scope, parentFunction, strList);
-        case Node_IFExpression:                 //DONE
+        case Node_IFExpression:
             return ifExpression(root, scope, parentFunction, strList);
-        case Node_ForExpression:                //DONE
+        case Node_ForExpression:
             return forExpression(root, scope, parentFunction, strList);
-        case Node_FunctionCallExpression:       //DONE
+        case Node_FunctionCallExpression:
             return callFunction(root, scope, parentFunction, strList);
-        case Node_ReturnExpression:             //DONE
+        case Node_ReturnExpression:
             return returnExp(root, scope, parentFunction, strList);
 
-        case Node_IdentifierExpression:         //DONE
+        case Node_IdentifierExpression:
             return identifierExp(root, scope, parentFunction).errCode;
 
-        case Node_BooleanExpression:            //DONE
-        case Node_ParenthezedExpression:        //DONE
-        case Node_BinaryExpression:             //DONE
-        case Node_NumberIntExpression:          //DONE
-        case Node_NumberDoubleExpression:       //DONE
-        case Node_StringExpression:             //DONE
-        case Node_UnaryExpression:              //DONE
+        case Node_BooleanExpression:
+        case Node_ParenthezedExpression:
+        case Node_BinaryExpression:
+        case Node_NumberIntExpression:
+        case Node_NumberDoubleExpression:
+        case Node_StringExpression:
+        case Node_UnaryExpression:
             return evalExpression(root, scope, parentFunction, strList).errCode;
 
         default:
             return 7;
     }
 
-    return 0;
 }
 
 
@@ -1016,8 +1077,6 @@ long statementMainSwitch(SyntaxNode* root, tScope* scope, char* parentFunction, 
  */
 long blockExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLinkedListItem* strList) {
     createScope(scope);
-    //TODO codegen: create scope
-
     SyntaxNodes *statement = root->statements != NULL ? root->statements->first : NULL;
     while (statement != NULL) {
         long returnCode = statementMainSwitch(statement->node, scope, parentFunction, strList);  //main logic
@@ -1030,7 +1089,6 @@ long blockExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLink
         statement = statement->next;
     }
 
-    //TODO codegen: destroy scope, shouldn't be used when scope is already destroyed with return!
     removeLastLocalScope(scope);
     return 0;
 }
@@ -1039,6 +1097,7 @@ long blockExp(SyntaxNode* root, tScope* scope, char* parentFunction, tStringLink
  * Function to check functions in code
  * @param root Pointer to the node
  * @param scope Pointer to current scope
+ * @param strList Pointer to temp string list
  * @return Return code (0 = OK)
  */
 long runFunctionExp(SyntaxNode* root, tScope* scope, tStringLinkedListItem* strList){
@@ -1060,8 +1119,6 @@ long runFunctionExp(SyntaxNode* root, tScope* scope, tStringLinkedListItem* strL
     }
     else if (getHashItem(table, funcName)->declared == false) {  //function was already called, so now we need to check if params and return values are correct
         tFuncItem* func = getHashItem(table, funcName)->func;
-
-        //TODO something wrong with parameters
         SyntaxNodes *param = root->left->statements != NULL ? root->left->statements->first : NULL;
         int index = 0;
         while (param != NULL) {
@@ -1124,7 +1181,6 @@ long runFunctionExp(SyntaxNode* root, tScope* scope, tStringLinkedListItem* strL
 
     foundReturn = false;
     tFuncItem * func =  getHashItem(table, funcName)->func;
-    //TODO codegen: function head + scope + parameters
     if(strcmp(funcName, "main") == 0)
         main_prefix();
     else {
@@ -1166,7 +1222,7 @@ long addInbuiltFunctions(tScope* scope) {
     addReturnTypeToFunc(table, "inputf", TDouble);
     addReturnTypeToFunc(table, "inputf", TInt);
     //func print ( term1 , term2 , …, term𝑛 )
-    addFuncToHT(table, "print", true);    //TODO print function directly to fce checks
+    addFuncToHT(table, "print", true);
     //addParamToFunc(table, "print",)
 
     //func int2float(i int) (float64)
@@ -1219,7 +1275,8 @@ long addInbuiltFunctions(tScope* scope) {
 
 /**
  * Main function of semantic analysis
- * @param root Start node of ASS
+ * @param root Start node of syntax tree
+ * @param scope Global scope
  * @return Return code (0 = OK)
  */
 long runSemanticAnalyze(SyntaxNode* root, tScope* scope){
@@ -1245,7 +1302,6 @@ long runSemanticAnalyze(SyntaxNode* root, tScope* scope){
             long returnCode = runFunctionExp(statement->node, scope, strList);  //evaluate expressions
 
             if (returnCode != 0) {
-                //removeLastLocalScope(scope);
                 destroyList(strList);
                 return returnCode;
             }
@@ -1263,35 +1319,25 @@ long runSemanticAnalyze(SyntaxNode* root, tScope* scope){
                     if (tmp->func != NULL) {
                         if (tmp->declared == false) {
                             //fprintf(stderr, "Function \"%s\" not declared!\n", tmp->id);
-                            //removeLastLocalScope(scope);
                             destroyList(strList);
                             return 3;
                         }
                     }
                 }
-
             }
-            /////////------------------------------------------------------
-            //removeLastLocalScope(scope);
+
             destroyList(strList);
             //program_exit(NULL);
-            //TODO codegen: now you can throw the program to the interpret
             return 0;
         }
         else {
             //fprintf(stderr, "Main function should not have parameters or return value\n");
-            //removeLastLocalScope(scope);
-
             destroyList(strList);
             return 6;
         }
     }
 
-
-
-
     //fprintf(stderr, "Main function not declared!\n");
-    //removeLastLocalScope(scope);
     destroyList(strList);
     return 3;
 }
