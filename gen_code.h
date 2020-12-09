@@ -20,7 +20,6 @@
 #include <malloc.h>
 
 #define MAX_LEN 20
-#define MAX_PARAMS_COUNT 100
 
 typedef struct identifierListNode{
     char *name;
