@@ -75,7 +75,7 @@ void test_tree(){
     SyntaxNode* prog = NULL;
     prog = getSyntaxGlobal(&tokenizer);
     //PRINT SYNTAX TREE
-   /* if(prog != NULL){
+    /*if(prog != NULL){
         printSyntaxTree(prog, "", true);
     }*/
     if(isError()){
@@ -97,6 +97,7 @@ void test_tree(){
             printAndDeleteGenCode(&scope);
     }
     //DELETE EVERYTHING
+    deleteIdListGlobal();
     deletepList();
     removeLastLocalScope(&scope);
     deleteSyntaxTree(prog);
